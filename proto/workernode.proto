@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+import "google/protobuf/empty.proto";
+
+option go_package = "github.com/resource-aware-jds/resource-aware-jds/generated/proto";
+
+package computenode;
+
+service ComputeNode {
+  rpc SendJob(Job) returns (google.protobuf.Empty) {}
+  rpc HealthCheck(google.protobuf.Empty) returns (google.protobuf.Empty) {}
+  rpc ReportJob(ReportJobRequest) returns (google.protobuf.Empty) {}
+}
+
+message Job {
+  int32 jobID = 1;
+  string dockerImage = 2;
+}
+
+message ReportJobRequest {
+  int32 jobID = 1;
+  int64 totalJob = 2;
+  int64 currentJob = 3;
+}
