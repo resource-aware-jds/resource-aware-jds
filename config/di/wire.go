@@ -8,4 +8,6 @@ import (
 var ConfigWireSet = wire.NewSet(
 	config.ProvideConfig,
 	config.ProvideGRPCConfig,
+	config.ProvideControlPlaneConfigModel,
+	config.ProvideMongoConfig,
 )

@@ -38,3 +38,7 @@ func ProvideGRPCConfig(config *Config) grpc.Config {
 		Port: config.ControlPlaneConfig.GRPCServerPort,
 	}
 }
+
+func ProvideControlPlaneConfigModel(config *Config) ControlPlaneConfigModel {
+	return config.ControlPlaneConfig
+}

@@ -10,6 +10,9 @@ import (
 	"github.com/resource-aware-jds/resource-aware-jds/cmd/controlplane/handler"
 	"github.com/resource-aware-jds/resource-aware-jds/config"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/grpc"
+	"github.com/resource-aware-jds/resource-aware-jds/pkg/mongo"
+	"github.com/resource-aware-jds/resource-aware-jds/repository"
+	"github.com/resource-aware-jds/resource-aware-jds/service"
 )
 
 // Injectors from wire.go:
@@ -24,9 +27,19 @@ func InitializeApplication() (ControlPlaneApp, func(), error) {
 	if err != nil {
 		return ControlPlaneApp{}, nil, err
 	}
-	grpcHandler := handler.ProvideControlPlaneGRPCHandler(rajdsGrpc)
+	controlPlaneConfigModel := config.ProvideControlPlaneConfigModel(configConfig)
+	mongoConfig := config.ProvideMongoConfig(controlPlaneConfigModel)
+	database, cleanup2, err := mongo.ProvideMongoConnection(mongoConfig)
+	if err != nil {
+		cleanup()
+		return ControlPlaneApp{}, nil, err
+	}
+	iControlPlane := repository.ProvideControlPlane(database)
+	serviceIControlPlane := service.ProvideControlPlane(iControlPlane)
+	grpcHandler := handler.ProvideControlPlaneGRPCHandler(rajdsGrpc, serviceIControlPlane)
 	controlPlaneApp := ProvideControlPlaneApp(rajdsGrpc, grpcHandler)
 	return controlPlaneApp, func() {
+		cleanup2()
 		cleanup()
 	}, nil
 }

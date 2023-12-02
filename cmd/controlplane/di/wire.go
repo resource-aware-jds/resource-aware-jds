@@ -6,8 +6,10 @@ package di
 import (
 	"github.com/google/wire"
 	"github.com/resource-aware-jds/resource-aware-jds/cmd/controlplane/handler"
-	configdi "github.com/resource-aware-jds/resource-aware-jds/config/di"
-	pkgdi "github.com/resource-aware-jds/resource-aware-jds/pkg/di"
+	configDI "github.com/resource-aware-jds/resource-aware-jds/config/di"
+	pkgDI "github.com/resource-aware-jds/resource-aware-jds/pkg/di"
+	repositoryDI "github.com/resource-aware-jds/resource-aware-jds/repository/di"
+	serviceDI "github.com/resource-aware-jds/resource-aware-jds/service/di"
 )
 
 //go:generate wire
@@ -15,9 +17,11 @@ import (
 func InitializeApplication() (ControlPlaneApp, func(), error) {
 	panic(
 		wire.Build(
-			configdi.ConfigWireSet,
-			pkgdi.PKGWireSet,
+			configDI.ConfigWireSet,
+			pkgDI.PKGWireSet,
 			handler.ProvideControlPlaneGRPCHandler,
+			repositoryDI.RepositoryWireSet,
+			serviceDI.ServiceWireSet,
 			ProvideControlPlaneApp,
 		),
 	)

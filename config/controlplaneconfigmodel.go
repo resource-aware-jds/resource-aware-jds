@@ -6,3 +6,7 @@ type ControlPlaneConfigModel struct {
 	GRPCServerPort int          `envconfig:"GRPC_SERVER_PORT" default:"31234"`
 	MongoConfig    mongo.Config `envconfig:"MONGO"`
 }
+
+func ProvideMongoConfig(config ControlPlaneConfigModel) mongo.Config {
+	return config.MongoConfig
+}
