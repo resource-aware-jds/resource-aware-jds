@@ -1,24 +1,19 @@
 syntax = "proto3";
 
-import "google/protobuf/empty.proto";
-
 option go_package = "github.com/resource-aware-jds/resource-aware-jds/generated/proto";
 
 package controlplane;
 
 service ControlPlane {
-  rpc Ping(google.protobuf.Empty) returns (Pong) {}
-  rpc ComputeNodeStartUpRegistration(ComputeNodeInfo)
-      returns (google.protobuf.Empty) {}
+  rpc WorkerRegistration(ComputeNodeRegistrationRequest) returns (ComputeNodeRegistrationResponse);
 }
 
-message Pong {
-  bool isReady = 1;
-  string message = 2;
-}
-
-message ComputeNodeInfo {
+message ComputeNodeRegistrationRequest {
   string ip = 1;
-  int32 recepterPort = 2;
-  int32 nodeId = 3;
+  int32 port = 2;
+  string nodePublicKeyPEMBase64 = 3;
+}
+
+message ComputeNodeRegistrationResponse {
+  string id = 1;
 }

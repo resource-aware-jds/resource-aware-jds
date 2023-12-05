@@ -11,7 +11,6 @@ import (
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
-	emptypb "google.golang.org/protobuf/types/known/emptypb"
 )
 
 // This is a compile-time assertion to ensure that this generated file
@@ -23,8 +22,7 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type ControlPlaneClient interface {
-	Ping(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*Pong, error)
-	ComputeNodeStartUpRegistration(ctx context.Context, in *ComputeNodeInfo, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	WorkerRegistration(ctx context.Context, in *ComputeNodeRegistrationRequest, opts ...grpc.CallOption) (*ComputeNodeRegistrationResponse, error)
 }
 
 type controlPlaneClient struct {
@@ -35,18 +33,9 @@ func NewControlPlaneClient(cc grpc.ClientConnInterface) ControlPlaneClient {
 	return &controlPlaneClient{cc}
 }
 
-func (c *controlPlaneClient) Ping(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*Pong, error) {
-	out := new(Pong)
-	err := c.cc.Invoke(ctx, "/controlplane.ControlPlane/Ping", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *controlPlaneClient) ComputeNodeStartUpRegistration(ctx context.Context, in *ComputeNodeInfo, opts ...grpc.CallOption) (*emptypb.Empty, error) {
-	out := new(emptypb.Empty)
-	err := c.cc.Invoke(ctx, "/controlplane.ControlPlane/ComputeNodeStartUpRegistration", in, out, opts...)
+func (c *controlPlaneClient) WorkerRegistration(ctx context.Context, in *ComputeNodeRegistrationRequest, opts ...grpc.CallOption) (*ComputeNodeRegistrationResponse, error) {
+	out := new(ComputeNodeRegistrationResponse)
+	err := c.cc.Invoke(ctx, "/controlplane.ControlPlane/WorkerRegistration", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -57,8 +46,7 @@ func (c *controlPlaneClient) ComputeNodeStartUpRegistration(ctx context.Context,
 // All implementations must embed UnimplementedControlPlaneServer
 // for forward compatibility
 type ControlPlaneServer interface {
-	Ping(context.Context, *emptypb.Empty) (*Pong, error)
-	ComputeNodeStartUpRegistration(context.Context, *ComputeNodeInfo) (*emptypb.Empty, error)
+	WorkerRegistration(context.Context, *ComputeNodeRegistrationRequest) (*ComputeNodeRegistrationResponse, error)
 	mustEmbedUnimplementedControlPlaneServer()
 }
 
@@ -66,11 +54,8 @@ type ControlPlaneServer interface {
 type UnimplementedControlPlaneServer struct {
 }
 
-func (UnimplementedControlPlaneServer) Ping(context.Context, *emptypb.Empty) (*Pong, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Ping not implemented")
-}
-func (UnimplementedControlPlaneServer) ComputeNodeStartUpRegistration(context.Context, *ComputeNodeInfo) (*emptypb.Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ComputeNodeStartUpRegistration not implemented")
+func (UnimplementedControlPlaneServer) WorkerRegistration(context.Context, *ComputeNodeRegistrationRequest) (*ComputeNodeRegistrationResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method WorkerRegistration not implemented")
 }
 func (UnimplementedControlPlaneServer) mustEmbedUnimplementedControlPlaneServer() {}
 
@@ -85,38 +70,20 @@ func RegisterControlPlaneServer(s grpc.ServiceRegistrar, srv ControlPlaneServer)
 	s.RegisterService(&ControlPlane_ServiceDesc, srv)
 }
 
-func _ControlPlane_Ping_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(emptypb.Empty)
+func _ControlPlane_WorkerRegistration_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ComputeNodeRegistrationRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ControlPlaneServer).Ping(ctx, in)
+		return srv.(ControlPlaneServer).WorkerRegistration(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/controlplane.ControlPlane/Ping",
+		FullMethod: "/controlplane.ControlPlane/WorkerRegistration",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ControlPlaneServer).Ping(ctx, req.(*emptypb.Empty))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _ControlPlane_ComputeNodeStartUpRegistration_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ComputeNodeInfo)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(ControlPlaneServer).ComputeNodeStartUpRegistration(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/controlplane.ControlPlane/ComputeNodeStartUpRegistration",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ControlPlaneServer).ComputeNodeStartUpRegistration(ctx, req.(*ComputeNodeInfo))
+		return srv.(ControlPlaneServer).WorkerRegistration(ctx, req.(*ComputeNodeRegistrationRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -129,12 +96,8 @@ var ControlPlane_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*ControlPlaneServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "Ping",
-			Handler:    _ControlPlane_Ping_Handler,
-		},
-		{
-			MethodName: "ComputeNodeStartUpRegistration",
-			Handler:    _ControlPlane_ComputeNodeStartUpRegistration_Handler,
+			MethodName: "WorkerRegistration",
+			Handler:    _ControlPlane_WorkerRegistration_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
