@@ -1,9 +1,12 @@
 package grpc
 
 import (
+	"crypto/tls"
 	"fmt"
+	"github.com/resource-aware-jds/resource-aware-jds/pkg/cert"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 	"net"
 )
 
@@ -21,7 +24,7 @@ type Config struct {
 	Port int
 }
 
-func ProvideGRPCServer(config Config) (RAJDSGrpc, func(), error) {
+func ProvideGRPCServer(config Config, transportCertificate cert.TransportCertificate) (RAJDSGrpc, func(), error) {
 	// GRPC Server Listening
 	lis, err := net.Listen("tcp", fmt.Sprint(":", config.Port))
 	if err != nil {
@@ -29,7 +32,19 @@ func ProvideGRPCServer(config Config) (RAJDSGrpc, func(), error) {
 		return nil, nil, err
 	}
 
-	grpcServer := grpc.NewServer()
+	tlsConfig := &tls.Config{
+		Certificates: []tls.Certificate{
+			{
+				Certificate: transportCertificate.GetCertificateChains(),
+				PrivateKey:  transportCertificate.GetPrivateKey(),
+			},
+		},
+		ClientAuth: tls.NoClientCert,
+	}
+
+	grpcServer := grpc.NewServer(
+		grpc.Creds(credentials.NewTLS(tlsConfig)),
+	)
 
 	cleanup := func() {
 		grpcServer.GracefulStop()
