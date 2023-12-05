@@ -9,6 +9,7 @@ package di
 import (
 	"github.com/resource-aware-jds/resource-aware-jds/cmd/controlplane/handler"
 	"github.com/resource-aware-jds/resource-aware-jds/config"
+	"github.com/resource-aware-jds/resource-aware-jds/pkg/cert"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/grpc"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/mongo"
 	"github.com/resource-aware-jds/resource-aware-jds/repository"
@@ -23,11 +24,21 @@ func InitializeApplication() (ControlPlaneApp, func(), error) {
 		return ControlPlaneApp{}, nil, err
 	}
 	grpcConfig := config.ProvideGRPCConfig(configConfig)
-	rajdsGrpc, cleanup, err := grpc.ProvideGRPCServer(grpcConfig)
+	controlPlaneConfigModel := config.ProvideControlPlaneConfigModel(configConfig)
+	transportCertificateConfig := config.ProvideTransportCertificateConfig(controlPlaneConfigModel)
+	caCertificateConfig := config.ProvideCACertificateConfig(controlPlaneConfigModel)
+	caCertificate, err := cert.ProvideCACertificate(caCertificateConfig)
 	if err != nil {
 		return ControlPlaneApp{}, nil, err
 	}
-	controlPlaneConfigModel := config.ProvideControlPlaneConfigModel(configConfig)
+	transportCertificate, err := cert.ProvideTransportCertificate(transportCertificateConfig, caCertificate)
+	if err != nil {
+		return ControlPlaneApp{}, nil, err
+	}
+	rajdsGrpc, cleanup, err := grpc.ProvideGRPCServer(grpcConfig, transportCertificate)
+	if err != nil {
+		return ControlPlaneApp{}, nil, err
+	}
 	mongoConfig := config.ProvideMongoConfig(controlPlaneConfigModel)
 	database, cleanup2, err := mongo.ProvideMongoConnection(mongoConfig)
 	if err != nil {

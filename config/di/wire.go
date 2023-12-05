@@ -10,4 +10,6 @@ var ConfigWireSet = wire.NewSet(
 	config.ProvideGRPCConfig,
 	config.ProvideControlPlaneConfigModel,
 	config.ProvideMongoConfig,
+	config.ProvideCACertificateConfig,
+	config.ProvideTransportCertificateConfig,
 )
