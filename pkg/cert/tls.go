@@ -25,6 +25,7 @@ const (
 
 var (
 	ErrInvalidPEMBlockType = errors.New("invalid PEM block type")
+	ErrNoPrivateKey        = errors.New("no private key to sign the certificate")
 )
 
 type tlsCertificate struct {
@@ -42,6 +43,7 @@ type TLSCertificate interface {
 	GetPublicKey() crypto.PublicKey
 	GetPrivateKey() crypto.PrivateKey
 	GetCertificateChains(pemEncoded bool) [][]byte
+	CreateCertificateAndSign(certificateSubject pkix.Name, subjectPublicKey crypto.PublicKey, validDuration time.Duration) (*x509.Certificate, error)
 }
 
 type Config struct {
@@ -133,6 +135,36 @@ func (t *tlsCertificate) GetCertificateChains(pemEncoded bool) [][]byte {
 	}
 
 	return certificateStack
+}
+
+func (t *tlsCertificate) CreateCertificateAndSign(certificateSubject pkix.Name, subjectPublicKey crypto.PublicKey, validDuration time.Duration) (*x509.Certificate, error) {
+	if t.privateKey == nil {
+		return nil, ErrNoPrivateKey
+	}
+
+	// Create the Certificate
+	certificate := &x509.Certificate{
+		SerialNumber:          big.NewInt(2019),
+		Subject:               certificateSubject,
+		NotBefore:             time.Now(),
+		NotAfter:              time.Now().Add(validDuration),
+		IsCA:                  false,
+		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
+		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
+		BasicConstraintsValid: true,
+		IPAddresses: []net.IP{
+			net.IPv4(0, 0, 0, 0),
+			net.IPv6unspecified,
+		},
+		DNSNames: []string{"localhost"},
+	}
+
+	certificateByte, err := x509.CreateCertificate(rand.Reader, certificate, t.certificate, subjectPublicKey, t.privateKey)
+	if err != nil {
+		return nil, err
+	}
+
+	return x509.ParseCertificate(certificateByte)
 }
 
 // CreateCertificate is used to generate the Public and Private Key pair
