@@ -35,7 +35,7 @@ func ProvideGRPCServer(config Config, transportCertificate cert.TransportCertifi
 	tlsConfig := &tls.Config{
 		Certificates: []tls.Certificate{
 			{
-				Certificate: transportCertificate.GetCertificateChains(),
+				Certificate: transportCertificate.GetCertificateChains(false),
 				PrivateKey:  transportCertificate.GetPrivateKey(),
 			},
 		},

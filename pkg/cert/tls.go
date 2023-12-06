@@ -3,16 +3,16 @@ package cert
 import (
 	"bytes"
 	"crypto"
-	"crypto/ed25519"
 	"crypto/rand"
+	"crypto/rsa"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
 	"errors"
 	"fmt"
-	"github.com/resource-aware-jds/resource-aware-jds/pkg/datastructure"
 	"github.com/sirupsen/logrus"
 	"math/big"
+	"net"
 	"os"
 	"strings"
 	"time"
@@ -41,7 +41,7 @@ type TLSCertificate interface {
 	GetParentCertificate() TLSCertificate
 	GetPublicKey() crypto.PublicKey
 	GetPrivateKey() crypto.PrivateKey
-	GetCertificateChains() [][]byte
+	GetCertificateChains(pemEncoded bool) [][]byte
 }
 
 type Config struct {
@@ -58,7 +58,8 @@ func ProvideTLSCertificate(config Config) (TLSCertificate, error) {
 	// Try to load the Certificate from the file
 	err := certificate.loadCertificateFromFile(config.CertificateFileLocation, config.PrivateKeyFileLocation)
 	if err == nil {
-		return nil, nil
+		logrus.Info("Loaded Certificate from file: ", config.CertificateFileLocation, ":", config.PrivateKeyFileLocation)
+		return &certificate, nil
 	}
 
 	logrus.Warn("Failed to load certificate from file with this error: ", err)
@@ -99,14 +100,31 @@ func (t *tlsCertificate) GetPrivateKey() crypto.PrivateKey {
 	return t.privateKey
 }
 
-func (t *tlsCertificate) GetCertificateChains() [][]byte {
-	// Encode the certificate into PEM format
-	certificateStack := datastructure.Stack[[]byte]{}
+func (t *tlsCertificate) GetCertificateChains(pemEncoded bool) [][]byte {
+	// Call pop to reverse the certificate chain.
+	certificateStack := make([][]byte, 0)
 
 	var focusedTLSCertificate TLSCertificate
 	focusedTLSCertificate = t
 	for {
-		certificateStack = append(certificateStack, focusedTLSCertificate.GetCertificate().Raw)
+
+		certByte := focusedTLSCertificate.GetCertificate().Raw
+		if pemEncoded {
+			// Encode the current focused TLS Certificate.
+			certificatePEM := new(bytes.Buffer)
+			err := pem.Encode(certificatePEM, &pem.Block{
+				Type:  PEMCertBlockType,
+				Bytes: focusedTLSCertificate.GetCertificate().Raw,
+			})
+
+			if err != nil {
+				continue
+			}
+
+			certByte = certificatePEM.Bytes()
+		}
+
+		certificateStack = append(certificateStack, certByte)
 
 		if focusedTLSCertificate.GetParentCertificate() == nil {
 			break
@@ -114,17 +132,7 @@ func (t *tlsCertificate) GetCertificateChains() [][]byte {
 		focusedTLSCertificate = focusedTLSCertificate.GetParentCertificate()
 	}
 
-	// Call pop to reverse the certificate chain.
-	result := make([][]byte, 0, len(certificateStack))
-	for {
-		certByte, ok := certificateStack.Pop()
-		if !ok || certByte == nil {
-			break
-		}
-		result = append(result, *certByte)
-	}
-
-	return result
+	return certificateStack
 }
 
 // CreateCertificate is used to generate the Public and Private Key pair
@@ -148,6 +156,11 @@ func (t *tlsCertificate) createCertificate(duration time.Duration, certificateSu
 		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
 		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
 		BasicConstraintsValid: true,
+		IPAddresses: []net.IP{
+			net.IPv4(0, 0, 0, 0),
+			net.IPv6unspecified,
+		},
+		DNSNames: []string{"localhost"},
 	}
 
 	var parentCertificateValue *x509.Certificate
@@ -173,49 +186,22 @@ func (t *tlsCertificate) createCertificate(duration time.Duration, certificateSu
 
 	t.certificate = certificateParsed
 	t.parentCertificate = parentTLSCertificate
+	logrus.Info("")
 	return nil
 }
 
 // createPublicAndPrivateKeyPair is used to create key used in the certificate procedure.
-// The new certificate will be created using the ed25519 algorithm only.
 func (t *tlsCertificate) createPublicAndPrivateKeyPair() (crypto.PublicKey, crypto.PrivateKey, error) {
-	return ed25519.GenerateKey(rand.Reader)
+	privateKey, err := rsa.GenerateKey(rand.Reader, 4096)
+	if err != nil {
+		return nil, nil, err
+	}
+	return &privateKey.PublicKey, privateKey, nil
 }
 
 func (t *tlsCertificate) saveCertificateToFile(certificateFilePath, privateKeyFilePath string) error {
 	// Encode the certificate into PEM format
-	certificateStack := datastructure.Stack[[]byte]{}
-
-	var focusedTLSCertificate TLSCertificate
-	focusedTLSCertificate = t
-	for {
-		// Encode the current focused TLS Certificate.
-		certificatePEM := new(bytes.Buffer)
-		err := pem.Encode(certificatePEM, &pem.Block{
-			Type:  PEMCertBlockType,
-			Bytes: focusedTLSCertificate.GetCertificate().Raw,
-		})
-
-		if err != nil {
-			return err
-		}
-
-		certificateStack = append(certificateStack, certificatePEM.Bytes())
-
-		if focusedTLSCertificate.GetParentCertificate() == nil {
-			break
-		}
-		focusedTLSCertificate = focusedTLSCertificate.GetParentCertificate()
-	}
-
-	certificateBytes := make([][]byte, 0)
-	for {
-		focusedCertificateStackResult, ok := certificateStack.Pop()
-		if !ok || focusedCertificateStackResult == nil {
-			break
-		}
-		certificateBytes = append(certificateBytes, *focusedCertificateStackResult)
-	}
+	certificateBytes := t.GetCertificateChains(true)
 
 	// Save the certificates into file
 	certificateFilePathSplit := strings.Split(certificateFilePath, "/")
@@ -277,12 +263,12 @@ func (t *tlsCertificate) loadCertificateFromFile(certificateFilePath, privateKey
 	t.privateKey = privateKey
 
 	// Validate the public and private key.
-	privateKeyParsed, ok := privateKey.(ed25519.PrivateKey)
+	privateKeyParsed, ok := privateKey.(*rsa.PrivateKey)
 	if !ok {
-		return fmt.Errorf("private key is not ed25519")
+		return fmt.Errorf("private key is not rsa")
 	}
 
-	publicKeyParsed, ok := privateKeyParsed.Public().(ed25519.PublicKey)
+	publicKeyParsed, ok := privateKeyParsed.Public().(*rsa.PublicKey)
 	if !ok {
 		return fmt.Errorf("PublicKey parsed failed")
 	}
@@ -360,11 +346,12 @@ func (t *tlsCertificate) loadCertificateFromFilePath(certificateFilePath string)
 		}
 	}
 
-	previousTLSCertificate := &tlsCertificate{
-		isCA:        true,
+	firstCertificate := &tlsCertificate{
+		isCA:        false,
 		certificate: certificates[0],
 		publicKey:   certificates[0].PublicKey,
 	}
+	previousTLSCertificate := firstCertificate
 	for i := 1; i < len(certificates); i++ {
 		focusedCertificate := certificates[i]
 		if focusedCertificate == nil {
@@ -375,11 +362,12 @@ func (t *tlsCertificate) loadCertificateFromFilePath(certificateFilePath string)
 			certificate:       focusedCertificate,
 			publicKey:         focusedCertificate.PublicKey,
 			parentCertificate: previousTLSCertificate,
+			isCA:              i == len(certificates)-1,
 		}
 
 		previousTLSCertificate = latestTlSCertificate
 	}
-	return previousTLSCertificate, nil
+	return firstCertificate, nil
 }
 
 func (t *tlsCertificate) parsePrivateKey(der []byte) (crypto.PrivateKey, error) {
