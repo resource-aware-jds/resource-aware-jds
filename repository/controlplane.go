@@ -2,7 +2,9 @@ package repository
 
 import (
 	"context"
-	"go.mongodb.org/mongo-driver/bson"
+	"errors"
+	"github.com/resource-aware-jds/resource-aware-jds/models"
+	"github.com/resource-aware-jds/resource-aware-jds/pkg/cert"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
@@ -16,7 +18,8 @@ type controlPlane struct {
 }
 
 type IControlPlane interface {
-	IsNodeAlreadyRegistered(ctx context.Context, nodePublicKeyBase64 string) (bool, error)
+	IsNodeAlreadyRegistered(ctx context.Context, keyHash string) (bool, error)
+	RegisterWorkerNodeWithCertificate(ctx context.Context, certificate cert.TLSCertificate) error
 }
 
 func ProvideControlPlane(database *mongo.Database) IControlPlane {
@@ -26,18 +29,36 @@ func ProvideControlPlane(database *mongo.Database) IControlPlane {
 	}
 }
 
-func (c *controlPlane) IsNodeAlreadyRegistered(ctx context.Context, nodePublicKeyBase64 string) (bool, error) {
-	// TODO: Implement better encryption.
-	result := c.nodeRegistryCollection.FindOne(ctx, bson.M{
-		"key": nodePublicKeyBase64,
+func (c *controlPlane) IsNodeAlreadyRegistered(ctx context.Context, publicKeyHash string) (bool, error) {
+	result := c.nodeRegistryCollection.FindOne(ctx, models.NodeEntry{
+		PublicKeyHash: publicKeyHash,
 	})
 
 	if result.Err() != nil {
-		if result.Err() == mongo.ErrNoDocuments {
+		if errors.Is(result.Err(), mongo.ErrNoDocuments) {
 			return true, nil
 		}
 		return false, result.Err()
 	}
 
 	return false, nil
+}
+
+func (c *controlPlane) RegisterWorkerNodeWithCertificate(ctx context.Context, certificate cert.TLSCertificate) error {
+	parsePublicKey, err := certificate.GetPublicKey()
+	if err != nil {
+		return err
+	}
+
+	_, err = c.nodeRegistryCollection.InsertOne(ctx, models.NodeEntry{
+		NodeID:        certificate.GetCertificate().Subject.SerialNumber,
+		PublicKey:     parsePublicKey,
+		Certificate:   certificate.GetCertificate().Raw,
+		PublicKeyHash: parsePublicKey.GetSHA1Hash(),
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

@@ -40,10 +40,10 @@ type TLSCertificate interface {
 	IsCA() bool
 	GetCertificate() *x509.Certificate
 	GetParentCertificate() TLSCertificate
-	GetPublicKey() crypto.PublicKey
+	GetPublicKey() (RAJDSPublicKey, error)
 	GetPrivateKey() crypto.PrivateKey
 	GetCertificateChains(pemEncoded bool) [][]byte
-	CreateCertificateAndSign(certificateSubject pkix.Name, subjectPublicKey crypto.PublicKey, validDuration time.Duration) (*x509.Certificate, error)
+	CreateCertificateAndSign(certificateSubject pkix.Name, subjectPublicKey crypto.PublicKey, validDuration time.Duration) (TLSCertificate, error)
 }
 
 type Config struct {
@@ -94,8 +94,8 @@ func (t *tlsCertificate) GetParentCertificate() TLSCertificate {
 	return t.parentCertificate
 }
 
-func (t *tlsCertificate) GetPublicKey() crypto.PublicKey {
-	return t.publicKey
+func (t *tlsCertificate) GetPublicKey() (RAJDSPublicKey, error) {
+	return ParseToRAJDSPublicKey(t.publicKey)
 }
 
 func (t *tlsCertificate) GetPrivateKey() crypto.PrivateKey {
@@ -137,7 +137,7 @@ func (t *tlsCertificate) GetCertificateChains(pemEncoded bool) [][]byte {
 	return certificateStack
 }
 
-func (t *tlsCertificate) CreateCertificateAndSign(certificateSubject pkix.Name, subjectPublicKey crypto.PublicKey, validDuration time.Duration) (*x509.Certificate, error) {
+func (t *tlsCertificate) CreateCertificateAndSign(certificateSubject pkix.Name, subjectPublicKey crypto.PublicKey, validDuration time.Duration) (TLSCertificate, error) {
 	if t.privateKey == nil {
 		return nil, ErrNoPrivateKey
 	}
@@ -164,7 +164,16 @@ func (t *tlsCertificate) CreateCertificateAndSign(certificateSubject pkix.Name, 
 		return nil, err
 	}
 
-	return x509.ParseCertificate(certificateByte)
+	parsedCertificate, err := x509.ParseCertificate(certificateByte)
+	if err != nil {
+		return nil, err
+	}
+
+	return &tlsCertificate{
+		certificate:       parsedCertificate,
+		parentCertificate: t,
+		publicKey:         subjectPublicKey,
+	}, nil
 }
 
 // CreateCertificate is used to generate the Public and Private Key pair
@@ -225,6 +234,7 @@ func (t *tlsCertificate) createCertificate(duration time.Duration, certificateSu
 // createPublicAndPrivateKeyPair is used to create key used in the certificate procedure.
 func (t *tlsCertificate) createPublicAndPrivateKeyPair() (crypto.PublicKey, crypto.PrivateKey, error) {
 	privateKey, err := rsa.GenerateKey(rand.Reader, 4096)
+
 	if err != nil {
 		return nil, nil, err
 	}
