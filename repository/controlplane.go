@@ -19,7 +19,7 @@ type controlPlane struct {
 
 type IControlPlane interface {
 	IsNodeAlreadyRegistered(ctx context.Context, keyHash string) (bool, error)
-	RegisterWorkerNodeWithCertificate(ctx context.Context, certificate cert.TLSCertificate) error
+	RegisterWorkerNodeWithCertificate(ctx context.Context, ip string, port int32, certificate cert.TLSCertificate) error
 }
 
 func ProvideControlPlane(database *mongo.Database) IControlPlane {
@@ -44,7 +44,7 @@ func (c *controlPlane) IsNodeAlreadyRegistered(ctx context.Context, publicKeyHas
 	return false, nil
 }
 
-func (c *controlPlane) RegisterWorkerNodeWithCertificate(ctx context.Context, certificate cert.TLSCertificate) error {
+func (c *controlPlane) RegisterWorkerNodeWithCertificate(ctx context.Context, ip string, port int32, certificate cert.TLSCertificate) error {
 	parsePublicKey, err := certificate.GetPublicKey()
 	if err != nil {
 		return err
@@ -55,6 +55,8 @@ func (c *controlPlane) RegisterWorkerNodeWithCertificate(ctx context.Context, ce
 		PublicKey:     parsePublicKey,
 		Certificate:   certificate.GetCertificate().Raw,
 		PublicKeyHash: parsePublicKey.GetSHA1Hash(),
+		IP:            ip,
+		Port:          port,
 	})
 	if err != nil {
 		return err

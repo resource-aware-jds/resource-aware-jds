@@ -11,4 +11,6 @@ type NodeEntry struct {
 	PublicKey     cert.RAJDSPublicKey `bson:"public_key"`
 	PublicKeyHash string              `bson:"public_key_hash"`
 	Certificate   []byte              `bson:"certificate"`
+	IP            string              `bson:"ip"`
+	Port          int32               `bson:"port"`
 }

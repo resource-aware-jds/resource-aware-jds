@@ -11,9 +11,10 @@ service ControlPlane {
 message ComputeNodeRegistrationRequest {
   string ip = 1;
   int32 port = 2;
-  string nodePublicKeyPEMBase64 = 3;
+  bytes nodePublicKey = 3;
 }
 
 message ComputeNodeRegistrationResponse {
   string id = 1;
+  bytes certificate = 2;
 }

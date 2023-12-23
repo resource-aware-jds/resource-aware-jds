@@ -2,11 +2,11 @@ package handler
 
 import (
 	"context"
-	"fmt"
+	"crypto/x509"
 	"github.com/resource-aware-jds/resource-aware-jds/generated/proto/github.com/resource-aware-jds/resource-aware-jds/generated/proto"
+	"github.com/resource-aware-jds/resource-aware-jds/pkg/cert"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/grpc"
 	"github.com/resource-aware-jds/resource-aware-jds/service"
-	"google.golang.org/grpc/metadata"
 )
 
 type GRPCHandler struct {
@@ -23,10 +23,23 @@ func ProvideControlPlaneGRPCHandler(grpcServer grpc.RAJDSGrpc, controlPlaneServi
 }
 
 func (g *GRPCHandler) WorkerRegistration(ctx context.Context, req *proto.ComputeNodeRegistrationRequest) (*proto.ComputeNodeRegistrationResponse, error) {
-	result, _ := metadata.FromIncomingContext(ctx)
-	fmt.Println(result)
+	parsedNodePublicKey, err := x509.ParsePKCS1PublicKey(req.NodePublicKey)
+	if err != nil {
+		return nil, err
+	}
+
+	parsedRAJDSPublicKey, err := cert.ParseToRAJDSPublicKey(parsedNodePublicKey)
+	if err != nil {
+		return nil, err
+	}
+
+	certificate, err := g.controlPlaneService.RegisterWorker(ctx, req.Ip, req.Port, parsedRAJDSPublicKey)
+	if err != nil {
+		return nil, err
+	}
 
 	return &proto.ComputeNodeRegistrationResponse{
-		Id: "Test",
+		Id:          certificate.GetCertificate().Subject.SerialNumber,
+		Certificate: certificate.GetCertificate().Raw,
 	}, nil
 }
