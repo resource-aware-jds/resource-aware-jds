@@ -10,12 +10,12 @@ import (
 	"net"
 )
 
-type rajdsGRPC struct {
+type rajdsGRPCServer struct {
 	Listener   net.Listener
 	GRPCServer *grpc.Server
 }
 
-type RAJDSGrpc interface {
+type RAJDSGrpcServer interface {
 	Serve()
 	GetGRPCServer() *grpc.Server
 }
@@ -24,7 +24,7 @@ type Config struct {
 	Port int
 }
 
-func ProvideGRPCServer(config Config, transportCertificate cert.TransportCertificate) (RAJDSGrpc, func(), error) {
+func ProvideGRPCServer(config Config, transportCertificate cert.TransportCertificate) (RAJDSGrpcServer, func(), error) {
 	// GRPC Server Listening
 	lis, err := net.Listen("tcp", fmt.Sprint(":", config.Port))
 	if err != nil {
@@ -50,19 +50,19 @@ func ProvideGRPCServer(config Config, transportCertificate cert.TransportCertifi
 		grpcServer.GracefulStop()
 	}
 
-	return &rajdsGRPC{
+	return &rajdsGRPCServer{
 		Listener:   lis,
 		GRPCServer: grpcServer,
 	}, cleanup, nil
 }
 
-func (r *rajdsGRPC) Serve() {
+func (r *rajdsGRPCServer) Serve() {
 	go func() {
 		logrus.Info("GRPC Server is Listening on: ", r.Listener.Addr())
 		r.GRPCServer.Serve(r.Listener)
 	}()
 }
 
-func (r *rajdsGRPC) GetGRPCServer() *grpc.Server {
+func (r *rajdsGRPCServer) GetGRPCServer() *grpc.Server {
 	return r.GRPCServer
 }

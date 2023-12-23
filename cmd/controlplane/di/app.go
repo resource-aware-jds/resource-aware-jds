@@ -6,12 +6,12 @@ import (
 )
 
 type ControlPlaneApp struct {
-	GRPCServer              grpc.RAJDSGrpc
+	GRPCServer              grpc.RAJDSGrpcServer
 	ControlPlaneGRPCHandler handler.GRPCHandler
 }
 
 func ProvideControlPlaneApp(
-	grpcServer grpc.RAJDSGrpc,
+	grpcServer grpc.RAJDSGrpcServer,
 	controlPlaneGRPCHandler handler.GRPCHandler,
 ) ControlPlaneApp {
 	return ControlPlaneApp{

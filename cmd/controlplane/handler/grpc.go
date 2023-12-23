@@ -14,7 +14,7 @@ type GRPCHandler struct {
 	controlPlaneService service.IControlPlane
 }
 
-func ProvideControlPlaneGRPCHandler(grpcServer grpc.RAJDSGrpc, controlPlaneService service.IControlPlane) GRPCHandler {
+func ProvideControlPlaneGRPCHandler(grpcServer grpc.RAJDSGrpcServer, controlPlaneService service.IControlPlane) GRPCHandler {
 	handler := GRPCHandler{
 		controlPlaneService: controlPlaneService,
 	}
