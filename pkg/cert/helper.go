@@ -30,7 +30,7 @@ func GeneratePublicAndPrivateKeyPair() (publicKeyData KeyData, privateKeyData Ke
 type CreateCertificateOptions struct {
 	PublicKey            KeyData
 	PrivateKey           KeyData
-	Duration             time.Duration
+	ValidDuration        time.Duration
 	CertificateSubject   pkix.Name
 	ParentTLSCertificate TLSCertificate
 	IsCA                 bool
@@ -46,7 +46,7 @@ func CreateCertificate(c CreateCertificateOptions) (TLSCertificate, error) {
 		SerialNumber:          big.NewInt(2019),
 		Subject:               c.CertificateSubject,
 		NotBefore:             time.Now(),
-		NotAfter:              time.Now().Add(c.Duration),
+		NotAfter:              time.Now().Add(c.ValidDuration),
 		IsCA:                  c.IsCA,
 		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
 		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
