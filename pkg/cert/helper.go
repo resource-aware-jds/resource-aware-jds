@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"math/big"
 	"net"
+	"os"
+	"strings"
 	"time"
 )
 
@@ -92,4 +94,11 @@ func IsSupportedPEMBlock(blockType string) bool {
 		return true
 	}
 	return false
+}
+
+func createFolderForFile(filePath string) error {
+	filePathSplit := strings.Split(filePath, "/")
+	filePathSplit = filePathSplit[0 : len(filePathSplit)-1]
+	pathWithoutFileJoined := strings.Join(filePathSplit, "/")
+	return os.MkdirAll(pathWithoutFileJoined, os.ModePerm)
 }

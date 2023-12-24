@@ -10,7 +10,6 @@ import (
 	"math/big"
 	"net"
 	"os"
-	"strings"
 	"time"
 )
 
@@ -36,9 +35,9 @@ type TLSCertificate interface {
 
 	GetPublicKey() KeyData
 	GetPrivateKey() KeyData
+	GetCertificate() *x509.Certificate
 
 	GetCACertificate() (*x509.Certificate, error)
-	GetCertificate() *x509.Certificate
 	GetCertificateInPEM() ([]byte, error)
 	GetCertificateChains(pemEncoded bool) [][]byte
 	GetParentTLSCertificate() TLSCertificate
@@ -48,42 +47,6 @@ type TLSCertificate interface {
 	SaveCertificateToFile(certificateFilePath, privateKeyFilePath string) error
 	GetCertificateSubjectSerialNumber() string
 }
-
-type Config struct {
-	CertificateFileLocation string
-	PrivateKeyFileLocation  string
-	CertificateSubject      pkix.Name
-	ParentCertificate       TLSCertificate
-	ValidDuration           time.Duration
-}
-
-//func ProvideTLSCertificateOld(config Config) (TLSCertificate, error) {
-//	certificate := tlsCertificate{}
-//
-//	// Try to load the Certificate from the file
-//	err := certificate.loadCertificateFromFile(config.CertificateFileLocation, config.PrivateKeyFileLocation)
-//	if err == nil {
-//		logrus.Info("Loaded Certificate from file: ", config.CertificateFileLocation, ":", config.PrivateKeyFileLocation)
-//		return &certificate, nil
-//	}
-//
-//	logrus.Warn("Failed to load certificate from file with this error: ", err)
-//
-//	// Create the new certificate instead.
-//	err = certificate.createCertificate(config.ValidDuration, config.CertificateSubject, config.ParentCertificate)
-//	if err != nil {
-//		logrus.Error("Failed to create new certificate with this error: ", err)
-//		return nil, err
-//	}
-//
-//	// Save the created certificate to file
-//	err = certificate.SaveCertificateToFile(config.CertificateFileLocation, config.PrivateKeyFileLocation)
-//	if err != nil {
-//		logrus.Error("Failed to save the created certificate with this error", err)
-//		return nil, err
-//	}
-//	return &certificate, nil
-//}
 
 func ProvideTLSCertificate(certificateChain []*x509.Certificate, privateKey KeyData) (TLSCertificate, error) {
 	parsedFirstCertificateInChain, err := ParsePublicKeyToKeyData(certificateChain[0].PublicKey)
@@ -120,10 +83,6 @@ func ProvideTLSCertificate(certificateChain []*x509.Certificate, privateKey KeyD
 
 	return firstCertificate, nil
 }
-
-//func ProvideTLSCertificateFromX509Certificate(certificate *x509.Certificate) (TLSCertificate, error) {
-//
-//}
 
 func (t *tlsCertificate) IsCA() bool {
 	return t.certificate.IsCA
@@ -250,11 +209,7 @@ func (t *tlsCertificate) SaveCertificateToFile(certificateFilePath, privateKeyFi
 	certificateBytes := t.GetCertificateChains(true)
 
 	// Save the certificates into file
-	certificateFilePathSplit := strings.Split(certificateFilePath, "/")
-	certificateFilePathSplit = certificateFilePathSplit[0 : len(certificateFilePathSplit)-1]
-	certificateFileLocation := strings.Join(certificateFilePathSplit, "/")
-
-	err := os.MkdirAll(certificateFileLocation, os.ModePerm)
+	err := createFolderForFile(certificateFilePath)
 	if err != nil {
 		return err
 	}
@@ -270,7 +225,7 @@ func (t *tlsCertificate) SaveCertificateToFile(certificateFilePath, privateKeyFi
 	}
 
 	// Encode Private Key into PEM format
-	ecPrivateKey, err := x509.MarshalPKCS8PrivateKey(t.privateKey)
+	parsedPrivateKey, err := t.privateKey.GetKeyX509Format()
 	if err != nil {
 		return err
 	}
@@ -278,16 +233,13 @@ func (t *tlsCertificate) SaveCertificateToFile(certificateFilePath, privateKeyFi
 	privateKeyPEM := new(bytes.Buffer)
 	err = pem.Encode(privateKeyPEM, &pem.Block{
 		Type:  PEMPrivateKeyBlockType,
-		Bytes: ecPrivateKey,
+		Bytes: parsedPrivateKey,
 	})
 	if err != nil {
 		return err
 	}
 
-	privateKeyFilePathSplit := strings.Split(privateKeyFilePath, "/")
-	privateKeyFilePathSplit = privateKeyFilePathSplit[0 : len(privateKeyFilePathSplit)-1]
-	privateKeyFileLocation := strings.Join(privateKeyFilePathSplit, "/")
-	err = os.MkdirAll(privateKeyFileLocation, os.ModePerm)
+	err = createFolderForFile(privateKeyFilePath)
 	if err != nil {
 		return err
 	}
