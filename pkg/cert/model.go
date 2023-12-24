@@ -45,3 +45,16 @@ func (r *RAJDSPublicKey) GetSHA1Hash() string {
 func (r *RAJDSPublicKey) GetPublicKey() *rsa.PublicKey {
 	return r.publicKey
 }
+
+type KeyType string
+
+const (
+	PKIPublicKeyType  KeyType = "pki-public-key"
+	PKIPrivateKeyType KeyType = "pki-private-key"
+)
+
+type KeyData interface {
+	GetKeyX509Format() ([]byte, error)
+	GetSHA1Hash() (string, error)
+	GetKeyType() KeyType
+}
