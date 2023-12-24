@@ -24,6 +24,10 @@ func (r *RSAPublicKeyData) GetKeyX509Format() ([]byte, error) {
 	return x509.MarshalPKCS1PublicKey(&r.data), nil
 }
 
+func (r *RSAPublicKeyData) GetRawKeyData() any {
+	return r.data
+}
+
 type RSAPrivateKeyData struct {
 	data *rsa.PrivateKey
 }
@@ -39,4 +43,8 @@ func (r *RSAPrivateKeyData) GetSHA1Hash() (string, error) {
 
 func (r *RSAPrivateKeyData) GetKeyX509Format() ([]byte, error) {
 	return x509.MarshalPKCS1PrivateKey(r.data), nil
+}
+
+func (r *RSAPrivateKeyData) GetRawKeyData() any {
+	return r.data
 }
