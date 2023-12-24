@@ -38,8 +38,15 @@ func (g *GRPCHandler) WorkerRegistration(ctx context.Context, req *proto.Compute
 		return nil, err
 	}
 
+	certificateResult := make([]byte, 0)
+	pemEncodedCertificateChain := certificate.GetCertificateChains(true)
+
+	for _, item := range pemEncodedCertificateChain {
+		certificateResult = append(certificateResult, item...)
+	}
+
 	return &proto.ComputeNodeRegistrationResponse{
-		Id:          certificate.GetCertificate().Subject.SerialNumber,
-		Certificate: certificate.GetCertificate().Raw,
+		Id:          certificate.GetCertificateSubjectSerialNumber(),
+		Certificate: certificateResult,
 	}, nil
 }

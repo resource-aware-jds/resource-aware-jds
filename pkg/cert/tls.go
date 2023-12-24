@@ -44,6 +44,9 @@ type TLSCertificate interface {
 	GetPrivateKey() crypto.PrivateKey
 	GetCertificateChains(pemEncoded bool) [][]byte
 	CreateCertificateAndSign(certificateSubject pkix.Name, subjectPublicKey crypto.PublicKey, validDuration time.Duration) (TLSCertificate, error)
+	GetCertificateInPEM() ([]byte, error)
+	SaveCertificateToFile(certificateFilePath, privateKeyFilePath string) error
+	GetCertificateSubjectSerialNumber() string
 }
 
 type Config struct {
@@ -74,13 +77,17 @@ func ProvideTLSCertificate(config Config) (TLSCertificate, error) {
 	}
 
 	// Save the created certificate to file
-	err = certificate.saveCertificateToFile(config.CertificateFileLocation, config.PrivateKeyFileLocation)
+	err = certificate.SaveCertificateToFile(config.CertificateFileLocation, config.PrivateKeyFileLocation)
 	if err != nil {
 		logrus.Error("Failed to save the created certificate with this error", err)
 		return nil, err
 	}
 	return &certificate, nil
 }
+
+//func ProvideTLSCertificateFromX509Certificate(certificate *x509.Certificate) (TLSCertificate, error) {
+//
+//}
 
 func (t *tlsCertificate) IsCA() bool {
 	return t.isCA
@@ -102,6 +109,17 @@ func (t *tlsCertificate) GetPrivateKey() crypto.PrivateKey {
 	return t.privateKey
 }
 
+func (t *tlsCertificate) GetCertificateInPEM() ([]byte, error) {
+	// Encode the current focused TLS Certificate.
+	certificatePEM := new(bytes.Buffer)
+	err := pem.Encode(certificatePEM, &pem.Block{
+		Type:  PEMCertBlockType,
+		Bytes: t.GetCertificate().Raw,
+	})
+
+	return certificatePEM.Bytes(), err
+}
+
 func (t *tlsCertificate) GetCertificateChains(pemEncoded bool) [][]byte {
 	// Call pop to reverse the certificate chain.
 	certificateStack := make([][]byte, 0)
@@ -112,18 +130,11 @@ func (t *tlsCertificate) GetCertificateChains(pemEncoded bool) [][]byte {
 
 		certByte := focusedTLSCertificate.GetCertificate().Raw
 		if pemEncoded {
-			// Encode the current focused TLS Certificate.
-			certificatePEM := new(bytes.Buffer)
-			err := pem.Encode(certificatePEM, &pem.Block{
-				Type:  PEMCertBlockType,
-				Bytes: focusedTLSCertificate.GetCertificate().Raw,
-			})
-
+			var err error
+			certByte, err = focusedTLSCertificate.GetCertificateInPEM()
 			if err != nil {
 				continue
 			}
-
-			certByte = certificatePEM.Bytes()
 		}
 
 		certificateStack = append(certificateStack, certByte)
@@ -174,6 +185,10 @@ func (t *tlsCertificate) CreateCertificateAndSign(certificateSubject pkix.Name, 
 		parentCertificate: t,
 		publicKey:         subjectPublicKey,
 	}, nil
+}
+
+func (t *tlsCertificate) GetCertificateSubjectSerialNumber() string {
+	return t.certificate.Subject.SerialNumber
 }
 
 // CreateCertificate is used to generate the Public and Private Key pair
@@ -241,7 +256,7 @@ func (t *tlsCertificate) createPublicAndPrivateKeyPair() (crypto.PublicKey, cryp
 	return &privateKey.PublicKey, privateKey, nil
 }
 
-func (t *tlsCertificate) saveCertificateToFile(certificateFilePath, privateKeyFilePath string) error {
+func (t *tlsCertificate) SaveCertificateToFile(certificateFilePath, privateKeyFilePath string) error {
 	// Encode the certificate into PEM format
 	certificateBytes := t.GetCertificateChains(true)
 
@@ -258,6 +273,11 @@ func (t *tlsCertificate) saveCertificateToFile(certificateFilePath, privateKeyFi
 	err = os.WriteFile(certificateFilePath, certificateByteJoin, 0700)
 	if err != nil {
 		return err
+	}
+
+	// If no private key path or empty, not save the private key
+	if t.privateKey == nil || privateKeyFilePath == "" {
+		return nil
 	}
 
 	// Encode Private Key into PEM format

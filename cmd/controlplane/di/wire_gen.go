@@ -35,7 +35,7 @@ func InitializeApplication() (ControlPlaneApp, func(), error) {
 	if err != nil {
 		return ControlPlaneApp{}, nil, err
 	}
-	rajdsGrpc, cleanup, err := grpc.ProvideGRPCServer(grpcConfig, transportCertificate)
+	rajdsGrpcServer, cleanup, err := grpc.ProvideGRPCServer(grpcConfig, transportCertificate)
 	if err != nil {
 		return ControlPlaneApp{}, nil, err
 	}
@@ -47,8 +47,8 @@ func InitializeApplication() (ControlPlaneApp, func(), error) {
 	}
 	iControlPlane := repository.ProvideControlPlane(database)
 	serviceIControlPlane := service.ProvideControlPlane(iControlPlane, caCertificate)
-	grpcHandler := handler.ProvideControlPlaneGRPCHandler(rajdsGrpc, serviceIControlPlane)
-	controlPlaneApp := ProvideControlPlaneApp(rajdsGrpc, grpcHandler)
+	grpcHandler := handler.ProvideControlPlaneGRPCHandler(rajdsGrpcServer, serviceIControlPlane)
+	controlPlaneApp := ProvideControlPlaneApp(rajdsGrpcServer, grpcHandler)
 	return controlPlaneApp, func() {
 		cleanup2()
 		cleanup()

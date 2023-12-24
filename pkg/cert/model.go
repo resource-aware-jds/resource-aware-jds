@@ -4,6 +4,7 @@ import (
 	"crypto/rsa"
 	"crypto/sha1"
 	"crypto/x509"
+	"encoding/hex"
 	"errors"
 )
 
@@ -22,15 +23,14 @@ func ParseToRAJDSPublicKey(publicKey any) (RAJDSPublicKey, error) {
 	}, nil
 }
 
-func (r *RAJDSPublicKey) UnmarshalBSON(data []byte) (RAJDSPublicKey, error) {
+func (r *RAJDSPublicKey) UnmarshalBSON(data []byte) error {
 	publicKey, err := x509.ParsePKCS1PublicKey(data)
 	if err != nil {
-		return RAJDSPublicKey{}, err
+		return err
 	}
 
-	return RAJDSPublicKey{
-		publicKey: publicKey,
-	}, nil
+	r.publicKey = publicKey
+	return nil
 }
 
 func (r *RAJDSPublicKey) MarshalBSON() ([]byte, error) {
@@ -39,5 +39,9 @@ func (r *RAJDSPublicKey) MarshalBSON() ([]byte, error) {
 
 func (r *RAJDSPublicKey) GetSHA1Hash() string {
 	sha1Hash := sha1.Sum(x509.MarshalPKCS1PublicKey(r.publicKey))
-	return string(sha1Hash[:])
+	return hex.EncodeToString(sha1Hash[:])
+}
+
+func (r *RAJDSPublicKey) GetPublicKey() *rsa.PublicKey {
+	return r.publicKey
 }

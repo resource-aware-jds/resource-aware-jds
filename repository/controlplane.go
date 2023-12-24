@@ -36,12 +36,12 @@ func (c *controlPlane) IsNodeAlreadyRegistered(ctx context.Context, publicKeyHas
 
 	if result.Err() != nil {
 		if errors.Is(result.Err(), mongo.ErrNoDocuments) {
-			return true, nil
+			return false, nil
 		}
 		return false, result.Err()
 	}
 
-	return false, nil
+	return true, nil
 }
 
 func (c *controlPlane) RegisterWorkerNodeWithCertificate(ctx context.Context, ip string, port int32, certificate cert.TLSCertificate) error {
@@ -52,15 +52,9 @@ func (c *controlPlane) RegisterWorkerNodeWithCertificate(ctx context.Context, ip
 
 	_, err = c.nodeRegistryCollection.InsertOne(ctx, models.NodeEntry{
 		NodeID:        certificate.GetCertificate().Subject.SerialNumber,
-		PublicKey:     parsePublicKey,
-		Certificate:   certificate.GetCertificate().Raw,
 		PublicKeyHash: parsePublicKey.GetSHA1Hash(),
 		IP:            ip,
 		Port:          port,
 	})
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }

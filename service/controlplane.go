@@ -47,7 +47,7 @@ func (s *ControlPlane) RegisterWorker(ctx context.Context, ip string, port int32
 			CommonName:   fmt.Sprintf("RAJDS Worker %s", clientUUID.String()),
 			SerialNumber: clientUUID.String(),
 		},
-		nodePublicKey,
+		nodePublicKey.GetPublicKey(),
 		365*24*time.Hour,
 	)
 	if err != nil {
@@ -55,7 +55,12 @@ func (s *ControlPlane) RegisterWorker(ctx context.Context, ip string, port int32
 	}
 
 	// Insert the certificate in the database.
-	err = s.controlPlaneRepository.RegisterWorkerNodeWithCertificate(ctx, signedCertificate)
+	err = s.controlPlaneRepository.RegisterWorkerNodeWithCertificate(ctx, ip, port, signedCertificate)
+	if err != nil {
+		return nil, err
+	}
+
+	err = signedCertificate.SaveCertificateToFile(fmt.Sprintf("/Users/sirateek/.rajds/controlplane/client-certificate/%s.pem", signedCertificate.GetCertificate().Subject.SerialNumber), "")
 	if err != nil {
 		return nil, err
 	}
