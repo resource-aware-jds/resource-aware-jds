@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/google/uuid"
+	"github.com/resource-aware-jds/resource-aware-jds/config"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/cert"
 	"github.com/resource-aware-jds/resource-aware-jds/repository"
 	"time"
@@ -18,16 +19,18 @@ var (
 type ControlPlane struct {
 	controlPlaneRepository repository.IControlPlane
 	caCertificate          cert.CACertificate
+	config                 config.ControlPlaneConfigModel
 }
 
 type IControlPlane interface {
 	RegisterWorker(ctx context.Context, ip string, port int32, nodePublicKey cert.RAJDSPublicKey) (certificate cert.TLSCertificate, err error)
 }
 
-func ProvideControlPlane(controlPlaneRepository repository.IControlPlane, caCertificate cert.CACertificate) IControlPlane {
+func ProvideControlPlane(controlPlaneRepository repository.IControlPlane, caCertificate cert.CACertificate, config config.ControlPlaneConfigModel) IControlPlane {
 	return &ControlPlane{
 		controlPlaneRepository: controlPlaneRepository,
 		caCertificate:          caCertificate,
+		config:                 config,
 	}
 }
 
@@ -60,7 +63,7 @@ func (s *ControlPlane) RegisterWorker(ctx context.Context, ip string, port int32
 		return nil, err
 	}
 
-	err = signedCertificate.SaveCertificateToFile(fmt.Sprintf("/Users/sirateek/.rajds/controlplane/client-certificate/%s.pem", signedCertificate.GetCertificate().Subject.SerialNumber), "")
+	err = signedCertificate.SaveCertificateToFile(fmt.Sprintf("%s/%s.pem", s.config.ClientCertificateStoragePath, signedCertificate.GetCertificate().Subject.SerialNumber), "")
 	if err != nil {
 		return nil, err
 	}

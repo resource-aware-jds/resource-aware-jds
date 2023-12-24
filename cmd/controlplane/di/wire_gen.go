@@ -46,7 +46,7 @@ func InitializeApplication() (ControlPlaneApp, func(), error) {
 		return ControlPlaneApp{}, nil, err
 	}
 	iControlPlane := repository.ProvideControlPlane(database)
-	serviceIControlPlane := service.ProvideControlPlane(iControlPlane, caCertificate)
+	serviceIControlPlane := service.ProvideControlPlane(iControlPlane, caCertificate, controlPlaneConfigModel)
 	grpcHandler := handler.ProvideControlPlaneGRPCHandler(rajdsGrpcServer, serviceIControlPlane)
 	controlPlaneApp := ProvideControlPlaneApp(rajdsGrpcServer, grpcHandler)
 	return controlPlaneApp, func() {
