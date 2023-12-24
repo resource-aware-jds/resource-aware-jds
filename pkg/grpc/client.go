@@ -2,6 +2,8 @@ package grpc
 
 import (
 	"crypto/tls"
+	"crypto/x509"
+	"github.com/resource-aware-jds/resource-aware-jds/pkg/cert"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 )
@@ -14,31 +16,23 @@ type RAJDSGrpcClient interface {
 	GetConnection() *grpc.ClientConn
 }
 
-func loadTLSCredentials() (credentials.TransportCredentials, error) {
-	// Load server's certificate and private key
-	serverCert, err := tls.LoadX509KeyPair("/Users/sirateek/.rajds/controlplane/transport/cert.pem", "/Users/sirateek/.rajds/controlplane/transport/key.pem")
+func ProvideRAJDSGrpcClient(target string, certificate cert.TLSCertificate) (RAJDSGrpcClient, error) {
+	// Create the trusted CA Pool
+	caCertificatePool := x509.NewCertPool()
+
+	caCertificate, err := certificate.GetCACertificate()
 	if err != nil {
 		return nil, err
 	}
 
-	// Create the credentials and return it
-	config := &tls.Config{
-		Certificates: []tls.Certificate{serverCert},
-		ClientAuth:   tls.NoClientCert,
-	}
-
-	return credentials.NewTLS(config), nil
-}
-
-func ProvideRAJDSGrpcClient() (RAJDSGrpcClient, error) {
-	cert, err := loadTLSCredentials()
-	if err != nil {
-		return &rajdsGRPCClient{}, err
+	caCertificatePool.AddCert(caCertificate)
+	tlsConfig := &tls.Config{
+		RootCAs: caCertificatePool,
 	}
 
 	grpcConnection, err := grpc.Dial(
-		"localhost:31234",
-		grpc.WithTransportCredentials(cert),
+		target,
+		grpc.WithTransportCredentials(credentials.NewTLS(tlsConfig)),
 	)
 	if err != nil {
 		return nil, err

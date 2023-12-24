@@ -21,6 +21,7 @@ func ProvideCACertificate(caCertificateConfig CACertificateConfig) (CACertificat
 		},
 		ValidDuration:     24 * 365 * 10 * time.Hour,
 		ParentCertificate: nil,
+		IsCA:              true,
 	})
 }
 

@@ -47,6 +47,7 @@ type TLSCertificate interface {
 	GetCertificateInPEM() ([]byte, error)
 	SaveCertificateToFile(certificateFilePath, privateKeyFilePath string) error
 	GetCertificateSubjectSerialNumber() string
+	GetCACertificate() (*x509.Certificate, error)
 }
 
 type Config struct {
@@ -55,10 +56,13 @@ type Config struct {
 	CertificateSubject      pkix.Name
 	ParentCertificate       TLSCertificate
 	ValidDuration           time.Duration
+	IsCA                    bool
 }
 
 func ProvideTLSCertificate(config Config) (TLSCertificate, error) {
-	certificate := tlsCertificate{}
+	certificate := tlsCertificate{
+		isCA: config.IsCA,
+	}
 
 	// Try to load the Certificate from the file
 	err := certificate.loadCertificateFromFile(config.CertificateFileLocation, config.PrivateKeyFileLocation)
@@ -189,6 +193,24 @@ func (t *tlsCertificate) CreateCertificateAndSign(certificateSubject pkix.Name, 
 
 func (t *tlsCertificate) GetCertificateSubjectSerialNumber() string {
 	return t.certificate.Subject.SerialNumber
+}
+
+func (t *tlsCertificate) GetCACertificate() (*x509.Certificate, error) {
+	var focusedTLSCertificate TLSCertificate
+
+	focusedTLSCertificate = t
+	for {
+		if focusedTLSCertificate.IsCA() {
+			return focusedTLSCertificate.GetCertificate(), nil
+		}
+
+		focusedTLSCertificate = t.GetParentCertificate()
+		if focusedTLSCertificate == nil {
+			break
+		}
+	}
+
+	return nil, errors.New("no CA Certificate in this TLS certificate chain")
 }
 
 // CreateCertificate is used to generate the Public and Private Key pair
