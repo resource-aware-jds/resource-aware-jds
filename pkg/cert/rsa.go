@@ -8,7 +8,7 @@ import (
 )
 
 type RSAPublicKeyData struct {
-	data rsa.PublicKey
+	data *rsa.PublicKey
 }
 
 func (r *RSAPublicKeyData) GetKeyType() KeyType {
@@ -16,12 +16,12 @@ func (r *RSAPublicKeyData) GetKeyType() KeyType {
 }
 
 func (r *RSAPublicKeyData) GetSHA1Hash() (string, error) {
-	sha1Hash := sha1.Sum(x509.MarshalPKCS1PublicKey(&r.data))
+	sha1Hash := sha1.Sum(x509.MarshalPKCS1PublicKey(r.data))
 	return hex.EncodeToString(sha1Hash[:]), nil
 }
 
 func (r *RSAPublicKeyData) GetKeyX509Format() ([]byte, error) {
-	return x509.MarshalPKCS1PublicKey(&r.data), nil
+	return x509.MarshalPKCS1PublicKey(r.data), nil
 }
 
 func (r *RSAPublicKeyData) GetRawKeyData() any {

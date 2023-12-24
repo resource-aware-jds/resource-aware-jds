@@ -45,14 +45,16 @@ func (c *controlPlane) IsNodeAlreadyRegistered(ctx context.Context, publicKeyHas
 }
 
 func (c *controlPlane) RegisterWorkerNodeWithCertificate(ctx context.Context, ip string, port int32, certificate cert.TLSCertificate) error {
-	parsePublicKey, err := certificate.GetPublicKey()
+	parsePublicKey := certificate.GetPublicKey()
+
+	publicKeyHash, err := parsePublicKey.GetSHA1Hash()
 	if err != nil {
 		return err
 	}
 
 	_, err = c.nodeRegistryCollection.InsertOne(ctx, models.NodeEntry{
 		NodeID:        certificate.GetCertificate().Subject.SerialNumber,
-		PublicKeyHash: parsePublicKey.GetSHA1Hash(),
+		PublicKeyHash: publicKeyHash,
 		IP:            ip,
 		Port:          port,
 	})

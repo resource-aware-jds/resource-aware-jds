@@ -23,7 +23,7 @@ type ControlPlane struct {
 }
 
 type IControlPlane interface {
-	RegisterWorker(ctx context.Context, ip string, port int32, nodePublicKey cert.RAJDSPublicKey) (certificate cert.TLSCertificate, err error)
+	RegisterWorker(ctx context.Context, ip string, port int32, nodePublicKey cert.KeyData) (certificate cert.TLSCertificate, err error)
 }
 
 func ProvideControlPlane(controlPlaneRepository repository.IControlPlane, caCertificate cert.CACertificate, config config.ControlPlaneConfigModel) IControlPlane {
@@ -34,8 +34,13 @@ func ProvideControlPlane(controlPlaneRepository repository.IControlPlane, caCert
 	}
 }
 
-func (s *ControlPlane) RegisterWorker(ctx context.Context, ip string, port int32, nodePublicKey cert.RAJDSPublicKey) (certificate cert.TLSCertificate, err error) {
-	isExists, err := s.controlPlaneRepository.IsNodeAlreadyRegistered(ctx, nodePublicKey.GetSHA1Hash())
+func (s *ControlPlane) RegisterWorker(ctx context.Context, ip string, port int32, nodePublicKey cert.KeyData) (certificate cert.TLSCertificate, err error) {
+	hashedPublicKey, err := nodePublicKey.GetSHA1Hash()
+	if err != nil {
+		return nil, err
+	}
+
+	isExists, err := s.controlPlaneRepository.IsNodeAlreadyRegistered(ctx, hashedPublicKey)
 	if err != nil {
 		return nil, err
 	}
@@ -50,7 +55,7 @@ func (s *ControlPlane) RegisterWorker(ctx context.Context, ip string, port int32
 			CommonName:   fmt.Sprintf("RAJDS Worker %s", clientUUID.String()),
 			SerialNumber: clientUUID.String(),
 		},
-		nodePublicKey.GetPublicKey(),
+		nodePublicKey,
 		365*24*time.Hour,
 	)
 	if err != nil {

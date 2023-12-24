@@ -21,7 +21,7 @@ func GeneratePublicAndPrivateKeyPair() (publicKeyData KeyData, privateKeyData Ke
 	}
 
 	return &RSAPublicKeyData{
-			data: privateKey.PublicKey,
+			data: &privateKey.PublicKey,
 		}, &RSAPrivateKeyData{
 			data: privateKey,
 		}, nil

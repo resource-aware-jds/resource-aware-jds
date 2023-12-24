@@ -28,12 +28,12 @@ func (g *GRPCHandler) WorkerRegistration(ctx context.Context, req *proto.Compute
 		return nil, err
 	}
 
-	parsedRAJDSPublicKey, err := cert.ParseToRAJDSPublicKey(parsedNodePublicKey)
+	parsedKeyData, err := cert.ParsePublicKeyToKeyData(parsedNodePublicKey)
 	if err != nil {
 		return nil, err
 	}
 
-	certificate, err := g.controlPlaneService.RegisterWorker(ctx, req.Ip, req.Port, parsedRAJDSPublicKey)
+	certificate, err := g.controlPlaneService.RegisterWorker(ctx, req.Ip, req.Port, parsedKeyData)
 	if err != nil {
 		return nil, err
 	}

@@ -48,7 +48,7 @@ func ProvideCACertificate(caCertificateConfig CACertificateConfig) (CACertificat
 		return nil, err
 	}
 
-	return ProvideTLSCertificate(certificateChain, privateKeyData)
+	return ProvideTLSCertificate(certificateChain, privateKeyData, true)
 }
 
 type TransportCertificate TLSCertificate
@@ -97,5 +97,5 @@ func ProvideTransportCertificate(transportCertificateConfig TransportCertificate
 		return nil, err
 	}
 
-	return ProvideTLSCertificate(certificateChain, privateKeyData)
+	return ProvideTLSCertificate(certificateChain, privateKeyData, false)
 }

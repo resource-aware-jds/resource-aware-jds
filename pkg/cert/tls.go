@@ -48,11 +48,13 @@ type TLSCertificate interface {
 	GetCertificateSubjectSerialNumber() string
 }
 
-func ProvideTLSCertificate(certificateChain []*x509.Certificate, privateKey KeyData) (TLSCertificate, error) {
+func ProvideTLSCertificate(certificateChain []*x509.Certificate, privateKey KeyData, isCA bool) (TLSCertificate, error) {
 	parsedFirstCertificateInChain, err := ParsePublicKeyToKeyData(certificateChain[0].PublicKey)
 	if err != nil {
 		return nil, err
 	}
+
+	certificateChain[0].IsCA = isCA
 
 	firstCertificate := &tlsCertificate{
 		certificate: certificateChain[0],
@@ -72,12 +74,15 @@ func ProvideTLSCertificate(certificateChain []*x509.Certificate, privateKey KeyD
 			return nil, err
 		}
 
-		latestTlSCertificate := &tlsCertificate{
-			certificate:       focusedCertificate,
-			publicKey:         parsedPublicKeyData,
-			parentCertificate: previousTLSCertificate,
+		if i == len(certificateChain)-1 {
+			(*focusedCertificate).IsCA = true
 		}
 
+		latestTlSCertificate := &tlsCertificate{
+			certificate: focusedCertificate,
+			publicKey:   parsedPublicKeyData,
+		}
+		previousTLSCertificate.parentCertificate = latestTlSCertificate
 		previousTLSCertificate = latestTlSCertificate
 	}
 
