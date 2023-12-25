@@ -12,4 +12,5 @@ var ConfigWireSet = wire.NewSet(
 	config.ProvideMongoConfig,
 	config.ProvideCACertificateConfig,
 	config.ProvideTransportCertificateConfig,
+	config.ProvideWorkerConfigModel,
 )
