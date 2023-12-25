@@ -13,7 +13,9 @@ func main() {
 	logrus.Info("Starting up the Control Plane.")
 	app, cleanup, err := di.InitializeApplication()
 	if err != nil {
-		cleanup()
+		if cleanup != nil {
+			cleanup()
+		}
 		panic(fmt.Sprintf("failed to initialize app: %e", err))
 	}
 

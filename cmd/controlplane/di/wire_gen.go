@@ -9,7 +9,11 @@ package di
 import (
 	"github.com/resource-aware-jds/resource-aware-jds/cmd/controlplane/handler"
 	"github.com/resource-aware-jds/resource-aware-jds/config"
+	"github.com/resource-aware-jds/resource-aware-jds/pkg/cert"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/grpc"
+	"github.com/resource-aware-jds/resource-aware-jds/pkg/mongo"
+	"github.com/resource-aware-jds/resource-aware-jds/repository"
+	"github.com/resource-aware-jds/resource-aware-jds/service"
 )
 
 // Injectors from wire.go:
@@ -20,13 +24,33 @@ func InitializeApplication() (ControlPlaneApp, func(), error) {
 		return ControlPlaneApp{}, nil, err
 	}
 	grpcConfig := config.ProvideGRPCConfig(configConfig)
-	rajdsGrpc, cleanup, err := grpc.ProvideGRPCServer(grpcConfig)
+	controlPlaneConfigModel := config.ProvideControlPlaneConfigModel(configConfig)
+	transportCertificateConfig := config.ProvideTransportCertificateConfig(controlPlaneConfigModel)
+	caCertificateConfig := config.ProvideCACertificateConfig(controlPlaneConfigModel)
+	caCertificate, err := cert.ProvideCACertificate(caCertificateConfig)
 	if err != nil {
 		return ControlPlaneApp{}, nil, err
 	}
-	grpcHandler := handler.ProvideControlPlaneGRPCHandler(rajdsGrpc)
-	controlPlaneApp := ProvideControlPlaneApp(rajdsGrpc, grpcHandler)
+	transportCertificate, err := cert.ProvideTransportCertificate(transportCertificateConfig, caCertificate)
+	if err != nil {
+		return ControlPlaneApp{}, nil, err
+	}
+	rajdsGrpcServer, cleanup, err := grpc.ProvideGRPCServer(grpcConfig, transportCertificate)
+	if err != nil {
+		return ControlPlaneApp{}, nil, err
+	}
+	mongoConfig := config.ProvideMongoConfig(controlPlaneConfigModel)
+	database, cleanup2, err := mongo.ProvideMongoConnection(mongoConfig)
+	if err != nil {
+		cleanup()
+		return ControlPlaneApp{}, nil, err
+	}
+	iControlPlane := repository.ProvideControlPlane(database)
+	serviceIControlPlane := service.ProvideControlPlane(iControlPlane, caCertificate, controlPlaneConfigModel)
+	grpcHandler := handler.ProvideControlPlaneGRPCHandler(rajdsGrpcServer, serviceIControlPlane)
+	controlPlaneApp := ProvideControlPlaneApp(rajdsGrpcServer, grpcHandler)
 	return controlPlaneApp, func() {
+		cleanup2()
 		cleanup()
 	}, nil
 }
