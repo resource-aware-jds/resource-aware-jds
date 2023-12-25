@@ -68,11 +68,6 @@ func (s *ControlPlane) RegisterWorker(ctx context.Context, ip string, port int32
 		return nil, err
 	}
 
-	err = signedCertificate.SaveCertificateToFile(fmt.Sprintf("%s/%s.pem", s.config.ClientCertificateStoragePath, signedCertificate.GetCertificate().Subject.SerialNumber), "")
-	if err != nil {
-		return nil, err
-	}
-
 	// Response the certificate back.
 	return signedCertificate, nil
 }

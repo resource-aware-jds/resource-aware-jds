@@ -16,7 +16,7 @@ type RAJDSGrpcClient interface {
 	GetConnection() *grpc.ClientConn
 }
 
-func ProvideRAJDSGrpcClient(target string, certificate cert.TLSCertificate) (RAJDSGrpcClient, error) {
+func ProvideRAJDSGrpcClient(target string, certificate cert.ClientCATLSCertificate) (RAJDSGrpcClient, error) {
 	// Create the trusted CA Pool
 	caCertificatePool := x509.NewCertPool()
 

@@ -170,7 +170,7 @@ func (t *tlsCertificate) CreateCertificateAndSign(certificateSubject pkix.Name, 
 		DNSNames: []string{"localhost"},
 	}
 
-	certificateByte, err := x509.CreateCertificate(rand.Reader, certificate, t.certificate, subjectPublicKey, t.privateKey)
+	certificateByte, err := x509.CreateCertificate(rand.Reader, certificate, t.certificate, subjectPublicKey.GetRawKeyData(), t.privateKey.GetRawKeyData())
 	if err != nil {
 		return nil, err
 	}
