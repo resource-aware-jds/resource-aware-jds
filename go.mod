@@ -1,8 +1,9 @@
 module github.com/resource-aware-jds/resource-aware-jds
 
-go 1.21.4
+go 1.21
 
 require (
+	github.com/google/uuid v1.5.0
 	github.com/google/wire v0.5.0
 	github.com/joho/godotenv v1.5.1
 	github.com/kelseyhightower/envconfig v1.4.0
@@ -18,7 +19,6 @@ require (
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/golang/snappy v0.0.1 // indirect
 	github.com/google/subcommands v1.0.1 // indirect
-	github.com/google/uuid v1.5.0 // indirect
 	github.com/klauspost/compress v1.13.6 // indirect
 	github.com/montanaflynn/stats v0.0.0-20171201202039-1bf9dbcd8cbe // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
