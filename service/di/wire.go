@@ -7,4 +7,5 @@ import (
 
 var ServiceWireSet = wire.NewSet(
 	service.ProvideControlPlane,
+	service.ProvideWorker,
 )
