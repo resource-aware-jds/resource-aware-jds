@@ -42,3 +42,7 @@ func ProvideGRPCConfig(config *Config) grpc.Config {
 func ProvideControlPlaneConfigModel(config *Config) ControlPlaneConfigModel {
 	return config.ControlPlaneConfig
 }
+
+func ProvideWorkerConfigModel(config *Config) WorkerConfigModel {
+	return config.WorkerConfig
+}
