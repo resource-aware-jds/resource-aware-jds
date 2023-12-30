@@ -23,9 +23,9 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type ComputeNodeClient interface {
-	SendJob(ctx context.Context, in *Job, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	SendJob(ctx context.Context, in *Task, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	HealthCheck(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*emptypb.Empty, error)
-	ReportJob(ctx context.Context, in *ReportJobRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	ReportJob(ctx context.Context, in *ReportTaskRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 }
 
 type computeNodeClient struct {
@@ -36,7 +36,7 @@ func NewComputeNodeClient(cc grpc.ClientConnInterface) ComputeNodeClient {
 	return &computeNodeClient{cc}
 }
 
-func (c *computeNodeClient) SendJob(ctx context.Context, in *Job, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+func (c *computeNodeClient) SendJob(ctx context.Context, in *Task, opts ...grpc.CallOption) (*emptypb.Empty, error) {
 	out := new(emptypb.Empty)
 	err := c.cc.Invoke(ctx, "/computenode.ComputeNode/SendJob", in, out, opts...)
 	if err != nil {
@@ -54,7 +54,7 @@ func (c *computeNodeClient) HealthCheck(ctx context.Context, in *emptypb.Empty, 
 	return out, nil
 }
 
-func (c *computeNodeClient) ReportJob(ctx context.Context, in *ReportJobRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+func (c *computeNodeClient) ReportJob(ctx context.Context, in *ReportTaskRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
 	out := new(emptypb.Empty)
 	err := c.cc.Invoke(ctx, "/computenode.ComputeNode/ReportJob", in, out, opts...)
 	if err != nil {
@@ -67,9 +67,9 @@ func (c *computeNodeClient) ReportJob(ctx context.Context, in *ReportJobRequest,
 // All implementations must embed UnimplementedComputeNodeServer
 // for forward compatibility
 type ComputeNodeServer interface {
-	SendJob(context.Context, *Job) (*emptypb.Empty, error)
+	SendJob(context.Context, *Task) (*emptypb.Empty, error)
 	HealthCheck(context.Context, *emptypb.Empty) (*emptypb.Empty, error)
-	ReportJob(context.Context, *ReportJobRequest) (*emptypb.Empty, error)
+	ReportJob(context.Context, *ReportTaskRequest) (*emptypb.Empty, error)
 	mustEmbedUnimplementedComputeNodeServer()
 }
 
@@ -77,13 +77,13 @@ type ComputeNodeServer interface {
 type UnimplementedComputeNodeServer struct {
 }
 
-func (UnimplementedComputeNodeServer) SendJob(context.Context, *Job) (*emptypb.Empty, error) {
+func (UnimplementedComputeNodeServer) SendJob(context.Context, *Task) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SendJob not implemented")
 }
 func (UnimplementedComputeNodeServer) HealthCheck(context.Context, *emptypb.Empty) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method HealthCheck not implemented")
 }
-func (UnimplementedComputeNodeServer) ReportJob(context.Context, *ReportJobRequest) (*emptypb.Empty, error) {
+func (UnimplementedComputeNodeServer) ReportJob(context.Context, *ReportTaskRequest) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ReportJob not implemented")
 }
 func (UnimplementedComputeNodeServer) mustEmbedUnimplementedComputeNodeServer() {}
@@ -100,7 +100,7 @@ func RegisterComputeNodeServer(s grpc.ServiceRegistrar, srv ComputeNodeServer) {
 }
 
 func _ComputeNode_SendJob_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Job)
+	in := new(Task)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -112,7 +112,7 @@ func _ComputeNode_SendJob_Handler(srv interface{}, ctx context.Context, dec func
 		FullMethod: "/computenode.ComputeNode/SendJob",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ComputeNodeServer).SendJob(ctx, req.(*Job))
+		return srv.(ComputeNodeServer).SendJob(ctx, req.(*Task))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -136,7 +136,7 @@ func _ComputeNode_HealthCheck_Handler(srv interface{}, ctx context.Context, dec 
 }
 
 func _ComputeNode_ReportJob_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ReportJobRequest)
+	in := new(ReportTaskRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -148,7 +148,7 @@ func _ComputeNode_ReportJob_Handler(srv interface{}, ctx context.Context, dec fu
 		FullMethod: "/computenode.ComputeNode/ReportJob",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ComputeNodeServer).ReportJob(ctx, req.(*ReportJobRequest))
+		return srv.(ComputeNodeServer).ReportJob(ctx, req.(*ReportTaskRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }

@@ -7,18 +7,19 @@ option go_package = "github.com/resource-aware-jds/resource-aware-jds/generated/
 package computenode;
 
 service ComputeNode {
-  rpc SendJob(Job) returns (google.protobuf.Empty) {}
+  rpc SendJob(Task) returns (google.protobuf.Empty) {}
   rpc HealthCheck(google.protobuf.Empty) returns (google.protobuf.Empty) {}
-  rpc ReportJob(ReportJobRequest) returns (google.protobuf.Empty) {}
+  rpc ReportJob(ReportTaskRequest) returns (google.protobuf.Empty) {}
 }
 
-message Job {
-  int32 jobID = 1;
+message Task {
+  int32 taskId = 1;
   string dockerImage = 2;
+  int32 maxConcurrent = 3;
 }
 
-message ReportJobRequest {
-  int32 jobID = 1;
+message ReportTaskRequest {
+  int32 taskId = 1;
   int64 totalJob = 2;
   int64 currentJob = 3;
 }

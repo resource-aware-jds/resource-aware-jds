@@ -2,7 +2,6 @@ package handler
 
 import (
 	"context"
-	"github.com/docker/docker/api/types"
 	"github.com/resource-aware-jds/resource-aware-jds/generated/proto/github.com/resource-aware-jds/resource-aware-jds/generated/proto"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/grpc"
 	"github.com/resource-aware-jds/resource-aware-jds/service"
@@ -24,19 +23,18 @@ func ProvideWorkerGRPCHandler(grpcServer grpc.RAJDSGrpcServer, workerService ser
 	return handler
 }
 
-func (j *GRPCHandler) SendJob(context context.Context, job *proto.Job) (*emptypb.Empty, error) {
-	jobIdStr := strconv.Itoa(int(job.JobID))
-	containerName := "rajds-" + jobIdStr
-	err := j.workerService.RunJob(job.DockerImage, containerName, types.ImagePullOptions{}, jobIdStr)
+func (j *GRPCHandler) SendTask(context context.Context, task *proto.Task) (*emptypb.Empty, error) {
+	taskId := strconv.Itoa(int(task.TaskId))
+	err := j.workerService.SubmitTask(task.DockerImage, taskId)
 	return &emptypb.Empty{}, err
 }
 
-func (j *GRPCHandler) ReportJob(context context.Context, report *proto.ReportJobRequest) (*emptypb.Empty, error) {
+func (j *GRPCHandler) ReportJob(context context.Context, report *proto.ReportTaskRequest) (*emptypb.Empty, error) {
 	if report.TotalJob == report.CurrentJob {
-		jobIdStr := strconv.Itoa(int(report.JobID))
+		jobIdStr := strconv.Itoa(int(report.TaskId))
 		containerName := "rajds-" + jobIdStr
 		go j.workerService.RemoveContainer(containerName)
 	}
-	logrus.Info("Job id: ", report.JobID, " Current: ", report.CurrentJob, " Total: ", report.TotalJob)
+	logrus.Info("Job id: ", report.TaskId, " Current: ", report.CurrentJob, " Total: ", report.TotalJob)
 	return &emptypb.Empty{}, nil
 }

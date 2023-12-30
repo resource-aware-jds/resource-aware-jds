@@ -18,8 +18,8 @@ type Worker struct {
 }
 
 type IWorker interface {
-	RunJob(dockerImage string, name string, options types.ImagePullOptions, jobIdStr string) error
 	RemoveContainer(containerID string) error
+	SubmitTask(containerImage string, jobId string) error
 }
 
 func ProvideWorker(dockerClient *client.Client, config config.WorkerConfigModel) IWorker {
@@ -29,7 +29,12 @@ func ProvideWorker(dockerClient *client.Client, config config.WorkerConfigModel)
 	}
 }
 
-func (w *Worker) RunJob(dockerImage string, name string, options types.ImagePullOptions, jobIdStr string) error {
+func (w *Worker) SubmitTask(containerImage string, taskId string) error {
+	//containerName := "rajds-" + taskId
+	return nil
+}
+
+func (w *Worker) startContainer(dockerImage string, name string, options types.ImagePullOptions, jobIdStr string) error {
 	logrus.Info("Creating container: ", name, " with image: ", dockerImage)
 	defer logrus.Info("Create container ", name, " success")
 
