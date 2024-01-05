@@ -95,6 +95,12 @@ type SocketServerConfig struct {
 }
 
 func ProvideGRPCSocketServer(c SocketServerConfig) (SocketServer, func(), error) {
+	if _, err := os.Stat(c.UnixSocketPath); err == nil {
+		err := os.Remove(c.UnixSocketPath)
+		if err != nil {
+			logrus.Errorf("[GRPC Server] Failed to remove exist socket")
+		}
+	}
 	listener, err := net.Listen("unix", c.UnixSocketPath)
 	if err != nil {
 		logrus.Errorf("[GRPC Server] Failed to listen on %s with error %s", c.UnixSocketPath, err.Error())
