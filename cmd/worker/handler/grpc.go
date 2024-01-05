@@ -25,7 +25,7 @@ func ProvideWorkerGRPCHandler(grpcServer grpc.RAJDSGrpcServer, workerService ser
 
 func (j *GRPCHandler) SendTask(context context.Context, task *proto.Task) (*emptypb.Empty, error) {
 	taskId := strconv.Itoa(int(task.TaskId))
-	err := j.workerService.SubmitTask(task.DockerImage, taskId)
+	err := j.workerService.SubmitTask(task.DockerImage, taskId, task.Input)
 	return &emptypb.Empty{}, err
 }
 

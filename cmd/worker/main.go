@@ -18,7 +18,7 @@ import (
 func main() {
 	logrus.Info("\"Starting up the Worker.\"")
 	caCertificate, err := cert.ProvideClientCATLSCertificate(cert.ClientCATLSCertificateConfig{
-		CACertificateFilePath: "/Users/sirateek/.rajds/controlplane/ca/cert.pem",
+		CACertificateFilePath: "/Users/nabhansuwanachote/.rajds/controlplane/ca/cert.pem",
 	})
 	if err != nil {
 		panic(err)
@@ -51,6 +51,9 @@ func main() {
 
 	logrus.Info("\"Starting up Worker GRPC server.\"")
 	app, cleanup, err := di.InitializeApplication()
+	if err != nil {
+		panic(err)
+	}
 	app.GRPCServer.Serve()
 
 	// Gracefully Shutdown
