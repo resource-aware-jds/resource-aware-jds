@@ -1,7 +1,7 @@
 package models
 
 type Task struct {
-	ImageUrl string
-	TaskId   string
-	Input    []byte
+	ImageUrl       string
+	ID             string
+	TaskAttributes []byte
 }

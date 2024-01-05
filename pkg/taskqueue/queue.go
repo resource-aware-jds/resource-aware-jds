@@ -1,6 +1,7 @@
 package taskqueue
 
 import (
+	"fmt"
 	"github.com/resource-aware-jds/resource-aware-jds/models"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/datastructure"
 )
@@ -11,7 +12,7 @@ type queue struct {
 
 type Queue interface {
 	StoreTask(task *models.Task)
-	GetTask(imageUrl string) *models.Task
+	GetTask(imageUrl string) (*models.Task, error)
 }
 
 func ProvideTaskQueue() Queue {
@@ -22,10 +23,13 @@ func (q *queue) StoreTask(task *models.Task) {
 	q.runnerQueue.Push(task)
 }
 
-func (q *queue) GetTask(imageUrl string) *models.Task {
+func (q *queue) GetTask(imageUrl string) (*models.Task, error) {
 	filter := func(t *models.Task) bool {
 		return t.ImageUrl == imageUrl
 	}
-	data, _ := q.runnerQueue.PopWithFilter(filter)
-	return *data
+	data, isSuccess := q.runnerQueue.PopWithFilter(filter)
+	if !isSuccess {
+		return nil, fmt.Errorf("unable to get task, queue empty")
+	}
+	return *data, nil
 }

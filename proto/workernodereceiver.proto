@@ -12,7 +12,7 @@ service WorkerNodeContainerReceiver {
 }
 
 message GetTaskPayload {
-  string image=1;
+  string ImageUrl=1;
 }
 
 message SubmitSuccessTaskRequest {
