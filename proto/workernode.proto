@@ -13,6 +13,6 @@ service WorkerNode {
 message RecievedTask {
   string ID = 1;
   bytes  TaskAttributes = 2;
-  string dockerImage = 3;
+  string DockerImage = 3;
 
 }
