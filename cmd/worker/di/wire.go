@@ -19,6 +19,7 @@ func InitializeApplication() (WorkerApp, func(), error) {
 			configDI.ConfigWireSet,
 			pkgDI.PKGWireSet,
 			handler.ProvideWorkerGRPCHandler,
+			handler.ProvideWorkerGRPCSocketHandler,
 			serviceDI.ServiceWireSet,
 			ProvideWorkerApp,
 		),
