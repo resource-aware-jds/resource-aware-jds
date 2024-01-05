@@ -18,6 +18,7 @@ func main() {
 		}
 		panic(fmt.Sprintf("failed to initialize app: %e", err))
 	}
+  
 	app.GRPCServer.Serve()
 	app.GRPCSocketServer.Serve()
 
