@@ -22,9 +22,15 @@ type Worker struct {
 	taskQueue    taskqueue.Queue
 }
 
+func (w *Worker) GetTask(containerImage string) (models.Task, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
 type IWorker interface {
 	RemoveContainer(containerID string) error
 	SubmitTask(containerImage string, taskId string, input []byte) error
+	GetTask(containerImage string) (models.Task, error)
 }
 
 func ProvideWorker(dockerClient *client.Client, config config.WorkerConfigModel, taskQueue taskqueue.Queue) IWorker {
