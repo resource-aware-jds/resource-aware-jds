@@ -13,7 +13,6 @@ import (
 	"github.com/resource-aware-jds/resource-aware-jds/models"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/taskqueue"
 	"github.com/sirupsen/logrus"
-	"os"
 	"path/filepath"
 )
 
@@ -23,9 +22,15 @@ type Worker struct {
 	taskQueue    taskqueue.Queue
 }
 
+func (w *Worker) GetTask(containerImage string) (models.Task, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
 type IWorker interface {
 	RemoveContainer(containerID string) error
 	SubmitTask(containerImage string, taskId string, input []byte) error
+	GetTask(containerImage string) (models.Task, error)
 }
 
 func ProvideWorker(dockerClient *client.Client, config config.WorkerConfigModel, taskQueue taskqueue.Queue) IWorker {
@@ -61,18 +66,23 @@ func (w *Worker) startContainer(dockerImage string, name string, options types.I
 	ctx := context.Background()
 
 	//Pull image
+	logrus.Info("Pulling docker image")
 	out, err := w.dockerClient.ImagePull(ctx, dockerImage, options)
 	if err != nil {
-		logrus.Warn("Pull image error: ", err)
+		logrus.Error("Pull image error: ", err)
 	} else {
 		defer out.Close()
 	}
 
-	// Get mount directory path
-	mountDirParh := w.getBindPath(taskId)
-
 	// Create container
-	resp, err := w.dockerClient.ContainerCreate(ctx, w.getContainerConfig(dockerImage, taskId), w.getHostConfig(mountDirParh), nil, nil, name)
+	resp, err := w.dockerClient.ContainerCreate(
+		ctx,
+		w.getContainerConfig(dockerImage, taskId),
+		w.getHostConfig(w.config.WorkerNodeGRPCServerUnixSocketPath),
+		nil,
+		nil,
+		name,
+	)
 	if err != nil {
 		logrus.Warn("Create container error: ", err)
 	}
@@ -87,27 +97,18 @@ func (w *Worker) startContainer(dockerImage string, name string, options types.I
 	return nil
 }
 
-func (w *Worker) getHostConfig(sourceMountPath string) *container.HostConfig {
+func (w *Worker) getHostConfig(workerNodeGRPCServerUnixSocketPath string) *container.HostConfig {
+	mountPath := filepath.Dir(workerNodeGRPCServerUnixSocketPath)
 	return &container.HostConfig{
 		ExtraHosts: []string{"host.docker.internal:host-gateway"},
 		Mounts: []mount.Mount{
 			{
 				Type:   mount.TypeBind,
-				Source: sourceMountPath,
+				Source: mountPath,
 				Target: "/tmp",
 			},
 		},
 	}
-}
-
-func (w *Worker) getBindPath(taskId string) string {
-	hostPath := "/tmp"
-	path := filepath.Join(hostPath, "rajds", taskId)
-	err := os.MkdirAll(path, os.ModePerm)
-	if err != nil {
-		logrus.Error("Unable to create folder on", path, err)
-	}
-	return path
 }
 
 func (w *Worker) isContainerExist(imageUrl string) bool {
@@ -134,7 +135,7 @@ func (w *Worker) isContainerExist(imageUrl string) bool {
 func (w *Worker) getContainerConfig(dockerImage string, taskId string) *container.Config {
 	return &container.Config{
 		Image:      dockerImage,
-		Env:        []string{"MAXIMUM_CONCURRENT=" + "3", "TASK_ID=" + taskId},
+		Env:        []string{"MAXIMUM_CONCURRENT=" + "3", "TASK_ID=" + taskId, "WORKER_NODE_GRPC_SERVER_UNIX_SOCKET_PATH=/tmp"},
 		Entrypoint: []string{"/bin/sh", "-c", "sleep infinity"},
 	}
 }

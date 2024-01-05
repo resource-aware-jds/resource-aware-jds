@@ -17,7 +17,7 @@ import (
 func InitializeApplication() (ControlPlaneApp, func(), error) {
 	panic(
 		wire.Build(
-			configDI.ConfigWireSet,
+			configDI.ControlPlaneConfigWireSet,
 			pkgDI.PKGWireSet,
 			handler.ProvideControlPlaneGRPCHandler,
 			repositoryDI.RepositoryWireSet,

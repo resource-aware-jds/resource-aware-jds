@@ -19,158 +19,122 @@ import (
 // Requires gRPC-Go v1.32.0 or later.
 const _ = grpc.SupportPackageIsVersion7
 
-// ComputeNodeClient is the client API for ComputeNode service.
+// WorkerNodeClient is the client API for WorkerNode service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
-type ComputeNodeClient interface {
-	SendTask(ctx context.Context, in *Task, opts ...grpc.CallOption) (*emptypb.Empty, error)
+type WorkerNodeClient interface {
+	SendTask(ctx context.Context, in *RecievedTask, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	HealthCheck(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*emptypb.Empty, error)
-	ReportJob(ctx context.Context, in *ReportTaskRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 }
 
-type computeNodeClient struct {
+type workerNodeClient struct {
 	cc grpc.ClientConnInterface
 }
 
-func NewComputeNodeClient(cc grpc.ClientConnInterface) ComputeNodeClient {
-	return &computeNodeClient{cc}
+func NewWorkerNodeClient(cc grpc.ClientConnInterface) WorkerNodeClient {
+	return &workerNodeClient{cc}
 }
 
-func (c *computeNodeClient) SendTask(ctx context.Context, in *Task, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+func (c *workerNodeClient) SendTask(ctx context.Context, in *RecievedTask, opts ...grpc.CallOption) (*emptypb.Empty, error) {
 	out := new(emptypb.Empty)
-	err := c.cc.Invoke(ctx, "/computenode.ComputeNode/SendTask", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/WorkerNode.WorkerNode/SendTask", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *computeNodeClient) HealthCheck(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+func (c *workerNodeClient) HealthCheck(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*emptypb.Empty, error) {
 	out := new(emptypb.Empty)
-	err := c.cc.Invoke(ctx, "/computenode.ComputeNode/HealthCheck", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/WorkerNode.WorkerNode/HealthCheck", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *computeNodeClient) ReportJob(ctx context.Context, in *ReportTaskRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
-	out := new(emptypb.Empty)
-	err := c.cc.Invoke(ctx, "/computenode.ComputeNode/ReportJob", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-// ComputeNodeServer is the server API for ComputeNode service.
-// All implementations must embed UnimplementedComputeNodeServer
+// WorkerNodeServer is the server API for WorkerNode service.
+// All implementations must embed UnimplementedWorkerNodeServer
 // for forward compatibility
-type ComputeNodeServer interface {
-	SendTask(context.Context, *Task) (*emptypb.Empty, error)
+type WorkerNodeServer interface {
+	SendTask(context.Context, *RecievedTask) (*emptypb.Empty, error)
 	HealthCheck(context.Context, *emptypb.Empty) (*emptypb.Empty, error)
-	ReportJob(context.Context, *ReportTaskRequest) (*emptypb.Empty, error)
-	mustEmbedUnimplementedComputeNodeServer()
+	mustEmbedUnimplementedWorkerNodeServer()
 }
 
-// UnimplementedComputeNodeServer must be embedded to have forward compatible implementations.
-type UnimplementedComputeNodeServer struct {
+// UnimplementedWorkerNodeServer must be embedded to have forward compatible implementations.
+type UnimplementedWorkerNodeServer struct {
 }
 
-func (UnimplementedComputeNodeServer) SendTask(context.Context, *Task) (*emptypb.Empty, error) {
+func (UnimplementedWorkerNodeServer) SendTask(context.Context, *RecievedTask) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SendTask not implemented")
 }
-func (UnimplementedComputeNodeServer) HealthCheck(context.Context, *emptypb.Empty) (*emptypb.Empty, error) {
+func (UnimplementedWorkerNodeServer) HealthCheck(context.Context, *emptypb.Empty) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method HealthCheck not implemented")
 }
-func (UnimplementedComputeNodeServer) ReportJob(context.Context, *ReportTaskRequest) (*emptypb.Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ReportJob not implemented")
-}
-func (UnimplementedComputeNodeServer) mustEmbedUnimplementedComputeNodeServer() {}
+func (UnimplementedWorkerNodeServer) mustEmbedUnimplementedWorkerNodeServer() {}
 
-// UnsafeComputeNodeServer may be embedded to opt out of forward compatibility for this service.
-// Use of this interface is not recommended, as added methods to ComputeNodeServer will
+// UnsafeWorkerNodeServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to WorkerNodeServer will
 // result in compilation errors.
-type UnsafeComputeNodeServer interface {
-	mustEmbedUnimplementedComputeNodeServer()
+type UnsafeWorkerNodeServer interface {
+	mustEmbedUnimplementedWorkerNodeServer()
 }
 
-func RegisterComputeNodeServer(s grpc.ServiceRegistrar, srv ComputeNodeServer) {
-	s.RegisterService(&ComputeNode_ServiceDesc, srv)
+func RegisterWorkerNodeServer(s grpc.ServiceRegistrar, srv WorkerNodeServer) {
+	s.RegisterService(&WorkerNode_ServiceDesc, srv)
 }
 
-func _ComputeNode_SendTask_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Task)
+func _WorkerNode_SendTask_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RecievedTask)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ComputeNodeServer).SendTask(ctx, in)
+		return srv.(WorkerNodeServer).SendTask(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/computenode.ComputeNode/SendTask",
+		FullMethod: "/WorkerNode.WorkerNode/SendTask",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ComputeNodeServer).SendTask(ctx, req.(*Task))
+		return srv.(WorkerNodeServer).SendTask(ctx, req.(*RecievedTask))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _ComputeNode_HealthCheck_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _WorkerNode_HealthCheck_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(emptypb.Empty)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ComputeNodeServer).HealthCheck(ctx, in)
+		return srv.(WorkerNodeServer).HealthCheck(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/computenode.ComputeNode/HealthCheck",
+		FullMethod: "/WorkerNode.WorkerNode/HealthCheck",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ComputeNodeServer).HealthCheck(ctx, req.(*emptypb.Empty))
+		return srv.(WorkerNodeServer).HealthCheck(ctx, req.(*emptypb.Empty))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _ComputeNode_ReportJob_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ReportTaskRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(ComputeNodeServer).ReportJob(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/computenode.ComputeNode/ReportJob",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ComputeNodeServer).ReportJob(ctx, req.(*ReportTaskRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-// ComputeNode_ServiceDesc is the grpc.ServiceDesc for ComputeNode service.
+// WorkerNode_ServiceDesc is the grpc.ServiceDesc for WorkerNode service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
-var ComputeNode_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "computenode.ComputeNode",
-	HandlerType: (*ComputeNodeServer)(nil),
+var WorkerNode_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "WorkerNode.WorkerNode",
+	HandlerType: (*WorkerNodeServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
 			MethodName: "SendTask",
-			Handler:    _ComputeNode_SendTask_Handler,
+			Handler:    _WorkerNode_SendTask_Handler,
 		},
 		{
 			MethodName: "HealthCheck",
-			Handler:    _ComputeNode_HealthCheck_Handler,
-		},
-		{
-			MethodName: "ReportJob",
-			Handler:    _ComputeNode_ReportJob_Handler,
+			Handler:    _WorkerNode_HealthCheck_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

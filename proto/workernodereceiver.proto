@@ -8,7 +8,11 @@ import "google/protobuf/empty.proto";
 service WorkerNodeContainerReceiver {
   rpc SubmitSuccessTask(SubmitSuccessTaskRequest) returns (google.protobuf.Empty) {}
   rpc ReportTaskFailure(ReportTaskFailureRequest) returns (google.protobuf.Empty) {}
-  rpc GetTaskFromQueue(google.protobuf.Empty) returns (Task) {}
+  rpc GetTaskFromQueue(GetTaskPayload) returns (Task) {}
+}
+
+message GetTaskPayload {
+  string image=1;
 }
 
 message SubmitSuccessTaskRequest {

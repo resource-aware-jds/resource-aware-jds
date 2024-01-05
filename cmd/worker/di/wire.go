@@ -16,7 +16,7 @@ import (
 func InitializeApplication() (WorkerApp, func(), error) {
 	panic(
 		wire.Build(
-			configDI.ConfigWireSet,
+			configDI.WorkerConfigWireSet,
 			pkgDI.PKGWireSet,
 			handler.ProvideWorkerGRPCHandler,
 			handler.ProvideWorkerGRPCSocketHandler,
