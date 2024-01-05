@@ -1,25 +1,18 @@
 syntax = "proto3";
+package WorkerNode;
 
 import "google/protobuf/empty.proto";
 
 option go_package = "github.com/resource-aware-jds/resource-aware-jds/generated/proto";
 
-package computenode;
-
-service ComputeNode {
-  rpc SendTask(Task) returns (google.protobuf.Empty) {}
+service WorkerNode {
+  rpc SendTask(RecievedTask) returns (google.protobuf.Empty) {}
   rpc HealthCheck(google.protobuf.Empty) returns (google.protobuf.Empty) {}
-  rpc ReportJob(ReportTaskRequest) returns (google.protobuf.Empty) {}
 }
 
-message Task {
-  int32 taskId = 1;
-  string dockerImage = 2;
-  bytes input = 3;
-}
+message RecievedTask {
+  string ID = 1;
+  bytes  TaskAttributes = 2;
+  string dockerImage = 3;
 
-message ReportTaskRequest {
-  int32 taskId = 1;
-  int64 totalJob = 2;
-  int64 currentJob = 3;
 }
