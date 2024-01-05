@@ -5,9 +5,20 @@ import (
 	"github.com/resource-aware-jds/resource-aware-jds/config"
 )
 
-var ConfigWireSet = wire.NewSet(
+var ControlPlaneConfigWireSet = wire.NewSet(
 	config.ProvideConfig,
-	config.ProvideGRPCConfig,
+	config.ProvideControlPlaneGRPCConfig,
+	config.ProvideControlPlaneConfigModel,
+	config.ProvideMongoConfig,
+	config.ProvideCACertificateConfig,
+	config.ProvideTransportCertificateConfig,
+	config.ProvideWorkerConfigModel,
+	config.ProvideGRPCSocketServerConfig,
+)
+
+var WorkerConfigWireSet = wire.NewSet(
+	config.ProvideConfig,
+	config.ProvideWorkerGRPCConfig,
 	config.ProvideControlPlaneConfigModel,
 	config.ProvideMongoConfig,
 	config.ProvideCACertificateConfig,

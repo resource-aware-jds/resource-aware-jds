@@ -23,7 +23,7 @@ func InitializeApplication() (WorkerApp, func(), error) {
 	if err != nil {
 		return WorkerApp{}, nil, err
 	}
-	grpcConfig := config.ProvideGRPCConfig(configConfig)
+	grpcConfig := config.ProvideWorkerGRPCConfig(configConfig)
 	controlPlaneConfigModel := config.ProvideControlPlaneConfigModel(configConfig)
 	transportCertificateConfig := config.ProvideTransportCertificateConfig(controlPlaneConfigModel)
 	caCertificateConfig := config.ProvideCACertificateConfig(controlPlaneConfigModel)

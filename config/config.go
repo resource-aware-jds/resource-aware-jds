@@ -33,9 +33,15 @@ func ProvideConfig() (*Config, error) {
 	return &config, nil
 }
 
-func ProvideGRPCConfig(config *Config) grpc.Config {
+func ProvideControlPlaneGRPCConfig(config *Config) grpc.Config {
 	return grpc.Config{
 		Port: config.ControlPlaneConfig.GRPCServerPort,
+	}
+}
+
+func ProvideWorkerGRPCConfig(config *Config) grpc.Config {
+	return grpc.Config{
+		Port: config.WorkerConfig.GRPCServerPort,
 	}
 }
 
