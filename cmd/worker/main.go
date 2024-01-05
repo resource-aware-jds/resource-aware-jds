@@ -1,14 +1,8 @@
 package main
 
 import (
-	"context"
-	"crypto/rand"
-	"crypto/rsa"
-	"crypto/x509"
+	"fmt"
 	"github.com/resource-aware-jds/resource-aware-jds/cmd/worker/di"
-	"github.com/resource-aware-jds/resource-aware-jds/generated/proto/github.com/resource-aware-jds/resource-aware-jds/generated/proto"
-	"github.com/resource-aware-jds/resource-aware-jds/pkg/cert"
-	"github.com/resource-aware-jds/resource-aware-jds/pkg/grpc"
 	"github.com/sirupsen/logrus"
 	"os"
 	"os/signal"
@@ -16,42 +10,16 @@ import (
 )
 
 func main() {
-	logrus.Info("\"Starting up the Worker.\"")
-	caCertificate, err := cert.ProvideClientCATLSCertificate(cert.ClientCATLSCertificateConfig{
-		CACertificateFilePath: "/Users/sirateek/.rajds/controlplane/ca/cert.pem",
-	})
-	if err != nil {
-		panic(err)
-	}
-
-	grpcConn, err := grpc.ProvideRAJDSGrpcClient("localhost:31234", caCertificate)
-	if err != nil {
-		panic(err)
-	}
-
-	controlPlaneClient := proto.NewControlPlaneClient(grpcConn.GetConnection())
-
-	privateKey, err := rsa.GenerateKey(rand.Reader, 4096)
-
-	if err != nil {
-		panic(err)
-	}
-
-	result, err := controlPlaneClient.WorkerRegistration(context.Background(), &proto.ComputeNodeRegistrationRequest{
-		Ip:            "1234",
-		Port:          1234,
-		NodePublicKey: x509.MarshalPKCS1PublicKey(&privateKey.PublicKey),
-	})
-	if err != nil {
-		logrus.Error(err)
-		panic(err)
-	}
-
-	logrus.Info(result)
-
-	logrus.Info("\"Starting up Worker GRPC server.\"")
+	logrus.Info("Starting up Worker GRPC server.")
 	app, cleanup, err := di.InitializeApplication()
+	if err != nil {
+		if cleanup != nil {
+			cleanup()
+		}
+		panic(fmt.Sprintf("failed to initialize app: %e", err))
+	}
 	app.GRPCServer.Serve()
+	app.GRPCSocketServer.Serve()
 
 	// Gracefully Shutdown
 	// Make channel listen for signals from OS

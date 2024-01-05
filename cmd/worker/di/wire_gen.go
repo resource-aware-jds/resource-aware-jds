@@ -46,8 +46,16 @@ func InitializeApplication() (WorkerApp, func(), error) {
 	workerConfigModel := config.ProvideWorkerConfigModel(configConfig)
 	iWorker := service.ProvideWorker(client, workerConfigModel)
 	grpcHandler := handler.ProvideWorkerGRPCHandler(rajdsGrpcServer, iWorker)
-	workerApp := ProvideWorkerApp(rajdsGrpcServer, grpcHandler)
+	socketServerConfig := config.ProvideGRPCSocketServerConfig(workerConfigModel)
+	socketServer, cleanup3, err := grpc.ProvideGRPCSocketServer(socketServerConfig)
+	if err != nil {
+		cleanup2()
+		cleanup()
+		return WorkerApp{}, nil, err
+	}
+	workerApp := ProvideWorkerApp(rajdsGrpcServer, grpcHandler, socketServer)
 	return workerApp, func() {
+		cleanup3()
 		cleanup2()
 		cleanup()
 	}, nil

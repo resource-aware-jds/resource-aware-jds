@@ -13,4 +13,5 @@ var ConfigWireSet = wire.NewSet(
 	config.ProvideCACertificateConfig,
 	config.ProvideTransportCertificateConfig,
 	config.ProvideWorkerConfigModel,
+	config.ProvideGRPCSocketServerConfig,
 )

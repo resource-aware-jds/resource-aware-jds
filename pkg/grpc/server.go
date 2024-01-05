@@ -119,7 +119,7 @@ func ProvideGRPCSocketServer(c SocketServerConfig) (SocketServer, func(), error)
 
 func (s socketServer) Serve() {
 	go func() {
-		logrus.Info("GRPC Server is Listening on: ", s.listener.Addr())
+		logrus.Info("GRPC Socket Server is Listening on: ", s.listener.Addr())
 		s.grpcServer.Serve(s.listener)
 	}()
 }
