@@ -55,7 +55,7 @@ func InitializeApplication() (WorkerApp, func(), error) {
 		cleanup()
 		return WorkerApp{}, nil, err
 	}
-	workerGRPCSocketHandler := handler.ProvideWorkerGRPCSocketHandler(socketServer)
+	workerGRPCSocketHandler := handler.ProvideWorkerGRPCSocketHandler(socketServer, iWorker)
 	workerApp := ProvideWorkerApp(rajdsGrpcServer, grpcHandler, socketServer, workerGRPCSocketHandler)
 	return workerApp, func() {
 		cleanup3()

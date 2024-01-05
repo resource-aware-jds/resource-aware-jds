@@ -10,6 +10,7 @@ import (
 	"github.com/docker/docker/api/types/mount"
 	"github.com/docker/docker/client"
 	"github.com/resource-aware-jds/resource-aware-jds/config"
+	"github.com/resource-aware-jds/resource-aware-jds/generated/proto/github.com/resource-aware-jds/resource-aware-jds/generated/proto"
 	"github.com/resource-aware-jds/resource-aware-jds/models"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/taskqueue"
 	"github.com/sirupsen/logrus"
@@ -22,15 +23,10 @@ type Worker struct {
 	taskQueue    taskqueue.Queue
 }
 
-func (w *Worker) GetTask(containerImage string) (models.Task, error) {
-	//TODO implement me
-	panic("implement me")
-}
-
 type IWorker interface {
 	RemoveContainer(containerID string) error
 	SubmitTask(containerImage string, taskId string, input []byte) error
-	GetTask(containerImage string) (models.Task, error)
+	GetTask(containerImage string) (*proto.Task, error)
 }
 
 func ProvideWorker(dockerClient *client.Client, config config.WorkerConfigModel, taskQueue taskqueue.Queue) IWorker {
@@ -39,6 +35,19 @@ func ProvideWorker(dockerClient *client.Client, config config.WorkerConfigModel,
 		config:       config,
 		taskQueue:    taskQueue,
 	}
+}
+
+func (w *Worker) GetTask(containerImage string) (*proto.Task, error) {
+	task, isSuccess := w.taskQueue.GetTask(containerImage)
+	if !isSuccess {
+		errorMessage := "Unable to get task, queue empty"
+		logrus.Warn(errorMessage)
+		return nil, fmt.Errorf(errorMessage)
+	}
+	return &proto.Task{
+		ID:             task.ID,
+		TaskAttributes: task.TaskAttributes,
+	}, nil
 }
 
 func (w *Worker) SubmitTask(containerImage string, taskId string, input []byte) error {
@@ -51,9 +60,9 @@ func (w *Worker) SubmitTask(containerImage string, taskId string, input []byte) 
 	}
 
 	task := models.Task{
-		ImageUrl: containerImage,
-		TaskId:   taskId,
-		Input:    input,
+		ImageUrl:       containerImage,
+		ID:             taskId,
+		TaskAttributes: input,
 	}
 	w.taskQueue.StoreTask(&task)
 	return nil

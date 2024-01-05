@@ -11,7 +11,7 @@ type queue struct {
 
 type Queue interface {
 	StoreTask(task *models.Task)
-	GetTask(imageUrl string) *models.Task
+	GetTask(imageUrl string) (*models.Task, bool)
 }
 
 func ProvideTaskQueue() Queue {
@@ -22,10 +22,10 @@ func (q *queue) StoreTask(task *models.Task) {
 	q.runnerQueue.Push(task)
 }
 
-func (q *queue) GetTask(imageUrl string) *models.Task {
+func (q *queue) GetTask(imageUrl string) (*models.Task, bool) {
 	filter := func(t *models.Task) bool {
 		return t.ImageUrl == imageUrl
 	}
-	data, _ := q.runnerQueue.PopWithFilter(filter)
-	return *data
+	data, isSuccess := q.runnerQueue.PopWithFilter(filter)
+	return *data, isSuccess
 }

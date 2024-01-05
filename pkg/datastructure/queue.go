@@ -34,7 +34,7 @@ func (q *Queue[Data]) PopWithFilter(filter func(Data) bool) (*Data, bool) {
 	idx := slices.IndexFunc(q.data, filter)
 	result := q.data[idx]
 	q.data = append(q.data[:idx], q.data[idx+1:]...)
-	return &result, false
+	return &result, true
 }
 
 func (q *Queue[Data]) Empty() bool {
