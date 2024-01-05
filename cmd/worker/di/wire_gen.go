@@ -12,6 +12,7 @@ import (
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/cert"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/dockerclient"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/grpc"
+	"github.com/resource-aware-jds/resource-aware-jds/pkg/taskBuffer"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/taskqueue"
 	"github.com/resource-aware-jds/resource-aware-jds/service"
 )
@@ -46,7 +47,8 @@ func InitializeApplication() (WorkerApp, func(), error) {
 	}
 	workerConfigModel := config.ProvideWorkerConfigModel(configConfig)
 	queue := taskqueue.ProvideTaskQueue()
-	iWorker := service.ProvideWorker(client, workerConfigModel, queue)
+	taskBufferTaskBuffer := taskBuffer.ProvideTaskBuffer()
+	iWorker := service.ProvideWorker(client, workerConfigModel, queue, taskBufferTaskBuffer)
 	grpcHandler := handler.ProvideWorkerGRPCHandler(rajdsGrpcServer, iWorker)
 	socketServerConfig := config.ProvideGRPCSocketServerConfig(workerConfigModel)
 	socketServer, cleanup3, err := grpc.ProvideGRPCSocketServer(socketServerConfig)
