@@ -5,10 +5,10 @@ option go_package = "github.com/resource-aware-jds/container-lib/generated/proto
 package Container;
 
 service ContainerTaskRunner {
-  rpc SendTask(Task) returns (google.protobuf.Empty) {}
+  rpc SendTask(ContainerSendTaskRequest) returns (google.protobuf.Empty) {}
 }
 
-message Task {
+message ContainerSendTaskRequest {
   string ID = 1;
   bytes TaskAttributes = 2;
 }
