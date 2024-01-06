@@ -198,7 +198,7 @@ func (w *Worker) isContainerExist(imageUrl string) bool {
 func (w *Worker) getContainerConfig(dockerImage string, taskId string) *container.Config {
 	return &container.Config{
 		Image:      dockerImage,
-		Env:        []string{"MAXIMUM_CONCURRENT=" + "3", "TASK_ID=" + taskId, "WORKER_NODE_GRPC_SERVER_UNIX_SOCKET_PATH=/tmp"},
+		Env:        []string{"INITIAL_TASK_RUNNER=" + "3", "IMAGE_URL=" + dockerImage, "CONTAINER_UNIX_SOCKET_PATH=/tmp"},
 		Entrypoint: []string{"/bin/sh", "-c", "sleep infinity"},
 	}
 }
