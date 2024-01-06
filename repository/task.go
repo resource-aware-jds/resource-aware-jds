@@ -48,6 +48,6 @@ func (t *task) FindManyByJobID(ctx context.Context, jobID *primitive.ObjectID) (
 	}
 
 	var resultDecoded []models.Task
-	err = result.Decode(&resultDecoded)
+	err = result.All(ctx, &resultDecoded)
 	return resultDecoded, err
 }

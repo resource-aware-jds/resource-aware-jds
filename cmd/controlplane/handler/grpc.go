@@ -51,9 +51,29 @@ func (g *GRPCHandler) WorkerRegistration(ctx context.Context, req *proto.Compute
 	}, nil
 }
 
-func (g *GRPCHandler) CreateJob(ctx context.Context, req *proto.CreateJobRequest) (*proto.CreateJobRequest, error) {
-	// TODO: Create Job
-	// TODO: Loop Create Task
-	// TODO: Response result
-	return nil, nil
+func (g *GRPCHandler) CreateJob(ctx context.Context, req *proto.CreateJobRequest) (*proto.CreateJobResponse, error) {
+	job, tasks, err := g.controlPlaneService.CreateJob(ctx, req.GetImageURL(), req.GetTaskAttributes())
+	if err != nil {
+		return nil, err
+	}
+
+	res := proto.CreateJobResponse{
+		ID:       job.ID.Hex(),
+		Status:   string(job.Status),
+		ImageURL: job.ImageURL,
+	}
+
+	responseTasks := make([]*proto.ControlPlaneTask, 0, len(tasks))
+	for _, task := range tasks {
+		parsedTask := proto.ControlPlaneTask{
+			ID:             task.ID.Hex(),
+			Status:         string(task.Status),
+			TaskAttributes: task.TaskAttributes,
+		}
+
+		responseTasks = append(responseTasks, &parsedTask)
+	}
+	res.Tasks = responseTasks
+
+	return &res, nil
 }

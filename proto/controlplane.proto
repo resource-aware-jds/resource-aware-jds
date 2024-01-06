@@ -6,7 +6,7 @@ package controlplane;
 
 service ControlPlane {
   rpc WorkerRegistration(ComputeNodeRegistrationRequest) returns (ComputeNodeRegistrationResponse);
-  rpc CreateJob(CreateJobRequest) returns (CreateJobRequest);
+  rpc CreateJob(CreateJobRequest) returns (CreateJobResponse);
 }
 
 message ComputeNodeRegistrationRequest {
@@ -35,4 +35,5 @@ message CreateJobResponse {
   string ID = 1;
   repeated ControlPlaneTask Tasks = 2;
   string Status = 3;
+  string ImageURL = 4;
 }

@@ -23,7 +23,7 @@ const _ = grpc.SupportPackageIsVersion7
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type ControlPlaneClient interface {
 	WorkerRegistration(ctx context.Context, in *ComputeNodeRegistrationRequest, opts ...grpc.CallOption) (*ComputeNodeRegistrationResponse, error)
-	CreateJob(ctx context.Context, in *CreateJobRequest, opts ...grpc.CallOption) (*CreateJobRequest, error)
+	CreateJob(ctx context.Context, in *CreateJobRequest, opts ...grpc.CallOption) (*CreateJobResponse, error)
 }
 
 type controlPlaneClient struct {
@@ -43,8 +43,8 @@ func (c *controlPlaneClient) WorkerRegistration(ctx context.Context, in *Compute
 	return out, nil
 }
 
-func (c *controlPlaneClient) CreateJob(ctx context.Context, in *CreateJobRequest, opts ...grpc.CallOption) (*CreateJobRequest, error) {
-	out := new(CreateJobRequest)
+func (c *controlPlaneClient) CreateJob(ctx context.Context, in *CreateJobRequest, opts ...grpc.CallOption) (*CreateJobResponse, error) {
+	out := new(CreateJobResponse)
 	err := c.cc.Invoke(ctx, "/controlplane.ControlPlane/CreateJob", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -57,7 +57,7 @@ func (c *controlPlaneClient) CreateJob(ctx context.Context, in *CreateJobRequest
 // for forward compatibility
 type ControlPlaneServer interface {
 	WorkerRegistration(context.Context, *ComputeNodeRegistrationRequest) (*ComputeNodeRegistrationResponse, error)
-	CreateJob(context.Context, *CreateJobRequest) (*CreateJobRequest, error)
+	CreateJob(context.Context, *CreateJobRequest) (*CreateJobResponse, error)
 	mustEmbedUnimplementedControlPlaneServer()
 }
 
@@ -68,7 +68,7 @@ type UnimplementedControlPlaneServer struct {
 func (UnimplementedControlPlaneServer) WorkerRegistration(context.Context, *ComputeNodeRegistrationRequest) (*ComputeNodeRegistrationResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method WorkerRegistration not implemented")
 }
-func (UnimplementedControlPlaneServer) CreateJob(context.Context, *CreateJobRequest) (*CreateJobRequest, error) {
+func (UnimplementedControlPlaneServer) CreateJob(context.Context, *CreateJobRequest) (*CreateJobResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateJob not implemented")
 }
 func (UnimplementedControlPlaneServer) mustEmbedUnimplementedControlPlaneServer() {}

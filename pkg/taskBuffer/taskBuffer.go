@@ -21,8 +21,8 @@ func ProvideTaskBuffer() TaskBuffer {
 }
 
 func (t *taskBuffer) Store(task *models.Task) {
-	logrus.Info("Buffer task: " + task.ID)
-	t.taskMap[task.ID] = task
+	logrus.Info("Buffer task: " + task.ID.Hex())
+	t.taskMap[task.ID.Hex()] = task
 }
 
 func (t *taskBuffer) Pop(id string) *models.Task {

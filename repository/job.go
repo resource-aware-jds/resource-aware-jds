@@ -33,5 +33,6 @@ func (j *job) Insert(ctx context.Context, job models.Job) (insertedJobID *primit
 		return nil, err
 	}
 
-	return result.InsertedID.(*primitive.ObjectID), nil
+	objID := result.InsertedID.(primitive.ObjectID)
+	return &objID, nil
 }
