@@ -27,6 +27,7 @@ type ControlPlane struct {
 
 type IControlPlane interface {
 	RegisterWorker(ctx context.Context, ip string, port int32, nodePublicKey cert.KeyData) (certificate cert.TLSCertificate, err error)
+	GetAllWorkerNodeFromRegistry(ctx context.Context) ([]models.NodeEntry, error)
 	CreateJob(ctx context.Context, imageURL string, taskAttributes [][]byte) (*models.Job, []models.Task, error)
 }
 
@@ -112,4 +113,8 @@ func (s *ControlPlane) CreateJob(ctx context.Context, imageURL string, taskAttri
 	}
 
 	return &job, tasksResponse, nil
+}
+
+func (s *ControlPlane) GetAllWorkerNodeFromRegistry(ctx context.Context) ([]models.NodeEntry, error) {
+	return s.nodeRegistryRepository.GetAllWorkerNode(ctx)
 }
