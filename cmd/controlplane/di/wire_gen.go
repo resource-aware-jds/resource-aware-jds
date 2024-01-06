@@ -9,6 +9,7 @@ package di
 import (
 	"github.com/resource-aware-jds/resource-aware-jds/cmd/controlplane/handler"
 	"github.com/resource-aware-jds/resource-aware-jds/config"
+	"github.com/resource-aware-jds/resource-aware-jds/daemon"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/cert"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/grpc"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/mongo"
@@ -50,8 +51,10 @@ func InitializeApplication() (ControlPlaneApp, func(), error) {
 	iNodeRegistry := repository.ProvideControlPlane(database)
 	iControlPlane := service.ProvideControlPlane(iJob, iTask, iNodeRegistry, caCertificate, controlPlaneConfigModel)
 	grpcHandler := handler.ProvideControlPlaneGRPCHandler(rajdsGrpcServer, iControlPlane)
-	controlPlaneApp := ProvideControlPlaneApp(rajdsGrpcServer, grpcHandler)
+	daemonIControlPlane, cleanup3 := daemon.ProvideControlPlaneDaemon(caCertificate, iNodeRegistry)
+	controlPlaneApp := ProvideControlPlaneApp(rajdsGrpcServer, grpcHandler, daemonIControlPlane)
 	return controlPlaneApp, func() {
+		cleanup3()
 		cleanup2()
 		cleanup()
 	}, nil
