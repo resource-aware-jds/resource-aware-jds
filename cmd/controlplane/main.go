@@ -29,7 +29,7 @@ func main() {
 
 	<-gracefulStop
 
-	logrus.Info("Gracefully shutting down, cleaning up.")
+	logrus.Info("Gracefully shutting down signal received")
 	cleanup()
 	logrus.Info("Clean up success. Good Bye")
 }

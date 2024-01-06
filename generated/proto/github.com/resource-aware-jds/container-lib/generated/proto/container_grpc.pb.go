@@ -23,7 +23,7 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type ContainerTaskRunnerClient interface {
-	SendTask(ctx context.Context, in *Task, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	SendTask(ctx context.Context, in *ContainerSendTaskRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 }
 
 type containerTaskRunnerClient struct {
@@ -34,7 +34,7 @@ func NewContainerTaskRunnerClient(cc grpc.ClientConnInterface) ContainerTaskRunn
 	return &containerTaskRunnerClient{cc}
 }
 
-func (c *containerTaskRunnerClient) SendTask(ctx context.Context, in *Task, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+func (c *containerTaskRunnerClient) SendTask(ctx context.Context, in *ContainerSendTaskRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
 	out := new(emptypb.Empty)
 	err := c.cc.Invoke(ctx, "/Container.ContainerTaskRunner/SendTask", in, out, opts...)
 	if err != nil {
@@ -47,7 +47,7 @@ func (c *containerTaskRunnerClient) SendTask(ctx context.Context, in *Task, opts
 // All implementations must embed UnimplementedContainerTaskRunnerServer
 // for forward compatibility
 type ContainerTaskRunnerServer interface {
-	SendTask(context.Context, *Task) (*emptypb.Empty, error)
+	SendTask(context.Context, *ContainerSendTaskRequest) (*emptypb.Empty, error)
 	mustEmbedUnimplementedContainerTaskRunnerServer()
 }
 
@@ -55,7 +55,7 @@ type ContainerTaskRunnerServer interface {
 type UnimplementedContainerTaskRunnerServer struct {
 }
 
-func (UnimplementedContainerTaskRunnerServer) SendTask(context.Context, *Task) (*emptypb.Empty, error) {
+func (UnimplementedContainerTaskRunnerServer) SendTask(context.Context, *ContainerSendTaskRequest) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SendTask not implemented")
 }
 func (UnimplementedContainerTaskRunnerServer) mustEmbedUnimplementedContainerTaskRunnerServer() {}
@@ -72,7 +72,7 @@ func RegisterContainerTaskRunnerServer(s grpc.ServiceRegistrar, srv ContainerTas
 }
 
 func _ContainerTaskRunner_SendTask_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Task)
+	in := new(ContainerSendTaskRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -84,7 +84,7 @@ func _ContainerTaskRunner_SendTask_Handler(srv interface{}, ctx context.Context,
 		FullMethod: "/Container.ContainerTaskRunner/SendTask",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ContainerTaskRunnerServer).SendTask(ctx, req.(*Task))
+		return srv.(ContainerTaskRunnerServer).SendTask(ctx, req.(*ContainerSendTaskRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }

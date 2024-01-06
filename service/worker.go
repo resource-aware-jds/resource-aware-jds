@@ -15,6 +15,7 @@ import (
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/taskBuffer"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/taskqueue"
 	"github.com/sirupsen/logrus"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"path/filepath"
 )
 
@@ -51,7 +52,7 @@ func (w *Worker) GetTask(containerImage string) (*proto.Task, error) {
 
 	w.taskBuffer.Store(task)
 	return &proto.Task{
-		ID:             task.ID,
+		ID:             task.ID.Hex(),
 		TaskAttributes: task.TaskAttributes,
 	}, nil
 }
@@ -84,9 +85,14 @@ func (w *Worker) SubmitTask(containerImage string, taskId string, input []byte) 
 		}
 	}
 
+	hex, err := primitive.ObjectIDFromHex(taskId)
+	if err != nil {
+		return err
+	}
+
 	task := models.Task{
 		ImageUrl:       containerImage,
-		ID:             taskId,
+		ID:             &hex,
 		TaskAttributes: input,
 	}
 	w.taskQueue.StoreTask(&task)

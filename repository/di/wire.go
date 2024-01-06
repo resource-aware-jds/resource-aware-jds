@@ -7,4 +7,6 @@ import (
 
 var RepositoryWireSet = wire.NewSet(
 	repository.ProvideControlPlane,
+	repository.ProvideJob,
+	repository.ProvideTask,
 )

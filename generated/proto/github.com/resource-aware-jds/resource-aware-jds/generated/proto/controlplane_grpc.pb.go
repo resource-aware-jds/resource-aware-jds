@@ -23,6 +23,7 @@ const _ = grpc.SupportPackageIsVersion7
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type ControlPlaneClient interface {
 	WorkerRegistration(ctx context.Context, in *ComputeNodeRegistrationRequest, opts ...grpc.CallOption) (*ComputeNodeRegistrationResponse, error)
+	CreateJob(ctx context.Context, in *CreateJobRequest, opts ...grpc.CallOption) (*CreateJobResponse, error)
 }
 
 type controlPlaneClient struct {
@@ -42,11 +43,21 @@ func (c *controlPlaneClient) WorkerRegistration(ctx context.Context, in *Compute
 	return out, nil
 }
 
+func (c *controlPlaneClient) CreateJob(ctx context.Context, in *CreateJobRequest, opts ...grpc.CallOption) (*CreateJobResponse, error) {
+	out := new(CreateJobResponse)
+	err := c.cc.Invoke(ctx, "/controlplane.ControlPlane/CreateJob", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ControlPlaneServer is the server API for ControlPlane service.
 // All implementations must embed UnimplementedControlPlaneServer
 // for forward compatibility
 type ControlPlaneServer interface {
 	WorkerRegistration(context.Context, *ComputeNodeRegistrationRequest) (*ComputeNodeRegistrationResponse, error)
+	CreateJob(context.Context, *CreateJobRequest) (*CreateJobResponse, error)
 	mustEmbedUnimplementedControlPlaneServer()
 }
 
@@ -56,6 +67,9 @@ type UnimplementedControlPlaneServer struct {
 
 func (UnimplementedControlPlaneServer) WorkerRegistration(context.Context, *ComputeNodeRegistrationRequest) (*ComputeNodeRegistrationResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method WorkerRegistration not implemented")
+}
+func (UnimplementedControlPlaneServer) CreateJob(context.Context, *CreateJobRequest) (*CreateJobResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateJob not implemented")
 }
 func (UnimplementedControlPlaneServer) mustEmbedUnimplementedControlPlaneServer() {}
 
@@ -88,6 +102,24 @@ func _ControlPlane_WorkerRegistration_Handler(srv interface{}, ctx context.Conte
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ControlPlane_CreateJob_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateJobRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ControlPlaneServer).CreateJob(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/controlplane.ControlPlane/CreateJob",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ControlPlaneServer).CreateJob(ctx, req.(*CreateJobRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ControlPlane_ServiceDesc is the grpc.ServiceDesc for ControlPlane service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -98,6 +130,10 @@ var ControlPlane_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "WorkerRegistration",
 			Handler:    _ControlPlane_WorkerRegistration_Handler,
+		},
+		{
+			MethodName: "CreateJob",
+			Handler:    _ControlPlane_CreateJob_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
