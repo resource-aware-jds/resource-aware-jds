@@ -50,3 +50,10 @@ func (g *GRPCHandler) WorkerRegistration(ctx context.Context, req *proto.Compute
 		Certificate: certificateResult,
 	}, nil
 }
+
+func (g *GRPCHandler) CreateJob(ctx context.Context, req *proto.CreateJobRequest) (*proto.CreateJobRequest, error) {
+	// TODO: Create Job
+	// TODO: Loop Create Task
+	// TODO: Response result
+	return nil, nil
+}
