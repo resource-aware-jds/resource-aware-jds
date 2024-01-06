@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/resource-aware-jds/resource-aware-jds/config"
+	"github.com/resource-aware-jds/resource-aware-jds/models"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/cert"
 	"github.com/resource-aware-jds/resource-aware-jds/repository"
 	"time"
@@ -17,18 +18,23 @@ var (
 )
 
 type ControlPlane struct {
-	controlPlaneRepository repository.INodeRegistry
+	nodeRegistryRepository repository.INodeRegistry
+	jobRepository          repository.IJob
+	taskRepository         repository.ITask
 	caCertificate          cert.CACertificate
 	config                 config.ControlPlaneConfigModel
 }
 
 type IControlPlane interface {
 	RegisterWorker(ctx context.Context, ip string, port int32, nodePublicKey cert.KeyData) (certificate cert.TLSCertificate, err error)
+	CreateJob(ctx context.Context, imageURL string, taskAttributes [][]byte) (*models.Job, []models.Task, error)
 }
 
-func ProvideControlPlane(controlPlaneRepository repository.INodeRegistry, caCertificate cert.CACertificate, config config.ControlPlaneConfigModel) IControlPlane {
+func ProvideControlPlane(jobRepository repository.IJob, taskRepository repository.ITask, nodeRegistryRepository repository.INodeRegistry, caCertificate cert.CACertificate, config config.ControlPlaneConfigModel) IControlPlane {
 	return &ControlPlane{
-		controlPlaneRepository: controlPlaneRepository,
+		jobRepository:          jobRepository,
+		nodeRegistryRepository: nodeRegistryRepository,
+		taskRepository:         taskRepository,
 		caCertificate:          caCertificate,
 		config:                 config,
 	}
@@ -40,7 +46,7 @@ func (s *ControlPlane) RegisterWorker(ctx context.Context, ip string, port int32
 		return nil, err
 	}
 
-	isExists, err := s.controlPlaneRepository.IsNodeAlreadyRegistered(ctx, hashedPublicKey)
+	isExists, err := s.nodeRegistryRepository.IsNodeAlreadyRegistered(ctx, hashedPublicKey)
 	if err != nil {
 		return nil, err
 	}
@@ -63,11 +69,47 @@ func (s *ControlPlane) RegisterWorker(ctx context.Context, ip string, port int32
 	}
 
 	// Insert the certificate in the database.
-	err = s.controlPlaneRepository.RegisterWorkerNodeWithCertificate(ctx, ip, port, signedCertificate)
+	err = s.nodeRegistryRepository.RegisterWorkerNodeWithCertificate(ctx, ip, port, signedCertificate)
 	if err != nil {
 		return nil, err
 	}
 
 	// Response the certificate back.
 	return signedCertificate, nil
+}
+
+func (s *ControlPlane) CreateJob(ctx context.Context, imageURL string, taskAttributes [][]byte) (*models.Job, []models.Task, error) {
+	// Create Job
+	job := models.Job{
+		Status:   models.PendingJobStatus,
+		ImageURL: imageURL,
+	}
+	insertedJobID, err := s.jobRepository.Insert(ctx, job)
+	if err != nil {
+		return nil, nil, err
+	}
+	job.ID = insertedJobID
+
+	// Create Tasks
+	tasks := make([]models.Task, 0, len(taskAttributes))
+	for _, taskAttribute := range taskAttributes {
+		newTask := models.Task{
+			JobID:          insertedJobID,
+			Status:         models.CreatedTaskStatus,
+			ImageUrl:       imageURL,
+			TaskAttributes: taskAttribute,
+		}
+		tasks = append(tasks, newTask)
+	}
+	err = s.taskRepository.InsertMany(ctx, tasks)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	tasksResponse, err := s.taskRepository.FindManyByJobID(ctx, insertedJobID)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return &job, tasksResponse, nil
 }
