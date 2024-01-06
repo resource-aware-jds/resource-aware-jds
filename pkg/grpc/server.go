@@ -101,7 +101,7 @@ func ProvideGRPCSocketServer(c SocketServerConfig) (SocketServer, func(), error)
 			logrus.Errorf("[GRPC Server] Failed to remove exist socket")
 		}
 	}
-	listener, err := net.Listen("tcp", "127.0.0.1:3001")
+	listener, err := net.Listen("unix", c.UnixSocketPath)
 	if err != nil {
 		logrus.Errorf("[GRPC Server] Failed to listen on %s with error %s", c.UnixSocketPath, err.Error())
 		return nil, nil, err
