@@ -12,24 +12,24 @@ const (
 	NodeRegistryCollection = "node-registry"
 )
 
-type controlPlane struct {
+type nodeRegistry struct {
 	database               *mongo.Database
 	nodeRegistryCollection *mongo.Collection
 }
 
-type IControlPlane interface {
+type INodeRegistry interface {
 	IsNodeAlreadyRegistered(ctx context.Context, keyHash string) (bool, error)
 	RegisterWorkerNodeWithCertificate(ctx context.Context, ip string, port int32, certificate cert.TLSCertificate) error
 }
 
-func ProvideControlPlane(database *mongo.Database) IControlPlane {
-	return &controlPlane{
+func ProvideControlPlane(database *mongo.Database) INodeRegistry {
+	return &nodeRegistry{
 		database:               database,
 		nodeRegistryCollection: database.Collection(NodeRegistryCollection),
 	}
 }
 
-func (c *controlPlane) IsNodeAlreadyRegistered(ctx context.Context, publicKeyHash string) (bool, error) {
+func (c *nodeRegistry) IsNodeAlreadyRegistered(ctx context.Context, publicKeyHash string) (bool, error) {
 	result := c.nodeRegistryCollection.FindOne(ctx, models.NodeEntry{
 		PublicKeyHash: publicKeyHash,
 	})
@@ -44,7 +44,7 @@ func (c *controlPlane) IsNodeAlreadyRegistered(ctx context.Context, publicKeyHas
 	return true, nil
 }
 
-func (c *controlPlane) RegisterWorkerNodeWithCertificate(ctx context.Context, ip string, port int32, certificate cert.TLSCertificate) error {
+func (c *nodeRegistry) RegisterWorkerNodeWithCertificate(ctx context.Context, ip string, port int32, certificate cert.TLSCertificate) error {
 	parsePublicKey := certificate.GetPublicKey()
 
 	publicKeyHash, err := parsePublicKey.GetSHA1Hash()

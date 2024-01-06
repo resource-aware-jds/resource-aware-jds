@@ -17,7 +17,7 @@ var (
 )
 
 type ControlPlane struct {
-	controlPlaneRepository repository.IControlPlane
+	controlPlaneRepository repository.INodeRegistry
 	caCertificate          cert.CACertificate
 	config                 config.ControlPlaneConfigModel
 }
@@ -26,7 +26,7 @@ type IControlPlane interface {
 	RegisterWorker(ctx context.Context, ip string, port int32, nodePublicKey cert.KeyData) (certificate cert.TLSCertificate, err error)
 }
 
-func ProvideControlPlane(controlPlaneRepository repository.IControlPlane, caCertificate cert.CACertificate, config config.ControlPlaneConfigModel) IControlPlane {
+func ProvideControlPlane(controlPlaneRepository repository.INodeRegistry, caCertificate cert.CACertificate, config config.ControlPlaneConfigModel) IControlPlane {
 	return &ControlPlane{
 		controlPlaneRepository: controlPlaneRepository,
 		caCertificate:          caCertificate,
