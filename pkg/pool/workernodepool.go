@@ -2,13 +2,13 @@ package pool
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/resource-aware-jds/resource-aware-jds/generated/proto/github.com/resource-aware-jds/resource-aware-jds/generated/proto"
 	"github.com/resource-aware-jds/resource-aware-jds/models"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/cert"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/distribution"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/grpc"
-	"github.com/resource-aware-jds/resource-aware-jds/pkg/timeutil"
 	"github.com/resource-aware-jds/resource-aware-jds/service"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -17,9 +17,12 @@ import (
 )
 
 const (
-	MaximumUnavailableCount        = 3
-	AvailabilityCheckSleepDuration = 5 * time.Second
-	AvailabilityCheckTimeout       = 5 * time.Second
+	MaximumUnavailableCount  = 3
+	AvailabilityCheckTimeout = 5 * time.Second
+)
+
+var (
+	ErrNoAvailableWorkerNode = errors.New("no available worker node in the pool")
 )
 
 type workerNodePoolMapper struct {
@@ -41,6 +44,8 @@ type WorkerNode interface {
 	InitializePool(ctx context.Context)
 	AddWorkerNode(ctx context.Context, node models.NodeEntry) error
 	WorkerNodeAvailabilityCheck(ctx context.Context)
+	DistributeWork(ctx context.Context, tasks []models.Task) ([]models.Task, []distribution.DistributeError, error)
+	IsAvailableWorkerNode() bool
 }
 
 func ProvideWorkerNode(caCertificate cert.CACertificate, controlPlaneService service.IControlPlane, distributor distribution.Distributor) WorkerNode {
@@ -129,13 +134,15 @@ func (w *workerNode) WorkerNodeAvailabilityCheck(ctx context.Context) {
 		}
 		w.pool[key] = focusedNode
 	}
-
-	timeutil.SleepWithContext(ctx, AvailabilityCheckSleepDuration)
 }
 
-func (w *workerNode) DistributeWork(ctx context.Context, tasks []models.Task) ([]distribution.DistributeError, error) {
+func (w *workerNode) DistributeWork(ctx context.Context, tasks []models.Task) ([]models.Task, []distribution.DistributeError, error) {
 	w.poolMu.Lock()
 	defer w.poolMu.Unlock()
+
+	if len(w.pool) == 0 {
+		return nil, nil, ErrNoAvailableWorkerNode
+	}
 
 	nodeMapper := make([]distribution.NodeMapper, 0, len(w.pool))
 	for _, node := range w.pool {
@@ -147,4 +154,11 @@ func (w *workerNode) DistributeWork(ctx context.Context, tasks []models.Task) ([
 	}
 
 	return w.distributor.Distribute(ctx, nodeMapper, tasks)
+}
+
+func (w *workerNode) IsAvailableWorkerNode() bool {
+	w.poolMu.Lock()
+	defer w.poolMu.Unlock()
+
+	return len(w.pool) != 0
 }

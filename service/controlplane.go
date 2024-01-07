@@ -9,6 +9,7 @@ import (
 	"github.com/resource-aware-jds/resource-aware-jds/config"
 	"github.com/resource-aware-jds/resource-aware-jds/models"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/cert"
+	"github.com/resource-aware-jds/resource-aware-jds/pkg/distribution"
 	"github.com/resource-aware-jds/resource-aware-jds/repository"
 	"time"
 )
@@ -29,6 +30,8 @@ type IControlPlane interface {
 	RegisterWorker(ctx context.Context, ip string, port int32, nodePublicKey cert.KeyData) (certificate cert.TLSCertificate, err error)
 	GetAllWorkerNodeFromRegistry(ctx context.Context) ([]models.NodeEntry, error)
 	CreateJob(ctx context.Context, imageURL string, taskAttributes [][]byte) (*models.Job, []models.Task, error)
+	GetAvailableTask(ctx context.Context) ([]models.Task, error)
+	UpdateTaskAfterDistribution(ctx context.Context, successTask []models.Task, errorTask []distribution.DistributeError) error
 }
 
 func ProvideControlPlane(jobRepository repository.IJob, taskRepository repository.ITask, nodeRegistryRepository repository.INodeRegistry, caCertificate cert.CACertificate, config config.ControlPlaneConfigModel) IControlPlane {
@@ -117,4 +120,20 @@ func (s *ControlPlane) CreateJob(ctx context.Context, imageURL string, taskAttri
 
 func (s *ControlPlane) GetAllWorkerNodeFromRegistry(ctx context.Context) ([]models.NodeEntry, error) {
 	return s.nodeRegistryRepository.GetAllWorkerNode(ctx)
+}
+
+func (s *ControlPlane) GetAvailableTask(ctx context.Context) ([]models.Task, error) {
+	return s.taskRepository.GetTaskToDistribute(ctx)
+}
+
+func (s *ControlPlane) UpdateTaskAfterDistribution(ctx context.Context, successTasks []models.Task, errorTasks []distribution.DistributeError) error {
+	taskToUpdate := make([]models.Task, 0, len(successTasks)+len(errorTasks))
+	taskToUpdate = append(taskToUpdate, successTasks...)
+
+	// Add failure task
+	for _, errorTask := range errorTasks {
+		taskToUpdate = append(taskToUpdate, errorTask.Task)
+	}
+
+	return s.taskRepository.BulkWriteStatusAndLogByID(ctx, taskToUpdate)
 }

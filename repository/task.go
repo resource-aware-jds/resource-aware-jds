@@ -20,6 +20,8 @@ type task struct {
 type ITask interface {
 	FindManyByJobID(ctx context.Context, jobID *primitive.ObjectID) ([]models.Task, error)
 	InsertMany(ctx context.Context, tasks []models.Task) error
+	GetTaskToDistribute(ctx context.Context) ([]models.Task, error)
+	BulkWriteStatusAndLogByID(ctx context.Context, tasks []models.Task) error
 }
 
 func ProvideTask(database *mongo.Database) ITask {
@@ -50,4 +52,40 @@ func (t *task) FindManyByJobID(ctx context.Context, jobID *primitive.ObjectID) (
 	var resultDecoded []models.Task
 	err = result.All(ctx, &resultDecoded)
 	return resultDecoded, err
+}
+
+func (t *task) GetTaskToDistribute(ctx context.Context) ([]models.Task, error) {
+	result, err := t.collection.Find(ctx, bson.M{
+		"task_status": bson.M{
+			"$in": []models.TaskStatus{models.CreatedTaskStatus},
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	var resultDecoded []models.Task
+	err = result.All(ctx, &resultDecoded)
+	return resultDecoded, err
+}
+
+func (t *task) BulkWriteStatusAndLogByID(ctx context.Context, tasks []models.Task) error {
+	var operations []mongo.WriteModel
+	for _, task := range tasks {
+		operation := mongo.NewUpdateOneModel()
+		operation.SetFilter(bson.M{
+			"_id": task.ID,
+		})
+		operation.SetUpdate(bson.M{
+			"$set": bson.M{
+				"task_status": task.Status,
+				"logs":        task.Logs,
+			},
+		})
+
+		operations = append(operations, operation)
+	}
+
+	_, err := t.collection.BulkWrite(ctx, operations)
+	return err
 }
