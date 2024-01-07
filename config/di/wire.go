@@ -25,4 +25,6 @@ var WorkerConfigWireSet = wire.NewSet(
 	config.ProvideTransportCertificateConfig,
 	config.ProvideWorkerConfigModel,
 	config.ProvideGRPCSocketServerConfig,
+	config.ProvideGRPCClientConfig,
+	config.ProvideClientCATLSCertificateConfig,
 )

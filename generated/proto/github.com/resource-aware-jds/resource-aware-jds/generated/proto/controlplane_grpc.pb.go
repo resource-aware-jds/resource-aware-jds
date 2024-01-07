@@ -11,6 +11,7 @@ import (
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
+	emptypb "google.golang.org/protobuf/types/known/emptypb"
 )
 
 // This is a compile-time assertion to ensure that this generated file
@@ -24,6 +25,7 @@ const _ = grpc.SupportPackageIsVersion7
 type ControlPlaneClient interface {
 	WorkerRegistration(ctx context.Context, in *ComputeNodeRegistrationRequest, opts ...grpc.CallOption) (*ComputeNodeRegistrationResponse, error)
 	CreateJob(ctx context.Context, in *CreateJobRequest, opts ...grpc.CallOption) (*CreateJobResponse, error)
+	WorkerCheckIn(ctx context.Context, in *WorkerCheckInRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 }
 
 type controlPlaneClient struct {
@@ -52,12 +54,22 @@ func (c *controlPlaneClient) CreateJob(ctx context.Context, in *CreateJobRequest
 	return out, nil
 }
 
+func (c *controlPlaneClient) WorkerCheckIn(ctx context.Context, in *WorkerCheckInRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, "/controlplane.ControlPlane/WorkerCheckIn", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ControlPlaneServer is the server API for ControlPlane service.
 // All implementations must embed UnimplementedControlPlaneServer
 // for forward compatibility
 type ControlPlaneServer interface {
 	WorkerRegistration(context.Context, *ComputeNodeRegistrationRequest) (*ComputeNodeRegistrationResponse, error)
 	CreateJob(context.Context, *CreateJobRequest) (*CreateJobResponse, error)
+	WorkerCheckIn(context.Context, *WorkerCheckInRequest) (*emptypb.Empty, error)
 	mustEmbedUnimplementedControlPlaneServer()
 }
 
@@ -70,6 +82,9 @@ func (UnimplementedControlPlaneServer) WorkerRegistration(context.Context, *Comp
 }
 func (UnimplementedControlPlaneServer) CreateJob(context.Context, *CreateJobRequest) (*CreateJobResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateJob not implemented")
+}
+func (UnimplementedControlPlaneServer) WorkerCheckIn(context.Context, *WorkerCheckInRequest) (*emptypb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method WorkerCheckIn not implemented")
 }
 func (UnimplementedControlPlaneServer) mustEmbedUnimplementedControlPlaneServer() {}
 
@@ -120,6 +135,24 @@ func _ControlPlane_CreateJob_Handler(srv interface{}, ctx context.Context, dec f
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ControlPlane_WorkerCheckIn_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(WorkerCheckInRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ControlPlaneServer).WorkerCheckIn(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/controlplane.ControlPlane/WorkerCheckIn",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ControlPlaneServer).WorkerCheckIn(ctx, req.(*WorkerCheckInRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ControlPlane_ServiceDesc is the grpc.ServiceDesc for ControlPlane service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -134,6 +167,10 @@ var ControlPlane_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "CreateJob",
 			Handler:    _ControlPlane_CreateJob_Handler,
+		},
+		{
+			MethodName: "WorkerCheckIn",
+			Handler:    _ControlPlane_WorkerCheckIn_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

@@ -8,5 +8,6 @@ import (
 var (
 	DaemonWireSet = wire.NewSet(
 		daemon.ProvideControlPlaneDaemon,
+		daemon.ProvideWorkerNodeDaemon,
 	)
 )

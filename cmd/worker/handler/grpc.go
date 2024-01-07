@@ -21,7 +21,7 @@ func ProvideWorkerGRPCHandler(grpcServer grpc.RAJDSGrpcServer, workerService ser
 	return handler
 }
 
-func (j *GRPCHandler) HealthCheck(context.Context, *emptypb.Empty) (*emptypb.Empty, error) {
+func (j *GRPCHandler) HealthCheck(ctx context.Context, req *emptypb.Empty) (*emptypb.Empty, error) {
 	return &emptypb.Empty{}, nil
 }
 

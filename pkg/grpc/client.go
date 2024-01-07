@@ -16,11 +16,16 @@ type RAJDSGrpcClient interface {
 	GetConnection() *grpc.ClientConn
 }
 
-func ProvideRAJDSGrpcClient(target string, certificate cert.ClientCATLSCertificate) (RAJDSGrpcClient, error) {
+type ClientConfig struct {
+	Target        string
+	CACertificate cert.ClientCATLSCertificate
+}
+
+func ProvideRAJDSGrpcClient(config ClientConfig) (RAJDSGrpcClient, error) {
 	// Create the trusted CA Pool
 	caCertificatePool := x509.NewCertPool()
 
-	caCertificate, err := certificate.GetCACertificate()
+	caCertificate, err := config.CACertificate.GetCACertificate()
 	if err != nil {
 		return nil, err
 	}
@@ -31,7 +36,7 @@ func ProvideRAJDSGrpcClient(target string, certificate cert.ClientCATLSCertifica
 	}
 
 	grpcConnection, err := grpc.Dial(
-		target,
+		config.Target,
 		grpc.WithTransportCredentials(credentials.NewTLS(tlsConfig)),
 	)
 	if err != nil {

@@ -9,6 +9,7 @@ package di
 import (
 	"github.com/resource-aware-jds/resource-aware-jds/cmd/worker/handler"
 	"github.com/resource-aware-jds/resource-aware-jds/config"
+	"github.com/resource-aware-jds/resource-aware-jds/daemon"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/cert"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/dockerclient"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/grpc"
@@ -58,7 +59,25 @@ func InitializeApplication() (WorkerApp, func(), error) {
 		return WorkerApp{}, nil, err
 	}
 	workerGRPCSocketHandler := handler.ProvideWorkerGRPCSocketHandler(socketServer, iWorker)
-	workerApp := ProvideWorkerApp(rajdsGrpcServer, grpcHandler, socketServer, workerGRPCSocketHandler)
+	clientCATLSCertificateConfig := config.ProvideClientCATLSCertificateConfig(workerConfigModel)
+	clientCATLSCertificate, err := cert.ProvideClientCATLSCertificate(clientCATLSCertificateConfig)
+	if err != nil {
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return WorkerApp{}, nil, err
+	}
+	clientConfig := config.ProvideGRPCClientConfig(workerConfigModel, clientCATLSCertificate)
+	rajdsGrpcClient, err := grpc.ProvideRAJDSGrpcClient(clientConfig)
+	if err != nil {
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return WorkerApp{}, nil, err
+	}
+	controlPlaneClient := ProvideControlPlaneGRPCClient(rajdsGrpcClient)
+	workerNode := daemon.ProvideWorkerNodeDaemon(controlPlaneClient, clientCATLSCertificate)
+	workerApp := ProvideWorkerApp(rajdsGrpcServer, grpcHandler, socketServer, workerGRPCSocketHandler, workerNode)
 	return workerApp, func() {
 		cleanup3()
 		cleanup2()

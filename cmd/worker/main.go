@@ -18,9 +18,10 @@ func main() {
 		}
 		panic(fmt.Sprintf("failed to initialize app: %e", err))
 	}
-  
+
 	app.GRPCServer.Serve()
 	app.GRPCSocketServer.Serve()
+	app.WorkerNodeDaemon.Start()
 
 	// Gracefully Shutdown
 	// Make channel listen for signals from OS

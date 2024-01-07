@@ -6,7 +6,7 @@ type ClientCATLSCertificateConfig struct {
 	CACertificateFilePath string
 }
 
-func ProvideClientCATLSCertificate(config ClientCATLSCertificateConfig) (TLSCertificate, error) {
+func ProvideClientCATLSCertificate(config ClientCATLSCertificateConfig) (ClientCATLSCertificate, error) {
 	certificateChain, err := LoadCertificatesFromFile(config.CACertificateFilePath)
 	if err != nil {
 		return nil, err

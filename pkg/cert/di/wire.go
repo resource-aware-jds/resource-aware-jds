@@ -8,4 +8,5 @@ import (
 var CertWireSet = wire.NewSet(
 	cert.ProvideCACertificate,
 	cert.ProvideTransportCertificate,
+	cert.ProvideClientCATLSCertificate,
 )

@@ -4,9 +4,16 @@ option go_package = "github.com/resource-aware-jds/resource-aware-jds/generated/
 
 package controlplane;
 
+import "google/protobuf/empty.proto";
+
 service ControlPlane {
   rpc WorkerRegistration(ComputeNodeRegistrationRequest) returns (ComputeNodeRegistrationResponse);
   rpc CreateJob(CreateJobRequest) returns (CreateJobResponse);
+  rpc WorkerCheckIn(WorkerCheckInRequest) returns (google.protobuf.Empty);
+}
+
+message WorkerCheckInRequest {
+  bytes certificate = 1;
 }
 
 message ComputeNodeRegistrationRequest {
