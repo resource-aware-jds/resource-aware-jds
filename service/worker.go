@@ -27,11 +27,13 @@ type Worker struct {
 }
 
 type IWorker interface {
-	RemoveContainer(containerID string) error
+	RemoveContainer(ctx context.Context, containerID string) error
 	SubmitTask(containerImage string, taskId string, input []byte) error
 	GetTask(containerImage string) (*proto.Task, error)
 	SubmitSuccessTask(id string, results [][]byte) error
 	ReportFailTask(id string, errorMessage string) error
+	StartContainer(ctx context.Context, dockerImage string, name string, options types.ImagePullOptions) error
+	IsContainerExist(ctx context.Context, imageUrl string) bool
 }
 
 func ProvideWorker(dockerClient *client.Client, config config.WorkerConfigModel, taskQueue taskqueue.Queue, taskBuffer taskBuffer.TaskBuffer) IWorker {
@@ -77,14 +79,6 @@ func (w *Worker) ReportFailTask(id string, errorMessage string) error {
 }
 
 func (w *Worker) SubmitTask(containerImage string, taskId string, input []byte) error {
-	if !w.isContainerExist(containerImage) {
-		containerName := "rajds-" + taskId
-		err := w.startContainer(containerImage, containerName, types.ImagePullOptions{}, taskId)
-		if err != nil {
-			return err
-		}
-	}
-
 	hex, err := primitive.ObjectIDFromHex(taskId)
 	if err != nil {
 		return err
@@ -99,8 +93,7 @@ func (w *Worker) SubmitTask(containerImage string, taskId string, input []byte) 
 	return nil
 }
 
-func (w *Worker) RemoveContainer(containerID string) error {
-	ctx := context.Background()
+func (w *Worker) RemoveContainer(ctx context.Context, containerID string) error {
 	responseCh, errCh := w.dockerClient.ContainerWait(ctx, containerID, container.WaitConditionNotRunning)
 	select {
 	case err := <-errCh:
@@ -122,11 +115,9 @@ func (w *Worker) RemoveContainer(containerID string) error {
 	return nil
 }
 
-func (w *Worker) startContainer(dockerImage string, name string, options types.ImagePullOptions, taskId string) error {
+func (w *Worker) StartContainer(ctx context.Context, dockerImage string, name string, options types.ImagePullOptions) error {
 	logrus.Info("Creating container: ", name, " with image: ", dockerImage)
 	defer logrus.Info("Create container ", name, " success")
-
-	ctx := context.Background()
 
 	//Pull image
 	logrus.Info("Pulling docker image")
@@ -140,7 +131,7 @@ func (w *Worker) startContainer(dockerImage string, name string, options types.I
 	// Create container
 	resp, err := w.dockerClient.ContainerCreate(
 		ctx,
-		w.getContainerConfig(dockerImage, taskId),
+		w.getContainerConfig(dockerImage),
 		w.getHostConfig(w.config.WorkerNodeGRPCServerUnixSocketPath),
 		nil,
 		nil,
@@ -174,8 +165,7 @@ func (w *Worker) getHostConfig(workerNodeGRPCServerUnixSocketPath string) *conta
 	}
 }
 
-func (w *Worker) isContainerExist(imageUrl string) bool {
-	ctx := context.Background()
+func (w *Worker) IsContainerExist(ctx context.Context, imageUrl string) bool {
 	opt := types.ContainerListOptions{All: true}
 	opt.Filters = filters.NewArgs()
 	opt.Filters.Add("status", "running")
@@ -195,7 +185,7 @@ func (w *Worker) isContainerExist(imageUrl string) bool {
 	return false
 }
 
-func (w *Worker) getContainerConfig(dockerImage string, taskId string) *container.Config {
+func (w *Worker) getContainerConfig(dockerImage string) *container.Config {
 	return &container.Config{
 		Image:      dockerImage,
 		Env:        []string{"INITIAL_TASK_RUNNER=" + "3", "IMAGE_URL=" + dockerImage, "CONTAINER_UNIX_SOCKET_PATH=/tmp"},
