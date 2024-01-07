@@ -1,12 +1,15 @@
 	logrus.Info("\"Starting up the Worker.\"")
-	caCertificate, err := cert.ProvideClientCATLSCertificate(cert.ClientCATLSCertificateConfig{
+	caCertificate, err := cert.ProvideWorkerNodeCACertificate(cert.WorkerNodeCACertificateConfig{
 		CACertificateFilePath: "/Users/sirateek/.rajds/controlplane/ca/cert.pem",
 	})
 	if err != nil {
 		panic(err)
 	}
 
-	grpcConn, err := grpc.ProvideRAJDSGrpcClient("localhost:31234", caCertificate)
+	grpcConn, err := grpc.ProvideRAJDSGrpcClient(grpc.ClientConfig{
+		Target:        "localhost:31234",
+		CACertificate: caCertificate,
+	})
 	if err != nil {
 		panic(err)
 	}
@@ -29,4 +32,27 @@
 		panic(err)
 	}
 
-	logrus.Info(result)
+	logrus.Info(result.Certificate)
+
+	parsedCertificate, err := cert.LoadCertificate(result.Certificate)
+	if err != nil {
+		logrus.Error(err)
+		return
+	}
+
+	parsedKey, err := cert.ParsePrivateKeyToKeyData(x509.MarshalPKCS1PrivateKey(privateKey))
+	if err != nil {
+		logrus.Error(err)
+		return
+	}
+
+	dataResult, err := cert.ProvideTLSCertificate(parsedCertificate, parsedKey, false)
+	if err != nil {
+		logrus.Error(err)
+		return
+	}
+
+	err = dataResult.SaveCertificateToFile("/Users/sirateek/.rajds/workernode/transport/cert.pem", "/Users/sirateek/.rajds/workernode/transport/key.pem")
+	if err != nil {
+		logrus.Error(err)
+	}
