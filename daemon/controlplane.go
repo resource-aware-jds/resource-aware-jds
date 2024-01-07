@@ -75,7 +75,7 @@ func (c *controlPlane) Start() {
 func (c *controlPlane) taskScanLoop(ctx context.Context) {
 	// Check if there is any available worker node first
 	if !c.workerNodePool.IsAvailableWorkerNode() {
-		logrus.Warn("[ControlPlane Daemon] No available worker node in the pool, skippin task scan loop")
+		logrus.Warn("[ControlPlane Daemon] No available worker node in the pool, skipping task scan loop")
 		return
 	}
 
