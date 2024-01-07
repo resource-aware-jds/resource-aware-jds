@@ -32,6 +32,7 @@ type IControlPlane interface {
 	CreateJob(ctx context.Context, imageURL string, taskAttributes [][]byte) (*models.Job, []models.Task, error)
 	GetAvailableTask(ctx context.Context) ([]models.Task, error)
 	UpdateTaskAfterDistribution(ctx context.Context, successTask []models.Task, errorTask []distribution.DistributeError) error
+	CheckInWorkerNode(ctx context.Context, cert []byte) error
 }
 
 func ProvideControlPlane(jobRepository repository.IJob, taskRepository repository.ITask, nodeRegistryRepository repository.INodeRegistry, caCertificate cert.CACertificate, config config.ControlPlaneConfigModel) IControlPlane {
@@ -136,4 +137,31 @@ func (s *ControlPlane) UpdateTaskAfterDistribution(ctx context.Context, successT
 	}
 
 	return s.taskRepository.BulkWriteStatusAndLogByID(ctx, taskToUpdate)
+}
+
+func (s *ControlPlane) CheckInWorkerNode(ctx context.Context, rawPEMCertificateData []byte) error {
+	// Load Certificate
+	// Validate the certificate signature
+	//parsedCertificate, err := cert.LoadCertificate(rawPEMCertificateData)
+	//if err != nil {
+	//	return err
+	//}
+	//
+	//if len(parsedCertificate) == 0 {
+	//
+	//}
+	//
+	//err = s.caCertificate.ValidateSignature(parsedCertificate)
+	//if err != nil {
+	//	return err
+	//}
+	//
+	//if time.Now().Before(parsedCertificate.NotBefore) || time.Now().After(parsedCertificate.NotAfter) {
+	//	return fmt.Errorf("client certificate expired")
+	//}
+	//
+	//fmt.Println("Registered: ", parsedCertificate.Subject.SerialNumber)
+	//
+	//// TODO: Implement me
+	return nil
 }

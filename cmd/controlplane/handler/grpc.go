@@ -7,6 +7,7 @@ import (
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/cert"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/grpc"
 	"github.com/resource-aware-jds/resource-aware-jds/service"
+	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 type GRPCHandler struct {
@@ -76,4 +77,9 @@ func (g *GRPCHandler) CreateJob(ctx context.Context, req *proto.CreateJobRequest
 	res.Tasks = responseTasks
 
 	return &res, nil
+}
+
+func (g *GRPCHandler) WorkerCheckIn(ctx context.Context, req *proto.WorkerCheckInRequest) (*emptypb.Empty, error) {
+	err := g.controlPlaneService.CheckInWorkerNode(ctx, req.GetCertificate())
+	return nil, err
 }

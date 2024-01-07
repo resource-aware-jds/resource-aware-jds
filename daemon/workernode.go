@@ -32,7 +32,7 @@ func ProvideWorkerNodeDaemon(controlPlaneGRPCClient proto.ControlPlaneClient, wo
 func (w *workerNode) Start() {
 	err := w.checkInNodeToControlPlane()
 	if err != nil {
-		panic(fmt.Sprintf("Failed to check in worker node to control plane (%e)", err.Error()))
+		panic(fmt.Sprintf("Failed to check in worker node to control plane (%s)", err.Error()))
 	}
 }
 

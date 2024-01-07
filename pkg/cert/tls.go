@@ -2,7 +2,10 @@ package cert
 
 import (
 	"bytes"
+	"crypto"
 	"crypto/rand"
+	"crypto/rsa"
+	"crypto/sha1"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
@@ -46,6 +49,8 @@ type TLSCertificate interface {
 
 	SaveCertificateToFile(certificateFilePath, privateKeyFilePath string) error
 	GetCertificateSubjectSerialNumber() string
+
+	ValidateSignature(underValidateCertificate *x509.Certificate) error
 }
 
 func ProvideTLSCertificate(certificateChain []*x509.Certificate, privateKey KeyData, isCA bool) (TLSCertificate, error) {
@@ -254,4 +259,11 @@ func (t *tlsCertificate) SaveCertificateToFile(certificateFilePath, privateKeyFi
 	}
 
 	return nil
+}
+
+func (t *tlsCertificate) ValidateSignature(underValidateCertificate *x509.Certificate) error {
+	hash := sha1.New()
+	hash.Write(underValidateCertificate.RawTBSCertificate)
+	hashData := hash.Sum(nil)
+	return rsa.VerifyPKCS1v15(t.publicKey.GetRawKeyData().(*rsa.PublicKey), crypto.SHA1, hashData, underValidateCertificate.Signature)
 }

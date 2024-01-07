@@ -84,7 +84,10 @@ func (w *workerNode) AddWorkerNode(ctx context.Context, node models.NodeEntry) e
 
 	// Create gRPC connection
 	target := fmt.Sprintf("%s:%d", node.IP, node.Port)
-	client, err := grpc.ProvideRAJDSGrpcClient(target, w.caCertificate)
+	client, err := grpc.ProvideRAJDSGrpcClient(grpc.ClientConfig{
+		Target:        target,
+		CACertificate: w.caCertificate,
+	})
 	if err != nil {
 		logger.Warnf("[WorkerNode Pool] Failed add worker node to the pool with error (%s)", err.Error())
 		return err

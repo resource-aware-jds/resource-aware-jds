@@ -14,30 +14,7 @@ func LoadCertificatesFromFile(certificateFilePath string) ([]*x509.Certificate, 
 		return nil, err
 	}
 
-	certificates := make([]*x509.Certificate, 0)
-	for {
-		block, rest := pem.Decode(certificateFile)
-		if block == nil {
-			return nil, nil
-		}
-
-		if !IsSupportedPEMBlock(block.Type) {
-			return nil, fmt.Errorf("%e: %s", ErrInvalidPEMBlockType, block.Type)
-		}
-
-		parsedCertificate, err := x509.ParseCertificate(block.Bytes)
-		if err != nil {
-			return nil, err
-		}
-
-		certificates = append(certificates, parsedCertificate)
-		certificateFile = rest
-		if rest == nil || (rest != nil && len(rest) == 0) {
-			break
-		}
-	}
-
-	return certificates, nil
+	return LoadCertificate(certificateFile)
 }
 
 func LoadKeyFromFile(privateKeyFilePath string) (KeyData, error) {
@@ -65,4 +42,31 @@ func LoadKeyFromFile(privateKeyFilePath string) (KeyData, error) {
 	}
 
 	return privateKeyData, nil
+}
+
+func LoadCertificate(pemCertificateData []byte) ([]*x509.Certificate, error) {
+	certificates := make([]*x509.Certificate, 0)
+	for {
+		block, rest := pem.Decode(pemCertificateData)
+		if block == nil {
+			return nil, nil
+		}
+
+		if !IsSupportedPEMBlock(block.Type) {
+			return nil, fmt.Errorf("%e: %s", ErrInvalidPEMBlockType, block.Type)
+		}
+
+		parsedCertificate, err := x509.ParseCertificate(block.Bytes)
+		if err != nil {
+			return nil, err
+		}
+
+		certificates = append(certificates, parsedCertificate)
+		pemCertificateData = rest
+		if rest == nil || (rest != nil && len(rest) == 0) {
+			break
+		}
+	}
+
+	return certificates, nil
 }
