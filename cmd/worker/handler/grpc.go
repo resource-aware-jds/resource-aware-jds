@@ -21,6 +21,10 @@ func ProvideWorkerGRPCHandler(grpcServer grpc.RAJDSGrpcServer, workerService ser
 	return handler
 }
 
+func (j *GRPCHandler) HealthCheck(context.Context, *emptypb.Empty) (*emptypb.Empty, error) {
+	return &emptypb.Empty{}, nil
+}
+
 func (j *GRPCHandler) SendTask(context context.Context, task *proto.RecievedTask) (*emptypb.Empty, error) {
 	err := j.workerService.SubmitTask(task.DockerImage, task.ID, task.TaskAttributes)
 	return &emptypb.Empty{}, err

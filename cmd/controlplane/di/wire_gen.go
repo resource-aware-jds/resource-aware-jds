@@ -9,9 +9,12 @@ package di
 import (
 	"github.com/resource-aware-jds/resource-aware-jds/cmd/controlplane/handler"
 	"github.com/resource-aware-jds/resource-aware-jds/config"
+	"github.com/resource-aware-jds/resource-aware-jds/daemon"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/cert"
+	"github.com/resource-aware-jds/resource-aware-jds/pkg/distribution"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/grpc"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/mongo"
+	"github.com/resource-aware-jds/resource-aware-jds/pkg/pool"
 	"github.com/resource-aware-jds/resource-aware-jds/repository"
 	"github.com/resource-aware-jds/resource-aware-jds/service"
 )
@@ -50,8 +53,12 @@ func InitializeApplication() (ControlPlaneApp, func(), error) {
 	iNodeRegistry := repository.ProvideControlPlane(database)
 	iControlPlane := service.ProvideControlPlane(iJob, iTask, iNodeRegistry, caCertificate, controlPlaneConfigModel)
 	grpcHandler := handler.ProvideControlPlaneGRPCHandler(rajdsGrpcServer, iControlPlane)
-	controlPlaneApp := ProvideControlPlaneApp(rajdsGrpcServer, grpcHandler)
+	distributor := distribution.ProvideRoundRobinDistributor()
+	workerNode := pool.ProvideWorkerNode(caCertificate, iControlPlane, distributor)
+	daemonIControlPlane, cleanup3 := daemon.ProvideControlPlaneDaemon(workerNode, iControlPlane)
+	controlPlaneApp := ProvideControlPlaneApp(rajdsGrpcServer, grpcHandler, daemonIControlPlane)
 	return controlPlaneApp, func() {
+		cleanup3()
 		cleanup2()
 		cleanup()
 	}, nil

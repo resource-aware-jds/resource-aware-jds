@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/resource-aware-jds/resource-aware-jds/models"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/cert"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
@@ -20,6 +21,7 @@ type nodeRegistry struct {
 type INodeRegistry interface {
 	IsNodeAlreadyRegistered(ctx context.Context, keyHash string) (bool, error)
 	RegisterWorkerNodeWithCertificate(ctx context.Context, ip string, port int32, certificate cert.TLSCertificate) error
+	GetAllWorkerNode(ctx context.Context) ([]models.NodeEntry, error)
 }
 
 func ProvideControlPlane(database *mongo.Database) INodeRegistry {
@@ -59,4 +61,15 @@ func (c *nodeRegistry) RegisterWorkerNodeWithCertificate(ctx context.Context, ip
 		Port:          port,
 	})
 	return err
+}
+
+func (c *nodeRegistry) GetAllWorkerNode(ctx context.Context) ([]models.NodeEntry, error) {
+	result, err := c.nodeRegistryCollection.Find(ctx, bson.M{})
+	if err != nil {
+		return nil, err
+	}
+
+	var nodeEntries []models.NodeEntry
+	err = result.All(ctx, &nodeEntries)
+	return nodeEntries, err
 }
