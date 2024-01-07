@@ -43,7 +43,7 @@ func (q *Queue[Data]) ReadQueue() []Data {
 	return q.data
 }
 
-func (q *Queue[Data]) FilterWithCondition(removeCondition func(data Data) bool) {
+func (q *Queue[Data]) RemoveWithCondition(removeCondition func(data Data) bool) {
 	q.data = Filter(q.data, removeCondition)
 }
 

@@ -57,7 +57,7 @@ func (q *queue) GetDistinctImageList() []string {
 }
 
 func (q *queue) BulkRemove(tasks []*models.Task) {
-	q.runnerQueue.FilterWithCondition(func(task *models.Task) bool {
+	q.runnerQueue.RemoveWithCondition(func(task *models.Task) bool {
 		return !datastructure.Contains(tasks, task)
 	})
 	logrus.Info("Task removed:", tasks)
