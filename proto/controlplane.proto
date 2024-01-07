@@ -18,9 +18,8 @@ message WorkerCheckInRequest {
 }
 
 message ComputeNodeRegistrationRequest {
-  string ip = 1;
-  int32 port = 2;
-  bytes nodePublicKey = 3;
+  int32 port = 1;
+  bytes nodePublicKey = 2;
 }
 
 message ComputeNodeRegistrationResponse {

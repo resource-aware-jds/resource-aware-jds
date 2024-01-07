@@ -37,5 +37,6 @@ func ProvideWorkerNodeTransportCertificate(config WorkerConfigModel) cert.Worker
 	return cert.WorkerNodeTransportCertificateConfig{
 		CertificateFileLocation: config.CertificatePath,
 		PrivateKeyFileLocation:  config.CertificatePrivateKeyPath,
+		ControlPlaneAddr:        config.ControlPlaneHost,
 	}
 }

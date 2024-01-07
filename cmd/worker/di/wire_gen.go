@@ -28,7 +28,18 @@ func InitializeApplication() (WorkerApp, func(), error) {
 	grpcConfig := config.ProvideWorkerGRPCConfig(configConfig)
 	workerConfigModel := config.ProvideWorkerConfigModel(configConfig)
 	workerNodeTransportCertificateConfig := config.ProvideWorkerNodeTransportCertificate(workerConfigModel)
-	transportCertificate, err := cert.ProvideWorkerNodeTransportCertificate(workerNodeTransportCertificateConfig)
+	workerNodeCACertificateConfig := config.ProvideClientCATLSCertificateConfig(workerConfigModel)
+	workerNodeCACertificate, err := cert.ProvideWorkerNodeCACertificate(workerNodeCACertificateConfig)
+	if err != nil {
+		return WorkerApp{}, nil, err
+	}
+	clientConfig := config.ProvideGRPCClientConfig(workerConfigModel, workerNodeCACertificate)
+	rajdsGrpcClient, err := grpc.ProvideRAJDSGrpcClient(clientConfig)
+	if err != nil {
+		return WorkerApp{}, nil, err
+	}
+	controlPlaneClient := ProvideControlPlaneGRPCClient(rajdsGrpcClient)
+	transportCertificate, err := cert.ProvideWorkerNodeTransportCertificate(workerNodeTransportCertificateConfig, controlPlaneClient)
 	if err != nil {
 		return WorkerApp{}, nil, err
 	}
@@ -53,23 +64,6 @@ func InitializeApplication() (WorkerApp, func(), error) {
 		return WorkerApp{}, nil, err
 	}
 	workerGRPCSocketHandler := handler.ProvideWorkerGRPCSocketHandler(socketServer, iWorker)
-	workerNodeCACertificateConfig := config.ProvideClientCATLSCertificateConfig(workerConfigModel)
-	workerNodeCACertificate, err := cert.ProvideWorkerNodeCACertificate(workerNodeCACertificateConfig)
-	if err != nil {
-		cleanup3()
-		cleanup2()
-		cleanup()
-		return WorkerApp{}, nil, err
-	}
-	clientConfig := config.ProvideGRPCClientConfig(workerConfigModel, workerNodeCACertificate)
-	rajdsGrpcClient, err := grpc.ProvideRAJDSGrpcClient(clientConfig)
-	if err != nil {
-		cleanup3()
-		cleanup2()
-		cleanup()
-		return WorkerApp{}, nil, err
-	}
-	controlPlaneClient := ProvideControlPlaneGRPCClient(rajdsGrpcClient)
 	workerNode := daemon.ProvideWorkerNodeDaemon(controlPlaneClient, iWorker, queue, transportCertificate, workerConfigModel)
 	workerApp := ProvideWorkerApp(rajdsGrpcServer, grpcHandler, socketServer, workerGRPCSocketHandler, workerNode)
 	return workerApp, func() {

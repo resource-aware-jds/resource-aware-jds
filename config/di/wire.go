@@ -19,9 +19,7 @@ var ControlPlaneConfigWireSet = wire.NewSet(
 var WorkerConfigWireSet = wire.NewSet(
 	config.ProvideConfig,
 	config.ProvideWorkerGRPCConfig,
-	config.ProvideControlPlaneConfigModel,
 	config.ProvideMongoConfig,
-	config.ProvideCACertificateConfig,
 	config.ProvideTransportCertificateConfig,
 	config.ProvideWorkerConfigModel,
 	config.ProvideGRPCSocketServerConfig,
