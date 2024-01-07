@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rsa"
 	"crypto/x509"
+	"fmt"
 	"github.com/resource-aware-jds/resource-aware-jds/config"
 	"github.com/resource-aware-jds/resource-aware-jds/generated/proto/github.com/resource-aware-jds/resource-aware-jds/generated/proto"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/grpc"
@@ -32,7 +33,7 @@ type WorkerNodeTransportCertificateConfig struct {
 func ProvideWorkerNodeTransportCertificate(workerCertificateConfig WorkerNodeTransportCertificateConfig, controlPlaneConfig config.ControlPlaneConfigModel) (TransportCertificate, error) {
 	privateKeyData, err := LoadKeyFromFile(workerCertificateConfig.PrivateKeyFileLocation)
 	if err != nil {
-		response, privateKeyData, err := registerWorker(workerCertificateConfig, controlPlaneConfig)
+		response, privateKeyData, err := registerWorker(controlPlaneConfig)
 		if err != nil {
 			return nil, err
 		}
@@ -59,16 +60,16 @@ func ProvideWorkerNodeTransportCertificate(workerCertificateConfig WorkerNodeTra
 	return ProvideTLSCertificate(certificateChain, privateKeyData, false)
 }
 
-func registerWorker(workerCertificateConfig WorkerNodeTransportCertificateConfig, controlPlaneConfig config.ControlPlaneConfigModel) (*proto.ComputeNodeRegistrationResponse, KeyData, error) {
+func registerWorker(controlPlaneConfig config.ControlPlaneConfigModel) (*proto.ComputeNodeRegistrationResponse, KeyData, error) {
 	caCertificate, err := ProvideWorkerNodeCACertificate(WorkerNodeCACertificateConfig{
-		CACertificateFilePath: workerCertificateConfig.CertificateFileLocation,
+		CACertificateFilePath: controlPlaneConfig.CACertificatePath,
 	})
 	if err != nil {
 		return nil, nil, err
 	}
 
 	grpcConn, err := grpc.ProvideRAJDSGrpcClient(grpc.ClientConfig{
-		Target:        controlPlaneConfig.GRPCServerAddress,
+		Target:        fmt.Sprintf("%s:%d", controlPlaneConfig.GRPCServerAddress, controlPlaneConfig.GRPCServerPort),
 		CACertificate: caCertificate,
 	})
 	if err != nil {
