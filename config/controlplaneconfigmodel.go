@@ -7,6 +7,7 @@ import (
 )
 
 type ControlPlaneConfigModel struct {
+	GRPCServerAddress         string       `envconfig:"GRPC_SERVER_ADDRESS" default:"127.0.0.1"`
 	GRPCServerPort            int          `envconfig:"GRPC_SERVER_PORT" default:"31234"`
 	MongoConfig               mongo.Config `envconfig:"MONGO"`
 	CACertificatePath         string       `envconfig:"CA_CERTIFICATE_PATH"`
