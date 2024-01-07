@@ -70,7 +70,7 @@ func InitializeApplication() (WorkerApp, func(), error) {
 		return WorkerApp{}, nil, err
 	}
 	controlPlaneClient := ProvideControlPlaneGRPCClient(rajdsGrpcClient)
-	workerNode := daemon.ProvideWorkerNodeDaemon(controlPlaneClient, workerNodeCACertificate)
+	workerNode := daemon.ProvideWorkerNodeDaemon(controlPlaneClient, workerNodeCACertificate, iWorker, queue)
 	workerApp := ProvideWorkerApp(rajdsGrpcServer, grpcHandler, socketServer, workerGRPCSocketHandler, workerNode)
 	return workerApp, func() {
 		cleanup3()

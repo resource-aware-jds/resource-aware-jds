@@ -3,8 +3,22 @@ package daemon
 import (
 	"context"
 	"fmt"
+	"github.com/docker/docker/api/types"
 	"github.com/resource-aware-jds/resource-aware-jds/generated/proto/github.com/resource-aware-jds/resource-aware-jds/generated/proto"
+	"github.com/resource-aware-jds/resource-aware-jds/models"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/cert"
+	"github.com/resource-aware-jds/resource-aware-jds/pkg/datastructure"
+	"github.com/resource-aware-jds/resource-aware-jds/pkg/taskqueue"
+	"github.com/resource-aware-jds/resource-aware-jds/pkg/timeutil"
+	"github.com/resource-aware-jds/resource-aware-jds/service"
+	"github.com/sirupsen/logrus"
+	"math/rand"
+	"strconv"
+	"time"
+)
+
+const (
+	StartContainerDuration = 15 * time.Second
 )
 
 type workerNode struct {
@@ -12,13 +26,15 @@ type workerNode struct {
 	cancelFunc             func()
 	controlPlaneGRPCClient proto.ControlPlaneClient
 	workerNodeCertificate  cert.TLSCertificate
+	workerService          service.IWorker
+	taskQueue              taskqueue.Queue
 }
 
 type WorkerNode interface {
 	Start()
 }
 
-func ProvideWorkerNodeDaemon(controlPlaneGRPCClient proto.ControlPlaneClient, workerNodeCertificate cert.WorkerNodeCACertificate) WorkerNode {
+func ProvideWorkerNodeDaemon(controlPlaneGRPCClient proto.ControlPlaneClient, workerNodeCertificate cert.WorkerNodeCACertificate, workerService service.IWorker, taskQueue taskqueue.Queue) WorkerNode {
 	ctx := context.Background()
 	ctxWithCancel, cancelFunc := context.WithCancel(ctx)
 	return &workerNode{
@@ -26,6 +42,8 @@ func ProvideWorkerNodeDaemon(controlPlaneGRPCClient proto.ControlPlaneClient, wo
 		cancelFunc:             cancelFunc,
 		controlPlaneGRPCClient: controlPlaneGRPCClient,
 		workerNodeCertificate:  workerNodeCertificate,
+		workerService:          workerService,
+		taskQueue:              taskQueue,
 	}
 }
 
@@ -34,6 +52,18 @@ func (w *workerNode) Start() {
 	if err != nil {
 		panic(fmt.Sprintf("Failed to check in worker node to control plane (%s)", err.Error()))
 	}
+
+	go func(ctx context.Context) {
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			default:
+				w.taskStartContainer(ctx)
+				timeutil.SleepWithContext(ctx, StartContainerDuration)
+			}
+		}
+	}(w.ctx)
 }
 
 func (w *workerNode) checkInNodeToControlPlane() error {
@@ -46,4 +76,29 @@ func (w *workerNode) checkInNodeToControlPlane() error {
 		Certificate: certificate,
 	})
 	return err
+}
+
+func (w *workerNode) taskStartContainer(ctx context.Context) {
+	logrus.Info("run start container")
+	imageList := w.taskQueue.GetDistinctImageList()
+	logrus.Info("All image list:", imageList)
+	taskList := w.taskQueue.ReadQueue()
+
+	for _, image := range imageList {
+		if !w.workerService.IsContainerExist(ctx, image) {
+			logrus.Info("Starting container with image:", image)
+			// TODO Improve this later
+			randomId := rand.Intn(50000-10000) + 10000
+			containerName := "rajds-" + strconv.Itoa(randomId)
+			err := w.workerService.StartContainer(ctx, image, containerName, types.ImagePullOptions{})
+			if err != nil {
+				logrus.Error("Unable to start container with image:", image, err)
+				errorTaskList := datastructure.Filter(taskList, func(task *models.Task) bool {
+					return task.ImageUrl == image
+				})
+				logrus.Warn("Removing these task due to unable to start container", errorTaskList)
+				w.taskQueue.BulkRemove(errorTaskList)
+			}
+		}
+	}
 }

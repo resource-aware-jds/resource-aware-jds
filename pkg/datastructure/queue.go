@@ -39,6 +39,14 @@ func (q *Queue[Data]) PopWithFilter(filter func(Data) bool) (*Data, bool) {
 	return &result, true
 }
 
+func (q *Queue[Data]) ReadQueue() []Data {
+	return q.data
+}
+
+func (q *Queue[Data]) FilterWithCondition(removeCondition func(data Data) bool) {
+	q.data = Filter(q.data, removeCondition)
+}
+
 func (q *Queue[Data]) Empty() bool {
 	return len(q.data) == 0
 }
