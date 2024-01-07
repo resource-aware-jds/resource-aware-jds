@@ -9,7 +9,6 @@ import (
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/cert"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/distribution"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/grpc"
-	"github.com/resource-aware-jds/resource-aware-jds/service"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"sync"
@@ -25,6 +24,8 @@ var (
 	ErrNoAvailableWorkerNode = errors.New("no available worker node in the pool")
 )
 
+type InitialWorkerNodeSet []models.NodeEntry
+
 type workerNodePoolMapper struct {
 	nodeEntry        models.NodeEntry
 	grpcConnection   proto.WorkerNodeClient
@@ -33,46 +34,34 @@ type workerNodePoolMapper struct {
 }
 
 type workerNode struct {
-	pool                map[string]workerNodePoolMapper
-	caCertificate       cert.CACertificate
-	controlPlaneService service.IControlPlane
-	distributor         distribution.Distributor
-	poolMu              sync.Mutex
+	pool          map[string]workerNodePoolMapper
+	caCertificate cert.CACertificate
+	distributor   distribution.Distributor
+	poolMu        sync.Mutex
 }
 
 type WorkerNode interface {
-	InitializePool(ctx context.Context)
+	InitializePool(ctx context.Context, nodeEntries []models.NodeEntry)
 	AddWorkerNode(ctx context.Context, node models.NodeEntry) error
 	WorkerNodeAvailabilityCheck(ctx context.Context)
 	DistributeWork(ctx context.Context, tasks []models.Task) ([]models.Task, []distribution.DistributeError, error)
 	IsAvailableWorkerNode() bool
 }
 
-func ProvideWorkerNode(caCertificate cert.CACertificate, controlPlaneService service.IControlPlane, distributor distribution.Distributor) WorkerNode {
+func ProvideWorkerNode(caCertificate cert.CACertificate, distributor distribution.Distributor) WorkerNode {
 	return &workerNode{
-		caCertificate:       caCertificate,
-		pool:                make(map[string]workerNodePoolMapper),
-		controlPlaneService: controlPlaneService,
-		distributor:         distributor,
+		caCertificate: caCertificate,
+		pool:          make(map[string]workerNodePoolMapper),
+		distributor:   distributor,
 	}
 }
 
-func (w *workerNode) InitializePool(ctx context.Context) {
-	logrus.Info("[WorkerNode Pool] Get all available worker node from registry")
-	nodes, err := w.controlPlaneService.GetAllWorkerNodeFromRegistry(ctx)
-	if err != nil {
-		logrus.Warnf("[WorkerNode Pool] Failed to get all available worker node from registry with error (%s)", err.Error())
-	}
-
-	for _, node := range nodes {
-		err = w.AddWorkerNode(ctx, node)
-		if err != nil {
-			continue
-		}
+func (w *workerNode) InitializePool(ctx context.Context, nodeEntries []models.NodeEntry) {
+	for _, node := range nodeEntries {
+		w.AddWorkerNode(ctx, node)
 	}
 
 	logrus.Infof("[WorkerNode Pool] Added %d available worker node to the pool", len(w.pool))
-
 }
 
 func (w *workerNode) AddWorkerNode(ctx context.Context, node models.NodeEntry) error {
@@ -111,7 +100,6 @@ func (w *workerNode) AddWorkerNode(ctx context.Context, node models.NodeEntry) e
 }
 
 func (w *workerNode) WorkerNodeAvailabilityCheck(ctx context.Context) {
-	logrus.Info("[WorkerNode Pool] Performing on worker node availability check")
 	ok := w.poolMu.TryLock()
 	if !ok {
 		logrus.Warn("[WorkerNode Pool] Skipping the worker node availability check due to distribution is performing")

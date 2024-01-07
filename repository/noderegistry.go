@@ -22,6 +22,8 @@ type INodeRegistry interface {
 	IsNodeAlreadyRegistered(ctx context.Context, keyHash string) (bool, error)
 	RegisterWorkerNodeWithCertificate(ctx context.Context, ip string, port int32, certificate cert.TLSCertificate) error
 	GetAllWorkerNode(ctx context.Context) ([]models.NodeEntry, error)
+	GetNode(ctx context.Context, nodeID string) (*models.NodeEntry, error)
+	UpdateNodeStatByID(ctx context.Context, nodeEntry models.NodeEntry) error
 }
 
 func ProvideControlPlane(database *mongo.Database) INodeRegistry {
@@ -72,4 +74,34 @@ func (c *nodeRegistry) GetAllWorkerNode(ctx context.Context) ([]models.NodeEntry
 	var nodeEntries []models.NodeEntry
 	err = result.All(ctx, &nodeEntries)
 	return nodeEntries, err
+}
+
+func (c *nodeRegistry) GetNode(ctx context.Context, nodeID string) (*models.NodeEntry, error) {
+	result := c.nodeRegistryCollection.FindOne(ctx, bson.M{
+		"node_id": nodeID,
+	})
+
+	if result.Err() != nil {
+		return nil, result.Err()
+	}
+
+	var nodeEntry models.NodeEntry
+	err := result.Decode(&nodeEntry)
+	return &nodeEntry, err
+}
+
+func (c *nodeRegistry) UpdateNodeStatByID(ctx context.Context, nodeEntry models.NodeEntry) error {
+	_, err := c.nodeRegistryCollection.UpdateOne(
+		ctx,
+		bson.M{
+			"node_id": nodeEntry.NodeID,
+		},
+		bson.M{
+			"$set": bson.M{
+				"ip":   nodeEntry.IP,
+				"port": nodeEntry.Port,
+			},
+		},
+	)
+	return err
 }

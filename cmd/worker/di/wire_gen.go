@@ -27,8 +27,8 @@ func InitializeApplication() (WorkerApp, func(), error) {
 	}
 	grpcConfig := config.ProvideWorkerGRPCConfig(configConfig)
 	workerConfigModel := config.ProvideWorkerConfigModel(configConfig)
-	workerNodeTransportCertificate := config.ProvideWorkerNodeTransportCertificate(workerConfigModel)
-	transportCertificate, err := cert.ProvideWorkerNodeTransportCertificate(workerNodeTransportCertificate)
+	workerNodeTransportCertificateConfig := config.ProvideWorkerNodeTransportCertificate(workerConfigModel)
+	transportCertificate, err := cert.ProvideWorkerNodeTransportCertificate(workerNodeTransportCertificateConfig)
 	if err != nil {
 		return WorkerApp{}, nil, err
 	}
@@ -70,7 +70,7 @@ func InitializeApplication() (WorkerApp, func(), error) {
 		return WorkerApp{}, nil, err
 	}
 	controlPlaneClient := ProvideControlPlaneGRPCClient(rajdsGrpcClient)
-	workerNode := daemon.ProvideWorkerNodeDaemon(controlPlaneClient, workerNodeCACertificate, iWorker, queue)
+	workerNode := daemon.ProvideWorkerNodeDaemon(controlPlaneClient, iWorker, queue, transportCertificate)
 	workerApp := ProvideWorkerApp(rajdsGrpcServer, grpcHandler, socketServer, workerGRPCSocketHandler, workerNode)
 	return workerApp, func() {
 		cleanup3()

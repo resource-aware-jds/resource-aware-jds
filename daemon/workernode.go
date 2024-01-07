@@ -25,7 +25,7 @@ type workerNode struct {
 	ctx                    context.Context
 	cancelFunc             func()
 	controlPlaneGRPCClient proto.ControlPlaneClient
-	workerNodeCertificate  cert.TLSCertificate
+	workerNodeCertificate  cert.TransportCertificate
 	workerService          service.IWorker
 	taskQueue              taskqueue.Queue
 }
@@ -34,7 +34,7 @@ type WorkerNode interface {
 	Start()
 }
 
-func ProvideWorkerNodeDaemon(controlPlaneGRPCClient proto.ControlPlaneClient, workerNodeCertificate cert.WorkerNodeCACertificate, workerService service.IWorker, taskQueue taskqueue.Queue) WorkerNode {
+func ProvideWorkerNodeDaemon(controlPlaneGRPCClient proto.ControlPlaneClient, workerService service.IWorker, taskQueue taskqueue.Queue,  workerNodeCertificate cert.TransportCertificate) WorkerNode {
 	ctx := context.Background()
 	ctxWithCancel, cancelFunc := context.WithCancel(ctx)
 	return &workerNode{
@@ -74,6 +74,8 @@ func (w *workerNode) checkInNodeToControlPlane() error {
 
 	_, err = w.controlPlaneGRPCClient.WorkerCheckIn(w.ctx, &proto.WorkerCheckInRequest{
 		Certificate: certificate,
+		Ip:          "localhost",
+		Port:        31236,
 	})
 	return err
 }

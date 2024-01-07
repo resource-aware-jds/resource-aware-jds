@@ -263,7 +263,7 @@ func (t *tlsCertificate) SaveCertificateToFile(certificateFilePath, privateKeyFi
 
 func (t *tlsCertificate) ValidateSignature(underValidateCertificate *x509.Certificate) error {
 	hash := sha256.New()
-	hash.Write(underValidateCertificate.Raw)
+	hash.Write(underValidateCertificate.RawTBSCertificate)
 	hashData := hash.Sum(nil)
 	return rsa.VerifyPKCS1v15(t.publicKey.GetRawKeyData().(*rsa.PublicKey), crypto.SHA256, hashData, underValidateCertificate.Signature)
 }

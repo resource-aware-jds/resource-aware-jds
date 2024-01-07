@@ -10,6 +10,7 @@ import (
 	"github.com/resource-aware-jds/resource-aware-jds/models"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/cert"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/distribution"
+	"github.com/resource-aware-jds/resource-aware-jds/pkg/pool"
 	"github.com/resource-aware-jds/resource-aware-jds/repository"
 	"github.com/sirupsen/logrus"
 	"time"
@@ -25,6 +26,7 @@ type ControlPlane struct {
 	taskRepository         repository.ITask
 	caCertificate          cert.CACertificate
 	config                 config.ControlPlaneConfigModel
+	workerNodePool         pool.WorkerNode
 }
 
 type IControlPlane interface {
@@ -33,16 +35,24 @@ type IControlPlane interface {
 	CreateJob(ctx context.Context, imageURL string, taskAttributes [][]byte) (*models.Job, []models.Task, error)
 	GetAvailableTask(ctx context.Context) ([]models.Task, error)
 	UpdateTaskAfterDistribution(ctx context.Context, successTask []models.Task, errorTask []distribution.DistributeError) error
-	CheckInWorkerNode(ctx context.Context, cert []byte) error
+	CheckInWorkerNode(ctx context.Context, ip string, port int32, cert []byte) error
 }
 
-func ProvideControlPlane(jobRepository repository.IJob, taskRepository repository.ITask, nodeRegistryRepository repository.INodeRegistry, caCertificate cert.CACertificate, config config.ControlPlaneConfigModel) IControlPlane {
+func ProvideControlPlane(
+	jobRepository repository.IJob,
+	taskRepository repository.ITask,
+	nodeRegistryRepository repository.INodeRegistry,
+	caCertificate cert.CACertificate,
+	config config.ControlPlaneConfigModel,
+	workerNodePool pool.WorkerNode,
+) IControlPlane {
 	return &ControlPlane{
 		jobRepository:          jobRepository,
 		nodeRegistryRepository: nodeRegistryRepository,
 		taskRepository:         taskRepository,
 		caCertificate:          caCertificate,
 		config:                 config,
+		workerNodePool:         workerNodePool,
 	}
 }
 
@@ -140,7 +150,7 @@ func (s *ControlPlane) UpdateTaskAfterDistribution(ctx context.Context, successT
 	return s.taskRepository.BulkWriteStatusAndLogByID(ctx, taskToUpdate)
 }
 
-func (s *ControlPlane) CheckInWorkerNode(ctx context.Context, rawPEMCertificateData []byte) error {
+func (s *ControlPlane) CheckInWorkerNode(ctx context.Context, ip string, port int32, rawPEMCertificateData []byte) error {
 	// Load Certificate
 	// Validate the certificate signature
 	parsedCertificate, err := cert.LoadCertificate(rawPEMCertificateData)
@@ -152,7 +162,7 @@ func (s *ControlPlane) CheckInWorkerNode(ctx context.Context, rawPEMCertificateD
 		return fmt.Errorf("no certificate to verify")
 	}
 
-	focusedCertificate := parsedCertificate[len(parsedCertificate)-1]
+	focusedCertificate := parsedCertificate[0]
 	err = s.caCertificate.ValidateSignature(focusedCertificate)
 	if err != nil {
 		logrus.Error(err)
@@ -163,8 +173,20 @@ func (s *ControlPlane) CheckInWorkerNode(ctx context.Context, rawPEMCertificateD
 		return fmt.Errorf("client certificate expired")
 	}
 
-	fmt.Println("Registered: ", focusedCertificate.Subject.SerialNumber)
-	//
-	//// TODO: Implement me
-	return nil
+	nodeEntry, err := s.nodeRegistryRepository.GetNode(ctx, cert.GetNodeIDFromCertificate(focusedCertificate))
+	if err != nil {
+		return err
+	}
+
+	nodeEntry.IP = ip
+	nodeEntry.Port = port
+
+	// Update Worker Node Stat
+	err = s.nodeRegistryRepository.UpdateNodeStatByID(ctx, *nodeEntry)
+	if err != nil {
+		logrus.WithField("nodeID", nodeEntry.NodeID).Warnf("Failed to update node stat (%s)", err.Error())
+	}
+
+	// Add Worker Node to the pool
+	return s.workerNodePool.AddWorkerNode(ctx, *nodeEntry)
 }

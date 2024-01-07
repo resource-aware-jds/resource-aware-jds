@@ -33,8 +33,8 @@ func ProvideGRPCClientConfig(config WorkerConfigModel, clientCACertificate cert.
 	}
 }
 
-func ProvideWorkerNodeTransportCertificate(config WorkerConfigModel) cert.WorkerNodeTransportCertificate {
-	return cert.WorkerNodeTransportCertificate{
+func ProvideWorkerNodeTransportCertificate(config WorkerConfigModel) cert.WorkerNodeTransportCertificateConfig {
+	return cert.WorkerNodeTransportCertificateConfig{
 		CertificateFileLocation: config.CertificatePath,
 		PrivateKeyFileLocation:  config.CertificatePrivateKeyPath,
 	}

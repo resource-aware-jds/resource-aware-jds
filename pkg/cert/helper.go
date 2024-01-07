@@ -102,3 +102,7 @@ func createFolderForFile(filePath string) error {
 	pathWithoutFileJoined := strings.Join(filePathSplit, "/")
 	return os.MkdirAll(pathWithoutFileJoined, os.ModePerm)
 }
+
+func GetNodeIDFromCertificate(cert *x509.Certificate) string {
+	return cert.Subject.SerialNumber
+}

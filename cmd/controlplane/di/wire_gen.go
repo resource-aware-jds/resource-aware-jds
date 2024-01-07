@@ -51,10 +51,10 @@ func InitializeApplication() (ControlPlaneApp, func(), error) {
 	iJob := repository.ProvideJob(database)
 	iTask := repository.ProvideTask(database)
 	iNodeRegistry := repository.ProvideControlPlane(database)
-	iControlPlane := service.ProvideControlPlane(iJob, iTask, iNodeRegistry, caCertificate, controlPlaneConfigModel)
-	grpcHandler := handler.ProvideControlPlaneGRPCHandler(rajdsGrpcServer, iControlPlane)
 	distributor := distribution.ProvideRoundRobinDistributor()
-	workerNode := pool.ProvideWorkerNode(caCertificate, iControlPlane, distributor)
+	workerNode := pool.ProvideWorkerNode(caCertificate, distributor)
+	iControlPlane := service.ProvideControlPlane(iJob, iTask, iNodeRegistry, caCertificate, controlPlaneConfigModel, workerNode)
+	grpcHandler := handler.ProvideControlPlaneGRPCHandler(rajdsGrpcServer, iControlPlane)
 	daemonIControlPlane, cleanup3 := daemon.ProvideControlPlaneDaemon(workerNode, iControlPlane)
 	controlPlaneApp := ProvideControlPlaneApp(rajdsGrpcServer, grpcHandler, daemonIControlPlane)
 	return controlPlaneApp, func() {

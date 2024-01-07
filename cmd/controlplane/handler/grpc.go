@@ -80,6 +80,6 @@ func (g *GRPCHandler) CreateJob(ctx context.Context, req *proto.CreateJobRequest
 }
 
 func (g *GRPCHandler) WorkerCheckIn(ctx context.Context, req *proto.WorkerCheckInRequest) (*emptypb.Empty, error) {
-	err := g.controlPlaneService.CheckInWorkerNode(ctx, req.GetCertificate())
-	return nil, err
+	err := g.controlPlaneService.CheckInWorkerNode(ctx, req.Ip, req.Port, req.GetCertificate())
+	return &emptypb.Empty{}, err
 }

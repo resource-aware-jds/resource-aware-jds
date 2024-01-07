@@ -44,8 +44,14 @@ func ProvideControlPlaneDaemon(workerNodePool pool.WorkerNode, controlPlaneServi
 }
 
 func (c *controlPlane) Start() {
+	logrus.Info("[WorkerNode Pool] Get all available worker node from registry")
+	nodes, err := c.controlPlaneService.GetAllWorkerNodeFromRegistry(c.ctx)
+	if err != nil {
+		logrus.Warnf("[WorkerNode Pool] Failed to get all available worker node from registry with error (%s)", err.Error())
+	}
+
 	logrus.Info("[ControlPlane Daemon] Starting the CP Daemon loop")
-	c.workerNodePool.InitializePool(c.ctx)
+	c.workerNodePool.InitializePool(c.ctx, nodes)
 
 	go func(ctx context.Context) {
 		for {

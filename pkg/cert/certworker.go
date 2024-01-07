@@ -15,12 +15,12 @@ func ProvideWorkerNodeCACertificate(config WorkerNodeCACertificateConfig) (Worke
 	return ProvideTLSCertificate(certificateChain, nil, true)
 }
 
-type WorkerNodeTransportCertificate struct {
+type WorkerNodeTransportCertificateConfig struct {
 	CertificateFileLocation string
 	PrivateKeyFileLocation  string
 }
 
-func ProvideWorkerNodeTransportCertificate(config WorkerNodeTransportCertificate) (TransportCertificate, error) {
+func ProvideWorkerNodeTransportCertificate(config WorkerNodeTransportCertificateConfig) (TransportCertificate, error) {
 	privateKeyData, err := LoadKeyFromFile(config.PrivateKeyFileLocation)
 	if err != nil {
 		// TODO: Call register worker node with CP

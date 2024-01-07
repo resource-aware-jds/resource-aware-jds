@@ -6,7 +6,7 @@ import (
 
 type NodeEntry struct {
 	ID            *primitive.ObjectID `bson:"_id,omitempty"`
-	NodeID        string              `bson:"nodeId"`
+	NodeID        string              `bson:"node_id"`
 	PublicKeyHash string              `bson:"public_key_hash"`
 	IP            string              `bson:"ip"`
 	Port          int32               `bson:"port"`
