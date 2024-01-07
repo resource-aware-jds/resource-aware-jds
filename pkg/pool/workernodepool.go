@@ -3,7 +3,6 @@ package pool
 import (
 	"context"
 	"errors"
-	"fmt"
 	"github.com/resource-aware-jds/resource-aware-jds/generated/proto/github.com/resource-aware-jds/resource-aware-jds/generated/proto"
 	"github.com/resource-aware-jds/resource-aware-jds/models"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/cert"
@@ -11,6 +10,8 @@ import (
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/grpc"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/types/known/emptypb"
+	"net"
+	"strconv"
 	"sync"
 	"time"
 )
@@ -71,10 +72,11 @@ func (w *workerNode) AddWorkerNode(ctx context.Context, node models.NodeEntry) e
 		"port":   node.Port,
 	})
 
+	joinedHostPort := net.JoinHostPort(node.IP, strconv.Itoa(int(node.Port)))
+
 	// Create gRPC connection
-	target := fmt.Sprintf("%s:%d", node.IP, node.Port)
 	client, err := grpc.ProvideRAJDSGrpcClient(grpc.ClientConfig{
-		Target:        target,
+		Target:        joinedHostPort,
 		CACertificate: w.caCertificate,
 	})
 	if err != nil {

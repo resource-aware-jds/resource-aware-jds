@@ -13,9 +13,8 @@ service ControlPlane {
 }
 
 message WorkerCheckInRequest {
-  string ip = 1;
-  int32 port = 2;
-  bytes certificate = 3;
+  int32 port = 1;
+  bytes certificate = 2;
 }
 
 message ComputeNodeRegistrationRequest {

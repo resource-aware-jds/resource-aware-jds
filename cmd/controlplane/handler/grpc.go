@@ -7,7 +7,9 @@ import (
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/cert"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/grpc"
 	"github.com/resource-aware-jds/resource-aware-jds/service"
+	"google.golang.org/grpc/peer"
 	"google.golang.org/protobuf/types/known/emptypb"
+	"net"
 )
 
 type GRPCHandler struct {
@@ -80,6 +82,14 @@ func (g *GRPCHandler) CreateJob(ctx context.Context, req *proto.CreateJobRequest
 }
 
 func (g *GRPCHandler) WorkerCheckIn(ctx context.Context, req *proto.WorkerCheckInRequest) (*emptypb.Empty, error) {
-	err := g.controlPlaneService.CheckInWorkerNode(ctx, req.Ip, req.Port, req.GetCertificate())
+	p, _ := peer.FromContext(ctx)
+
+	peerIp := p.Addr.String()
+	host, _, err := net.SplitHostPort(peerIp)
+	if err != nil {
+		return nil, err
+	}
+
+	err = g.controlPlaneService.CheckInWorkerNode(ctx, host, req.Port, req.GetCertificate())
 	return &emptypb.Empty{}, err
 }

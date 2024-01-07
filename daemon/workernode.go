@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/docker/docker/api/types"
+	"github.com/resource-aware-jds/resource-aware-jds/config"
 	"github.com/resource-aware-jds/resource-aware-jds/generated/proto/github.com/resource-aware-jds/resource-aware-jds/generated/proto"
 	"github.com/resource-aware-jds/resource-aware-jds/models"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/cert"
@@ -28,13 +29,14 @@ type workerNode struct {
 	workerNodeCertificate  cert.TransportCertificate
 	workerService          service.IWorker
 	taskQueue              taskqueue.Queue
+	workerNodeConfig       config.WorkerConfigModel
 }
 
 type WorkerNode interface {
 	Start()
 }
 
-func ProvideWorkerNodeDaemon(controlPlaneGRPCClient proto.ControlPlaneClient, workerService service.IWorker, taskQueue taskqueue.Queue,  workerNodeCertificate cert.TransportCertificate) WorkerNode {
+func ProvideWorkerNodeDaemon(controlPlaneGRPCClient proto.ControlPlaneClient, workerService service.IWorker, taskQueue taskqueue.Queue, workerNodeCertificate cert.TransportCertificate, workerNodeConfig config.WorkerConfigModel) WorkerNode {
 	ctx := context.Background()
 	ctxWithCancel, cancelFunc := context.WithCancel(ctx)
 	return &workerNode{
@@ -44,6 +46,7 @@ func ProvideWorkerNodeDaemon(controlPlaneGRPCClient proto.ControlPlaneClient, wo
 		workerNodeCertificate:  workerNodeCertificate,
 		workerService:          workerService,
 		taskQueue:              taskQueue,
+		workerNodeConfig:       workerNodeConfig,
 	}
 }
 
@@ -74,8 +77,7 @@ func (w *workerNode) checkInNodeToControlPlane() error {
 
 	_, err = w.controlPlaneGRPCClient.WorkerCheckIn(w.ctx, &proto.WorkerCheckInRequest{
 		Certificate: certificate,
-		Ip:          "localhost",
-		Port:        31236,
+		Port:        int32(w.workerNodeConfig.GRPCServerPort),
 	})
 	return err
 }
