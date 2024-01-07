@@ -5,8 +5,13 @@ import (
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/cert"
 )
 
-var CertWireSet = wire.NewSet(
+var ControlPlaneCertWireSet = wire.NewSet(
 	cert.ProvideCACertificate,
 	cert.ProvideTransportCertificate,
-	cert.ProvideClientCATLSCertificate,
+	cert.ProvideWorkerNodeCACertificate,
+)
+
+var WorkerNodeCertWireSet = wire.NewSet(
+	cert.ProvideWorkerNodeCACertificate,
+	cert.ProvideWorkerNodeTransportCertificate,
 )

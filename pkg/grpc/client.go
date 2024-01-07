@@ -18,7 +18,7 @@ type RAJDSGrpcClient interface {
 
 type ClientConfig struct {
 	Target        string
-	CACertificate cert.ClientCATLSCertificate
+	CACertificate cert.WorkerNodeCACertificate
 }
 
 func ProvideRAJDSGrpcClient(config ClientConfig) (RAJDSGrpcClient, error) {

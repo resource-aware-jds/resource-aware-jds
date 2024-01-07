@@ -11,7 +11,7 @@ import (
 type Config struct {
 	CommonConfigModel
 	ControlPlaneConfig ControlPlaneConfigModel `envconfig:"CONTROL_PLANE"`
-	WorkerConfig       WorkerConfigModel
+	WorkerConfig       WorkerConfigModel       `envconfig:"WORKER_NODE"`
 }
 
 func ProvideConfig() (*Config, error) {

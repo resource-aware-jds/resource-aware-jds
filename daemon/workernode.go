@@ -18,7 +18,7 @@ type WorkerNode interface {
 	Start()
 }
 
-func ProvideWorkerNodeDaemon(controlPlaneGRPCClient proto.ControlPlaneClient, workerNodeCertificate cert.ClientCATLSCertificate) WorkerNode {
+func ProvideWorkerNodeDaemon(controlPlaneGRPCClient proto.ControlPlaneClient, workerNodeCertificate cert.WorkerNodeCACertificate) WorkerNode {
 	ctx := context.Background()
 	ctxWithCancel, cancelFunc := context.WithCancel(ctx)
 	return &workerNode{

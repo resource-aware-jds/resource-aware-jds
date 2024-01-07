@@ -11,6 +11,7 @@ import (
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/cert"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/distribution"
 	"github.com/resource-aware-jds/resource-aware-jds/repository"
+	"github.com/sirupsen/logrus"
 	"time"
 )
 
@@ -142,25 +143,27 @@ func (s *ControlPlane) UpdateTaskAfterDistribution(ctx context.Context, successT
 func (s *ControlPlane) CheckInWorkerNode(ctx context.Context, rawPEMCertificateData []byte) error {
 	// Load Certificate
 	// Validate the certificate signature
-	//parsedCertificate, err := cert.LoadCertificate(rawPEMCertificateData)
-	//if err != nil {
-	//	return err
-	//}
-	//
-	//if len(parsedCertificate) == 0 {
-	//
-	//}
-	//
-	//err = s.caCertificate.ValidateSignature(parsedCertificate)
-	//if err != nil {
-	//	return err
-	//}
-	//
-	//if time.Now().Before(parsedCertificate.NotBefore) || time.Now().After(parsedCertificate.NotAfter) {
-	//	return fmt.Errorf("client certificate expired")
-	//}
-	//
-	//fmt.Println("Registered: ", parsedCertificate.Subject.SerialNumber)
+	parsedCertificate, err := cert.LoadCertificate(rawPEMCertificateData)
+	if err != nil {
+		return err
+	}
+
+	if len(parsedCertificate) == 0 {
+		return fmt.Errorf("no certificate to verify")
+	}
+
+	focusedCertificate := parsedCertificate[len(parsedCertificate)-1]
+	err = s.caCertificate.ValidateSignature(focusedCertificate)
+	if err != nil {
+		logrus.Error(err)
+		return err
+	}
+
+	if time.Now().Before(focusedCertificate.NotBefore) || time.Now().After(focusedCertificate.NotAfter) {
+		return fmt.Errorf("client certificate expired")
+	}
+
+	fmt.Println("Registered: ", focusedCertificate.Subject.SerialNumber)
 	//
 	//// TODO: Implement me
 	return nil

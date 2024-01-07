@@ -2,7 +2,6 @@ package di
 
 import (
 	"github.com/google/wire"
-	certDI "github.com/resource-aware-jds/resource-aware-jds/pkg/cert/di"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/distribution"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/dockerclient"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/grpc"
@@ -17,7 +16,6 @@ var PKGWireSet = wire.NewSet(
 	grpc.ProvideGRPCServer,
 	grpc.ProvideGRPCSocketServer,
 	grpc.ProvideRAJDSGrpcClient,
-	certDI.CertWireSet,
 	dockerclient.ProvideDockerClient,
 	taskqueue.ProvideTaskQueue,
 	taskBuffer.ProvideTaskBuffer,

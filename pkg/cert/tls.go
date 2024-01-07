@@ -5,7 +5,7 @@ import (
 	"crypto"
 	"crypto/rand"
 	"crypto/rsa"
-	"crypto/sha1"
+	"crypto/sha256"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
@@ -262,8 +262,8 @@ func (t *tlsCertificate) SaveCertificateToFile(certificateFilePath, privateKeyFi
 }
 
 func (t *tlsCertificate) ValidateSignature(underValidateCertificate *x509.Certificate) error {
-	hash := sha1.New()
-	hash.Write(underValidateCertificate.RawTBSCertificate)
+	hash := sha256.New()
+	hash.Write(underValidateCertificate.Raw)
 	hashData := hash.Sum(nil)
-	return rsa.VerifyPKCS1v15(t.publicKey.GetRawKeyData().(*rsa.PublicKey), crypto.SHA1, hashData, underValidateCertificate.Signature)
+	return rsa.VerifyPKCS1v15(t.publicKey.GetRawKeyData().(*rsa.PublicKey), crypto.SHA256, hashData, underValidateCertificate.Signature)
 }

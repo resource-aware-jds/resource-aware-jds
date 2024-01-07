@@ -8,6 +8,7 @@ import (
 	"github.com/resource-aware-jds/resource-aware-jds/cmd/controlplane/handler"
 	configDI "github.com/resource-aware-jds/resource-aware-jds/config/di"
 	daemonDI "github.com/resource-aware-jds/resource-aware-jds/daemon/di"
+	certDI "github.com/resource-aware-jds/resource-aware-jds/pkg/cert/di"
 	pkgDI "github.com/resource-aware-jds/resource-aware-jds/pkg/di"
 	repositoryDI "github.com/resource-aware-jds/resource-aware-jds/repository/di"
 	serviceDI "github.com/resource-aware-jds/resource-aware-jds/service/di"
@@ -24,6 +25,7 @@ func InitializeApplication() (ControlPlaneApp, func(), error) {
 			repositoryDI.RepositoryWireSet,
 			serviceDI.ServiceWireSet,
 			daemonDI.DaemonWireSet,
+			certDI.ControlPlaneCertWireSet,
 			ProvideControlPlaneApp,
 		),
 	)

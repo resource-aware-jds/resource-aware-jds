@@ -7,13 +7,12 @@ import (
 )
 
 type ControlPlaneConfigModel struct {
-	GRPCServerPort               int          `envconfig:"GRPC_SERVER_PORT" default:"31234"`
-	MongoConfig                  mongo.Config `envconfig:"MONGO"`
-	CACertificatePath            string       `envconfig:"CA_CERTIFICATE_PATH"`
-	CAPrivateKeyPath             string       `envconfig:"CA_PRIVATE_KEY_PATH"`
-	CertificatePath              string       `envconfig:"CERTIFICATE_PATH"`
-	CertificatePrivateKeyPath    string       `envconfig:"CERTIFICATE_PRIVATE_KEY_PATH"`
-	ClientCertificateStoragePath string       `envconfig:"CLIENT_CERTIFICATE_STORAGE_PATH"`
+	GRPCServerPort            int          `envconfig:"GRPC_SERVER_PORT" default:"31234"`
+	MongoConfig               mongo.Config `envconfig:"MONGO"`
+	CACertificatePath         string       `envconfig:"CA_CERTIFICATE_PATH"`
+	CAPrivateKeyPath          string       `envconfig:"CA_PRIVATE_KEY_PATH"`
+	CertificatePath           string       `envconfig:"CERTIFICATE_PATH"`
+	CertificatePrivateKeyPath string       `envconfig:"CERTIFICATE_PRIVATE_KEY_PATH"`
 }
 
 func ProvideMongoConfig(config ControlPlaneConfigModel) mongo.Config {
