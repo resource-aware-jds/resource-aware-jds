@@ -159,7 +159,7 @@ func (w *Worker) getHostConfig(workerNodeGRPCServerUnixSocketPath string) *conta
 			{
 				Type:   mount.TypeBind,
 				Source: mountPath,
-				Target: "/tmp",
+				Target: "/tmp/rajds",
 			},
 		},
 	}
@@ -189,5 +189,7 @@ func (w *Worker) getContainerConfig(dockerImage string) *container.Config {
 	return &container.Config{
 		Image: dockerImage,
 		Env:   []string{"INITIAL_TASK_RUNNER=" + "3", "IMAGE_URL=" + dockerImage, "CONTAINER_UNIX_SOCKET_PATH=/tmp"},
+		// For testing
+		//Entrypoint: []string{"/bin/sh", "-c", "sleep infinity"},
 	}
 }
