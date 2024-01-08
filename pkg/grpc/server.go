@@ -11,6 +11,7 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	"net"
 	"os"
+	"path/filepath"
 )
 
 type rajdsGRPCServer struct {
@@ -95,6 +96,12 @@ type SocketServerConfig struct {
 }
 
 func ProvideGRPCSocketServer(c SocketServerConfig) (SocketServer, func(), error) {
+	unixSocketDir := filepath.Dir(c.UnixSocketPath)
+	err := os.MkdirAll(unixSocketDir, os.ModePerm)
+	if err != nil {
+		logrus.Error("[GRPC Server] Failed to create directory")
+		return nil, nil, err
+	}
 	if _, err := os.Stat(c.UnixSocketPath); err == nil {
 		err := os.Remove(c.UnixSocketPath)
 		if err != nil {
