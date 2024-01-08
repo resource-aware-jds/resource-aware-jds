@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
+	"strings"
 )
 
 func grpcUnaryInterceptor(
@@ -18,12 +19,16 @@ func grpcUnaryInterceptor(
 		"method":   info.FullMethod,
 	})
 
-	logrusFields.Info("Incoming request")
+	if !strings.Contains(info.FullMethod, "HealthCheck") {
+		logrusFields.Info("Incoming request")
+	}
 	result, err := handler(ctx, req)
 	if err != nil {
 		logrusFields.Error("Handler response error: ", err)
 	} else {
-		logrusFields.Info("Handler response success")
+		if !strings.Contains(info.FullMethod, "HealthCheck") {
+			logrusFields.Info("Handler response success")
+		}
 	}
 
 	return result, err

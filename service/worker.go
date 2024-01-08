@@ -187,8 +187,7 @@ func (w *Worker) IsContainerExist(ctx context.Context, imageUrl string) bool {
 
 func (w *Worker) getContainerConfig(dockerImage string) *container.Config {
 	return &container.Config{
-		Image:      dockerImage,
-		Env:        []string{"INITIAL_TASK_RUNNER=" + "3", "IMAGE_URL=" + dockerImage, "CONTAINER_UNIX_SOCKET_PATH=/tmp"},
-		Entrypoint: []string{"/bin/sh", "-c", "sleep infinity"},
+		Image: dockerImage,
+		Env:   []string{"INITIAL_TASK_RUNNER=" + "3", "IMAGE_URL=" + dockerImage, "CONTAINER_UNIX_SOCKET_PATH=/tmp"},
 	}
 }

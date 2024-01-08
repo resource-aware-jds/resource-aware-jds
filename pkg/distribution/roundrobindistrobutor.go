@@ -24,7 +24,11 @@ func (r RoundRobinDistributor) Distribute(ctx context.Context, nodes []NodeMappe
 		focusedNode := nodeRoundRobin.Next()
 		logger := focusedNode.Logger.WithField("taskID", task.ID.Hex())
 		logger.Info("[Distributor] Sending task to the worker node")
-		_, err = focusedNode.GRPCConnection.SendTask(ctx, &proto.RecievedTask{})
+		_, err = focusedNode.GRPCConnection.SendTask(ctx, &proto.RecievedTask{
+			ID:             task.ID.Hex(),
+			TaskAttributes: task.TaskAttributes,
+			DockerImage:    task.ImageUrl,
+		})
 		if err != nil {
 			logger.Warnf("[Distributor] Fail to distribute task to worker node (%s)", err.Error())
 			task.DistributionFailure(focusedNode.NodeEntry.NodeID, err)
