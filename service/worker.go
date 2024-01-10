@@ -7,7 +7,6 @@ import (
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
-	"github.com/docker/docker/api/types/mount"
 	"github.com/docker/docker/client"
 	"github.com/resource-aware-jds/resource-aware-jds/config"
 	"github.com/resource-aware-jds/resource-aware-jds/generated/proto/github.com/resource-aware-jds/resource-aware-jds/generated/proto"
@@ -16,7 +15,6 @@ import (
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/taskqueue"
 	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"path/filepath"
 )
 
 type Worker struct {
@@ -132,7 +130,7 @@ func (w *Worker) StartContainer(ctx context.Context, dockerImage string, name st
 	resp, err := w.dockerClient.ContainerCreate(
 		ctx,
 		w.getContainerConfig(dockerImage),
-		w.getHostConfig(w.config.WorkerNodeGRPCServerUnixSocketPath),
+		w.getHostConfig(),
 		nil,
 		nil,
 		name,
@@ -151,17 +149,9 @@ func (w *Worker) StartContainer(ctx context.Context, dockerImage string, name st
 	return nil
 }
 
-func (w *Worker) getHostConfig(workerNodeGRPCServerUnixSocketPath string) *container.HostConfig {
-	mountPath := filepath.Dir(workerNodeGRPCServerUnixSocketPath)
+func (w *Worker) getHostConfig() *container.HostConfig {
 	return &container.HostConfig{
 		ExtraHosts: []string{"host.docker.internal:host-gateway"},
-		Mounts: []mount.Mount{
-			{
-				Type:   mount.TypeBind,
-				Source: mountPath,
-				Target: "/tmp/rajds",
-			},
-		},
 	}
 }
 
@@ -188,7 +178,10 @@ func (w *Worker) IsContainerExist(ctx context.Context, imageUrl string) bool {
 func (w *Worker) getContainerConfig(dockerImage string) *container.Config {
 	return &container.Config{
 		Image: dockerImage,
-		Env:   []string{"INITIAL_TASK_RUNNER=" + "3", "IMAGE_URL=" + dockerImage, "CONTAINER_UNIX_SOCKET_PATH=/tmp"},
+		Env: []string{
+			"INITIAL_TASK_RUNNER=3",
+			"IMAGE_URL=" + dockerImage,
+		},
 		// For testing
 		//Entrypoint: []string{"/bin/sh", "-c", "sleep infinity"},
 	}
