@@ -10,11 +10,10 @@ import (
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
 	"net"
-	"os"
-	"path/filepath"
 )
 
 type rajdsGRPCServer struct {
+	logger     *logrus.Entry
 	Listener   net.Listener
 	GRPCServer *grpc.Server
 }
@@ -65,6 +64,7 @@ func ProvideGRPCServer(config Config, transportCertificate cert.TransportCertifi
 	}
 
 	return &rajdsGRPCServer{
+		logger:     logrus.WithField("type", "Main Receiver GRPC Server"),
 		Listener:   lis,
 		GRPCServer: grpcServer,
 	}, cleanup, nil
@@ -72,7 +72,7 @@ func ProvideGRPCServer(config Config, transportCertificate cert.TransportCertifi
 
 func (r *rajdsGRPCServer) Serve() {
 	go func() {
-		logrus.Info("GRPC Server is Listening on: ", r.Listener.Addr())
+		r.logger.Info("GRPC Server is Listening on: ", r.Listener.Addr())
 		r.GRPCServer.Serve(r.Listener)
 	}()
 }
@@ -81,36 +81,15 @@ func (r *rajdsGRPCServer) GetGRPCServer() *grpc.Server {
 	return r.GRPCServer
 }
 
-type socketServer struct {
-	listener   net.Listener
-	grpcServer *grpc.Server
-}
+type WorkerNodeReceiverGRPCServer RAJDSGrpcServer
 
-type SocketServer interface {
-	Serve()
-	GetGRPCServer() *grpc.Server
-}
+type WorkerNodeReceiverConfig Config
 
-type SocketServerConfig struct {
-	UnixSocketPath string
-}
-
-func ProvideGRPCSocketServer(c SocketServerConfig) (SocketServer, func(), error) {
-	unixSocketDir := filepath.Dir(c.UnixSocketPath)
-	err := os.MkdirAll(unixSocketDir, os.ModePerm)
+func ProvideWorkerNodeReceiverGRPCServer(config WorkerNodeReceiverConfig) (WorkerNodeReceiverGRPCServer, func(), error) {
+	// GRPC Server Listening
+	lis, err := net.Listen("tcp", fmt.Sprint(":", config.Port))
 	if err != nil {
-		logrus.Error("[GRPC Server] Failed to create directory")
-		return nil, nil, err
-	}
-	if _, err := os.Stat(c.UnixSocketPath); err == nil {
-		err := os.Remove(c.UnixSocketPath)
-		if err != nil {
-			logrus.Errorf("[GRPC Server] Failed to remove exist socket")
-		}
-	}
-	listener, err := net.Listen("unix", c.UnixSocketPath)
-	if err != nil {
-		logrus.Errorf("[GRPC Server] Failed to listen on %s with error %s", c.UnixSocketPath, err.Error())
+		logrus.Fatalf("failed to listen: %v", err)
 		return nil, nil, err
 	}
 
@@ -121,22 +100,11 @@ func ProvideGRPCSocketServer(c SocketServerConfig) (SocketServer, func(), error)
 
 	cleanup := func() {
 		grpcServer.GracefulStop()
-		os.Remove(c.UnixSocketPath)
 	}
 
-	return &socketServer{
-		listener:   listener,
-		grpcServer: grpcServer,
+	return &rajdsGRPCServer{
+		logger:     logrus.WithField("type", "WorkerNodeReceiver GRPC Server"),
+		Listener:   lis,
+		GRPCServer: grpcServer,
 	}, cleanup, nil
-}
-
-func (s socketServer) Serve() {
-	go func() {
-		logrus.Info("GRPC Socket Server is Listening on: ", s.listener.Addr())
-		s.grpcServer.Serve(s.listener)
-	}()
-}
-
-func (s socketServer) GetGRPCServer() *grpc.Server {
-	return s.grpcServer
 }

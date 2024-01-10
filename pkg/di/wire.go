@@ -14,7 +14,7 @@ import (
 var PKGWireSet = wire.NewSet(
 	mongo.ProvideMongoConnection,
 	grpc.ProvideGRPCServer,
-	grpc.ProvideGRPCSocketServer,
+	grpc.ProvideWorkerNodeReceiverGRPCServer,
 	grpc.ProvideRAJDSGrpcClient,
 	dockerclient.ProvideDockerClient,
 	taskqueue.ProvideTaskQueue,

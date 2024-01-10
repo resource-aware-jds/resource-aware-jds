@@ -6,18 +6,19 @@ import (
 )
 
 type WorkerConfigModel struct {
-	GRPCServerPort                     int    `envconfig:"GRPC_SERVER_PORT" default:"31236"`
-	WorkerNodeGRPCServerUnixSocketPath string `envconfig:"WORKER_NODE_GRPC_SERVER_UNIX_SOCKET_PATH" default:"/tmp/rajds/rajds_workernode.sock"`
-	ControlPlaneHost                   string `envconfig:"CONTROL_PLANE_HOST"`
-	CACertificatePath                  string `envconfig:"CA_CERTIFICATE_PATH"`
-	CertificatePath                    string `envconfig:"CERTIFICATE_PATH"`
-	CertificatePrivateKeyPath          string `envconfig:"CERTIFICATE_PRIVATE_KEY_PATH"`
+	GRPCServerPort                            int    `envconfig:"GRPC_SERVER_PORT" default:"31236"`
+	WorkerNodeReceiverGRPCServerListeningPort int    `envconfig:"WORKER_NODE_RECEIVER_GRPC_SERVER_LISTENING_PORT" default:"31237"`
+	ControlPlaneHost                          string `envconfig:"CONTROL_PLANE_HOST"`
+	CACertificatePath                         string `envconfig:"CA_CERTIFICATE_PATH"`
+	CertificatePath                           string `envconfig:"CERTIFICATE_PATH"`
+	CertificatePrivateKeyPath                 string `envconfig:"CERTIFICATE_PRIVATE_KEY_PATH"`
 }
 
-func ProvideGRPCSocketServerConfig(config WorkerConfigModel) grpc.SocketServerConfig {
-	return grpc.SocketServerConfig{
-		UnixSocketPath: config.WorkerNodeGRPCServerUnixSocketPath,
+func ProvideWorkerNodeReceiverConfig(config WorkerConfigModel) grpc.WorkerNodeReceiverConfig {
+	return grpc.WorkerNodeReceiverConfig{
+		Port: config.WorkerNodeReceiverGRPCServerListeningPort,
 	}
+
 }
 
 func ProvideClientCATLSCertificateConfig(config WorkerConfigModel) cert.WorkerNodeCACertificateConfig {

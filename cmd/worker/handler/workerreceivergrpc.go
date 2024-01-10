@@ -8,25 +8,25 @@ import (
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 
-type WorkerGRPCSocketHandler struct {
+type WorkerNodeReceiverGRPCHandler struct {
 	proto.UnimplementedWorkerNodeContainerReceiverServer
 	workerService service.IWorker
 }
 
-func ProvideWorkerGRPCSocketHandler(grpcSocketServer grpc.SocketServer, workerService service.IWorker) WorkerGRPCSocketHandler {
-	handler := WorkerGRPCSocketHandler{
+func ProvideWorkerGRPCSocketHandler(grpcSocketServer grpc.WorkerNodeReceiverGRPCServer, workerService service.IWorker) WorkerNodeReceiverGRPCHandler {
+	handler := WorkerNodeReceiverGRPCHandler{
 		workerService: workerService,
 	}
 	proto.RegisterWorkerNodeContainerReceiverServer(grpcSocketServer.GetGRPCServer(), &handler)
 	return handler
 }
 
-func (w *WorkerGRPCSocketHandler) GetTaskFromQueue(ctx context.Context, payload *proto.GetTaskPayload) (*proto.Task, error) {
+func (w *WorkerNodeReceiverGRPCHandler) GetTaskFromQueue(ctx context.Context, payload *proto.GetTaskPayload) (*proto.Task, error) {
 	task, err := w.workerService.GetTask(payload.ImageUrl)
 	return task, err
 }
 
-func (w *WorkerGRPCSocketHandler) SubmitSuccessTask(ctx context.Context, payload *proto.SubmitSuccessTaskRequest) (*emptypb.Empty, error) {
+func (w *WorkerNodeReceiverGRPCHandler) SubmitSuccessTask(ctx context.Context, payload *proto.SubmitSuccessTaskRequest) (*emptypb.Empty, error) {
 	err := w.workerService.SubmitSuccessTask(payload.ID, payload.Results)
 	if err != nil {
 		return &emptypb.Empty{}, err
@@ -34,7 +34,7 @@ func (w *WorkerGRPCSocketHandler) SubmitSuccessTask(ctx context.Context, payload
 	return &emptypb.Empty{}, nil
 }
 
-func (w *WorkerGRPCSocketHandler) ReportTaskFailure(ctx context.Context, payload *proto.ReportTaskFailureRequest) (*emptypb.Empty, error) {
+func (w *WorkerNodeReceiverGRPCHandler) ReportTaskFailure(ctx context.Context, payload *proto.ReportTaskFailureRequest) (*emptypb.Empty, error) {
 	err := w.workerService.ReportFailTask(payload.ID, payload.ErrorDetail)
 	if err != nil {
 		return &emptypb.Empty{}, err

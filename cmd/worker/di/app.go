@@ -8,12 +8,12 @@ import (
 )
 
 type WorkerApp struct {
-	GRPCServer              grpc.RAJDSGrpcServer
-	WorkerGRPCHandler       handler.GRPCHandler
-	GRPCSocketServer        grpc.SocketServer
-	WorkerGRPCSocketHandler handler.WorkerGRPCSocketHandler
-	WorkerNodeDaemon        daemon.WorkerNode
-	ControlPlaneGRPCClient  proto.ControlPlaneClient
+	GRPCServer                   grpc.RAJDSGrpcServer
+	WorkerGRPCHandler            handler.GRPCHandler
+	WorkerNodeReceiverGRPCServer grpc.WorkerNodeReceiverGRPCServer
+	WorkerGRPCSocketHandler      handler.WorkerNodeReceiverGRPCHandler
+	WorkerNodeDaemon             daemon.WorkerNode
+	ControlPlaneGRPCClient       proto.ControlPlaneClient
 }
 
 func ProvideControlPlaneGRPCClient(grpcClient grpc.RAJDSGrpcClient) proto.ControlPlaneClient {
@@ -23,15 +23,15 @@ func ProvideControlPlaneGRPCClient(grpcClient grpc.RAJDSGrpcClient) proto.Contro
 func ProvideWorkerApp(
 	grpcServer grpc.RAJDSGrpcServer,
 	workerGRPCHandler handler.GRPCHandler,
-	grpcSocketServer grpc.SocketServer,
-	workerGRPCSocketHandler handler.WorkerGRPCSocketHandler,
+	workerNodeReceiverGRPCServer grpc.WorkerNodeReceiverGRPCServer,
+	workerGRPCSocketHandler handler.WorkerNodeReceiverGRPCHandler,
 	workerNodeDaemon daemon.WorkerNode,
 ) WorkerApp {
 	return WorkerApp{
-		GRPCServer:              grpcServer,
-		WorkerGRPCHandler:       workerGRPCHandler,
-		GRPCSocketServer:        grpcSocketServer,
-		WorkerGRPCSocketHandler: workerGRPCSocketHandler,
-		WorkerNodeDaemon:        workerNodeDaemon,
+		GRPCServer:                   grpcServer,
+		WorkerGRPCHandler:            workerGRPCHandler,
+		WorkerNodeReceiverGRPCServer: workerNodeReceiverGRPCServer,
+		WorkerGRPCSocketHandler:      workerGRPCSocketHandler,
+		WorkerNodeDaemon:             workerNodeDaemon,
 	}
 }

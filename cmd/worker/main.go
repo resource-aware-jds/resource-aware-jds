@@ -20,7 +20,7 @@ func main() {
 	}
 
 	app.GRPCServer.Serve()
-	app.GRPCSocketServer.Serve()
+	app.WorkerNodeReceiverGRPCServer.Serve()
 	app.WorkerNodeDaemon.Start()
 
 	// Gracefully Shutdown
