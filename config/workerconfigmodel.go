@@ -12,6 +12,7 @@ type WorkerConfigModel struct {
 	CACertificatePath                         string `envconfig:"CA_CERTIFICATE_PATH"`
 	CertificatePath                           string `envconfig:"CERTIFICATE_PATH"`
 	CertificatePrivateKeyPath                 string `envconfig:"CERTIFICATE_PRIVATE_KEY_PATH"`
+	MaxContainerPerImage                      int    `envconfig:"MAX_CONTAINER_PER_IMAGE"`
 }
 
 func ProvideWorkerNodeReceiverConfig(config WorkerConfigModel) grpc.WorkerNodeReceiverConfig {

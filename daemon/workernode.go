@@ -103,7 +103,6 @@ func (w *workerNode) checkInNodeToControlPlane() error {
 func (w *workerNode) taskStartContainer(ctx context.Context) {
 	logrus.Info("run start container")
 	imageList := w.taskQueue.GetDistinctImageList()
-	logrus.Info("All image list:", imageList)
 	taskList := w.taskQueue.ReadQueue()
 
 	for _, image := range imageList {
