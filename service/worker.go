@@ -115,7 +115,6 @@ func (w *Worker) RemoveContainer(ctx context.Context, containerID string) error 
 
 func (w *Worker) StartContainer(ctx context.Context, dockerImage string, name string, options types.ImagePullOptions) error {
 	logrus.Info("Creating container: ", name, " with image: ", dockerImage)
-	defer logrus.Info("Create container ", name, " success")
 
 	//Pull image
 	logrus.Info("Pulling docker image")
@@ -145,7 +144,7 @@ func (w *Worker) StartContainer(ctx context.Context, dockerImage string, name st
 		return err
 	}
 
-	fmt.Println(resp.ID)
+	logrus.Info("Create container ", name, " success with id: ", resp.ID)
 	return nil
 }
 
