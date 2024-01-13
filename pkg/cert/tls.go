@@ -3,15 +3,12 @@ package cert
 import (
 	"bytes"
 	"crypto"
-	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha256"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
 	"errors"
-	"math/big"
-	"net"
 	"os"
 	"time"
 )
@@ -158,39 +155,13 @@ func (t *tlsCertificate) CreateCertificateAndSign(certificateSubject pkix.Name, 
 		return nil, ErrNoPrivateKey
 	}
 
-	// Create the Certificate
-	certificate := &x509.Certificate{
-		SerialNumber:          big.NewInt(2019),
-		Subject:               certificateSubject,
-		NotBefore:             time.Now(),
-		NotAfter:              time.Now().Add(validDuration),
-		IsCA:                  false,
-		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
-		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
-		BasicConstraintsValid: true,
-		IPAddresses: []net.IP{
-			net.IPv4zero,
-			net.IPv6loopback,
-			net.IPv6unspecified,
-		},
-		DNSNames: []string{"localhost"},
-	}
-
-	certificateByte, err := x509.CreateCertificate(rand.Reader, certificate, t.certificate, subjectPublicKey.GetRawKeyData(), t.privateKey.GetRawKeyData())
-	if err != nil {
-		return nil, err
-	}
-
-	parsedCertificate, err := x509.ParseCertificate(certificateByte)
-	if err != nil {
-		return nil, err
-	}
-
-	return &tlsCertificate{
-		certificate:       parsedCertificate,
-		parentCertificate: t,
-		publicKey:         subjectPublicKey,
-	}, nil
+	return CreateCertificate(CreateCertificateOptions{
+		PublicKey:            subjectPublicKey,
+		ValidDuration:        validDuration,
+		CertificateSubject:   certificateSubject,
+		ParentTLSCertificate: t,
+		IsCA:                 false,
+	})
 }
 
 func (t *tlsCertificate) GetCertificateSubjectSerialNumber() string {

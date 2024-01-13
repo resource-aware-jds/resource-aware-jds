@@ -52,7 +52,9 @@ func CreateCertificate(c CreateCertificateOptions) (TLSCertificate, error) {
 		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
 		BasicConstraintsValid: true,
 		IPAddresses: []net.IP{
-			net.IPv4(0, 0, 0, 0),
+			net.IPv4(127, 0, 0, 1),
+			net.IPv6loopback,
+			net.IPv4zero,
 			net.IPv6unspecified,
 		},
 		DNSNames: []string{"localhost"},
