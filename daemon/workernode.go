@@ -2,11 +2,11 @@ package daemon
 
 import (
 	"context"
-	"fmt"
 	"github.com/docker/docker/api/types"
 	"github.com/resource-aware-jds/resource-aware-jds/config"
 	"github.com/resource-aware-jds/resource-aware-jds/generated/proto/github.com/resource-aware-jds/resource-aware-jds/generated/proto"
 	"github.com/resource-aware-jds/resource-aware-jds/models"
+	"github.com/resource-aware-jds/resource-aware-jds/pkg/buffer"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/cert"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/datastructure"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/taskqueue"
@@ -19,7 +19,8 @@ import (
 )
 
 const (
-	StartContainerDuration = 15 * time.Second
+	StartContainerDuration  = 15 * time.Second
+	ResourceMonitorDuration = 5 * time.Second
 )
 
 type workerNode struct {
@@ -30,13 +31,15 @@ type workerNode struct {
 	workerService          service.IWorker
 	taskQueue              taskqueue.Queue
 	workerNodeConfig       config.WorkerConfigModel
+	resourceMonitor        service.IResourceMonitor
+	containerBuffer        buffer.ContainerBuffer
 }
 
 type WorkerNode interface {
 	Start()
 }
 
-func ProvideWorkerNodeDaemon(controlPlaneGRPCClient proto.ControlPlaneClient, workerService service.IWorker, taskQueue taskqueue.Queue, workerNodeCertificate cert.TransportCertificate, workerNodeConfig config.WorkerConfigModel) WorkerNode {
+func ProvideWorkerNodeDaemon(controlPlaneGRPCClient proto.ControlPlaneClient, workerService service.IWorker, taskQueue taskqueue.Queue, workerNodeCertificate cert.TransportCertificate, workerNodeConfig config.WorkerConfigModel, resourceMonitor service.IResourceMonitor, containerBuffer buffer.ContainerBuffer) WorkerNode {
 	ctx := context.Background()
 	ctxWithCancel, cancelFunc := context.WithCancel(ctx)
 	return &workerNode{
@@ -47,14 +50,16 @@ func ProvideWorkerNodeDaemon(controlPlaneGRPCClient proto.ControlPlaneClient, wo
 		workerService:          workerService,
 		taskQueue:              taskQueue,
 		workerNodeConfig:       workerNodeConfig,
+		resourceMonitor:        resourceMonitor,
+		containerBuffer:        containerBuffer,
 	}
 }
 
 func (w *workerNode) Start() {
-	err := w.checkInNodeToControlPlane()
-	if err != nil {
-		panic(fmt.Sprintf("Failed to check in worker node to control plane (%s)", err.Error()))
-	}
+	//err := w.checkInNodeToControlPlane()
+	//if err != nil {
+	//	panic(fmt.Sprintf("Failed to check in worker node to control plane (%s)", err.Error()))
+	//}
 
 	go func(ctx context.Context) {
 		for {
@@ -64,6 +69,18 @@ func (w *workerNode) Start() {
 			default:
 				w.taskStartContainer(ctx)
 				timeutil.SleepWithContext(ctx, StartContainerDuration)
+			}
+		}
+	}(w.ctx)
+
+	go func(ctx context.Context) {
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			default:
+				w.resourceMonitor.GetMemoryUsage()
+				timeutil.SleepWithContext(ctx, ResourceMonitorDuration)
 			}
 		}
 	}(w.ctx)
@@ -102,7 +119,9 @@ func (w *workerNode) taskStartContainer(ctx context.Context) {
 				})
 				logrus.Warn("Removing these task due to unable to start container", errorTaskList)
 				w.taskQueue.BulkRemove(errorTaskList)
+				return
 			}
+			w.containerBuffer.Store(containerName, &models.Container{ID: containerName, Image: image})
 		}
 	}
 }
