@@ -2,7 +2,6 @@ package daemon
 
 import (
 	"context"
-	"fmt"
 	"github.com/docker/docker/api/types"
 	"github.com/resource-aware-jds/resource-aware-jds/config"
 	"github.com/resource-aware-jds/resource-aware-jds/generated/proto/github.com/resource-aware-jds/resource-aware-jds/generated/proto"
@@ -57,10 +56,10 @@ func ProvideWorkerNodeDaemon(controlPlaneGRPCClient proto.ControlPlaneClient, wo
 }
 
 func (w *workerNode) Start() {
-	err := w.checkInNodeToControlPlane()
-	if err != nil {
-		panic(fmt.Sprintf("Failed to check in worker node to control plane (%s)", err.Error()))
-	}
+	//err := w.checkInNodeToControlPlane()
+	//if err != nil {
+	//	panic(fmt.Sprintf("Failed to check in worker node to control plane (%s)", err.Error()))
+	//}
 
 	go func(ctx context.Context) {
 		for {
