@@ -6,6 +6,7 @@ import (
 	"github.com/resource-aware-jds/resource-aware-jds/config"
 	"github.com/resource-aware-jds/resource-aware-jds/generated/proto/github.com/resource-aware-jds/resource-aware-jds/generated/proto"
 	"github.com/resource-aware-jds/resource-aware-jds/models"
+	"github.com/resource-aware-jds/resource-aware-jds/pkg/buffer"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/cert"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/datastructure"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/taskqueue"
@@ -31,13 +32,14 @@ type workerNode struct {
 	taskQueue              taskqueue.Queue
 	workerNodeConfig       config.WorkerConfigModel
 	resourceMonitor        service.IResourceMonitor
+	containerBuffer        buffer.ContainerBuffer
 }
 
 type WorkerNode interface {
 	Start()
 }
 
-func ProvideWorkerNodeDaemon(controlPlaneGRPCClient proto.ControlPlaneClient, workerService service.IWorker, taskQueue taskqueue.Queue, workerNodeCertificate cert.TransportCertificate, workerNodeConfig config.WorkerConfigModel, resourceMonitor service.IResourceMonitor) WorkerNode {
+func ProvideWorkerNodeDaemon(controlPlaneGRPCClient proto.ControlPlaneClient, workerService service.IWorker, taskQueue taskqueue.Queue, workerNodeCertificate cert.TransportCertificate, workerNodeConfig config.WorkerConfigModel, resourceMonitor service.IResourceMonitor, containerBuffer buffer.ContainerBuffer) WorkerNode {
 	ctx := context.Background()
 	ctxWithCancel, cancelFunc := context.WithCancel(ctx)
 	return &workerNode{
@@ -49,6 +51,7 @@ func ProvideWorkerNodeDaemon(controlPlaneGRPCClient proto.ControlPlaneClient, wo
 		taskQueue:              taskQueue,
 		workerNodeConfig:       workerNodeConfig,
 		resourceMonitor:        resourceMonitor,
+		containerBuffer:        containerBuffer,
 	}
 }
 
@@ -116,7 +119,9 @@ func (w *workerNode) taskStartContainer(ctx context.Context) {
 				})
 				logrus.Warn("Removing these task due to unable to start container", errorTaskList)
 				w.taskQueue.BulkRemove(errorTaskList)
+				return
 			}
+			w.containerBuffer.Store(containerName, &models.Container{ID: containerName, Image: image})
 		}
 	}
 }
