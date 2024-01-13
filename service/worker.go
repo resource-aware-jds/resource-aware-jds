@@ -11,7 +11,7 @@ import (
 	"github.com/resource-aware-jds/resource-aware-jds/config"
 	"github.com/resource-aware-jds/resource-aware-jds/generated/proto/github.com/resource-aware-jds/resource-aware-jds/generated/proto"
 	"github.com/resource-aware-jds/resource-aware-jds/models"
-	"github.com/resource-aware-jds/resource-aware-jds/pkg/taskBuffer"
+	"github.com/resource-aware-jds/resource-aware-jds/pkg/buffer"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/taskqueue"
 	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -21,7 +21,7 @@ type Worker struct {
 	dockerClient *client.Client
 	config       config.WorkerConfigModel
 	taskQueue    taskqueue.Queue
-	taskBuffer   taskBuffer.TaskBuffer
+	taskBuffer   buffer.TaskBuffer
 }
 
 type IWorker interface {
@@ -34,7 +34,7 @@ type IWorker interface {
 	IsContainerExist(ctx context.Context, imageUrl string) bool
 }
 
-func ProvideWorker(dockerClient *client.Client, config config.WorkerConfigModel, taskQueue taskqueue.Queue, taskBuffer taskBuffer.TaskBuffer) IWorker {
+func ProvideWorker(dockerClient *client.Client, config config.WorkerConfigModel, taskQueue taskqueue.Queue, taskBuffer buffer.TaskBuffer) IWorker {
 	return &Worker{
 		dockerClient: dockerClient,
 		config:       config,
@@ -50,7 +50,7 @@ func (w *Worker) GetTask(containerImage string) (*proto.Task, error) {
 		return nil, err
 	}
 
-	w.taskBuffer.Store(task)
+	w.taskBuffer.Store(task.ID.Hex(), task)
 	return &proto.Task{
 		ID:             task.ID.Hex(),
 		TaskAttributes: task.TaskAttributes,
