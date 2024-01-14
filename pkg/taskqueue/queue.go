@@ -7,20 +7,33 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// TODO: Make me not a pointer
 type queue struct {
 	queue datastructure.Queue[*models.Task]
 }
 
+// Queue is a special datastructure.Queue implementation that will not fully remove models.Task
+// once popped. Instead, It will still be stored in internal datastructure.Buffer to make sure
+// that no task is lost during the task distribution process.
 type Queue interface {
 	StoreTask(task *models.Task)
 	GetTask(imageUrl string) (*models.Task, error)
 	ReadQueue() []*models.Task
 	GetDistinctImageList() []string
 	BulkRemove(tasks []*models.Task)
+	Pop() (*models.Task, bool)
 }
 
 func ProvideTaskQueue() Queue {
 	return &queue{}
+}
+
+func (q *queue) Pop() (*models.Task, bool) {
+	result, ok := q.queue.Pop()
+	if result == nil {
+		return nil, ok
+	}
+	return *result, ok
 }
 
 func (q *queue) StoreTask(task *models.Task) {
