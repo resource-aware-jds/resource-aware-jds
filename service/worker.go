@@ -7,7 +7,7 @@ import (
 	"github.com/resource-aware-jds/resource-aware-jds/config"
 	"github.com/resource-aware-jds/resource-aware-jds/generated/proto/github.com/resource-aware-jds/resource-aware-jds/generated/proto"
 	"github.com/resource-aware-jds/resource-aware-jds/models"
-	"github.com/resource-aware-jds/resource-aware-jds/pkg/buffer"
+	"github.com/resource-aware-jds/resource-aware-jds/pkg/datastructure"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/taskqueue"
 	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -17,7 +17,7 @@ type Worker struct {
 	dockerClient *client.Client
 	config       config.WorkerConfigModel
 	taskQueue    taskqueue.Queue
-	taskBuffer   buffer.TaskBuffer
+	taskBuffer   datastructure.Buffer[string, models.Task]
 }
 
 type IWorker interface {
@@ -28,12 +28,12 @@ type IWorker interface {
 	CreateContainer(image string, imagePullOptions types.ImagePullOptions) ContainerSvc
 }
 
-func ProvideWorker(dockerClient *client.Client, config config.WorkerConfigModel, taskQueue taskqueue.Queue, taskBuffer buffer.TaskBuffer) IWorker {
+func ProvideWorker(dockerClient *client.Client, config config.WorkerConfigModel, taskQueue taskqueue.Queue) IWorker {
 	return &Worker{
 		dockerClient: dockerClient,
 		config:       config,
 		taskQueue:    taskQueue,
-		taskBuffer:   taskBuffer,
+		taskBuffer:   make(datastructure.Buffer[string, models.Task]),
 	}
 }
 

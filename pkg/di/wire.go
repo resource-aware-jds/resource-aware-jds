@@ -2,7 +2,6 @@ package di
 
 import (
 	"github.com/google/wire"
-	"github.com/resource-aware-jds/resource-aware-jds/pkg/buffer"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/distribution"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/dockerclient"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/grpc"
@@ -18,8 +17,6 @@ var PKGWireSet = wire.NewSet(
 	grpc.ProvideRAJDSGrpcClient,
 	dockerclient.ProvideDockerClient,
 	taskqueue.ProvideTaskQueue,
-	buffer.ProvideTaskBuffer,
-	buffer.ProvideContainerBuffer,
 	pool.ProvideWorkerNode,
 	distribution.ProvideRoundRobinDistributor,
 )

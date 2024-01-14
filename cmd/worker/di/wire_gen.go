@@ -10,7 +10,6 @@ import (
 	"github.com/resource-aware-jds/resource-aware-jds/cmd/worker/handler"
 	"github.com/resource-aware-jds/resource-aware-jds/config"
 	"github.com/resource-aware-jds/resource-aware-jds/daemon"
-	"github.com/resource-aware-jds/resource-aware-jds/pkg/buffer"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/cert"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/dockerclient"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/grpc"
@@ -53,8 +52,7 @@ func InitializeApplication() (WorkerApp, func(), error) {
 		return WorkerApp{}, nil, err
 	}
 	queue := taskqueue.ProvideTaskQueue()
-	taskBuffer := buffer.ProvideTaskBuffer()
-	iWorker := service.ProvideWorker(client, workerConfigModel, queue, taskBuffer)
+	iWorker := service.ProvideWorker(client, workerConfigModel, queue)
 	grpcHandler := handler.ProvideWorkerGRPCHandler(rajdsGrpcServer, iWorker)
 	workerNodeReceiverConfig := config.ProvideWorkerNodeReceiverConfig(workerConfigModel)
 	workerNodeReceiverGRPCServer, cleanup3, err := grpc.ProvideWorkerNodeReceiverGRPCServer(workerNodeReceiverConfig)
@@ -65,8 +63,7 @@ func InitializeApplication() (WorkerApp, func(), error) {
 	}
 	workerNodeReceiverGRPCHandler := handler.ProvideWorkerGRPCSocketHandler(workerNodeReceiverGRPCServer, iWorker)
 	iResourceMonitor := service.ProvideResourcesMonitor()
-	containerBuffer := buffer.ProvideContainerBuffer()
-	workerNode := daemon.ProvideWorkerNodeDaemon(controlPlaneClient, iWorker, queue, transportCertificate, workerConfigModel, iResourceMonitor, containerBuffer)
+	workerNode := daemon.ProvideWorkerNodeDaemon(controlPlaneClient, iWorker, queue, transportCertificate, workerConfigModel, iResourceMonitor)
 	workerApp := ProvideWorkerApp(rajdsGrpcServer, grpcHandler, workerNodeReceiverGRPCServer, workerNodeReceiverGRPCHandler, workerNode)
 	return workerApp, func() {
 		cleanup3()

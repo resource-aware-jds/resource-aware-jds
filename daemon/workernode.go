@@ -7,7 +7,6 @@ import (
 	"github.com/resource-aware-jds/resource-aware-jds/config"
 	"github.com/resource-aware-jds/resource-aware-jds/generated/proto/github.com/resource-aware-jds/resource-aware-jds/generated/proto"
 	"github.com/resource-aware-jds/resource-aware-jds/models"
-	"github.com/resource-aware-jds/resource-aware-jds/pkg/buffer"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/cert"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/datastructure"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/taskqueue"
@@ -31,14 +30,14 @@ type workerNode struct {
 	taskQueue              taskqueue.Queue
 	workerNodeConfig       config.WorkerConfigModel
 	resourceMonitor        service.IResourceMonitor
-	containerBuffer        buffer.ContainerBuffer
+	containerBuffer        datastructure.Buffer[string, service.ContainerSvc]
 }
 
 type WorkerNode interface {
 	Start()
 }
 
-func ProvideWorkerNodeDaemon(controlPlaneGRPCClient proto.ControlPlaneClient, workerService service.IWorker, taskQueue taskqueue.Queue, workerNodeCertificate cert.TransportCertificate, workerNodeConfig config.WorkerConfigModel, resourceMonitor service.IResourceMonitor, containerBuffer buffer.ContainerBuffer) WorkerNode {
+func ProvideWorkerNodeDaemon(controlPlaneGRPCClient proto.ControlPlaneClient, workerService service.IWorker, taskQueue taskqueue.Queue, workerNodeCertificate cert.TransportCertificate, workerNodeConfig config.WorkerConfigModel, resourceMonitor service.IResourceMonitor) WorkerNode {
 	ctx := context.Background()
 	ctxWithCancel, cancelFunc := context.WithCancel(ctx)
 	return &workerNode{
@@ -50,7 +49,7 @@ func ProvideWorkerNodeDaemon(controlPlaneGRPCClient proto.ControlPlaneClient, wo
 		taskQueue:              taskQueue,
 		workerNodeConfig:       workerNodeConfig,
 		resourceMonitor:        resourceMonitor,
-		containerBuffer:        containerBuffer,
+		containerBuffer:        make(datastructure.Buffer[string, service.ContainerSvc]),
 	}
 }
 
