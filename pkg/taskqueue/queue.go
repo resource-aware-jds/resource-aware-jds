@@ -7,7 +7,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// TODO: Make me not a pointer
 type queue struct {
 	queue datastructure.Queue[*models.Task]
 }
