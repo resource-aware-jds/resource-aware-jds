@@ -3,16 +3,17 @@ package config
 import (
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/cert"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/grpc"
+	"time"
 )
 
 type WorkerConfigModel struct {
-	GRPCServerPort                            int    `envconfig:"GRPC_SERVER_PORT" default:"31236"`
-	WorkerNodeReceiverGRPCServerListeningPort int    `envconfig:"WORKER_NODE_RECEIVER_GRPC_SERVER_LISTENING_PORT" default:"31237"`
-	ControlPlaneHost                          string `envconfig:"CONTROL_PLANE_HOST"`
-	CACertificatePath                         string `envconfig:"CA_CERTIFICATE_PATH"`
-	CertificatePath                           string `envconfig:"CERTIFICATE_PATH"`
-	CertificatePrivateKeyPath                 string `envconfig:"CERTIFICATE_PRIVATE_KEY_PATH"`
-	MaxContainerPerImage                      int    `envconfig:"MAX_CONTAINER_PER_IMAGE"`
+	GRPCServerPort                            int           `envconfig:"GRPC_SERVER_PORT" default:"31236"`
+	WorkerNodeReceiverGRPCServerListeningPort int           `envconfig:"WORKER_NODE_RECEIVER_GRPC_SERVER_LISTENING_PORT" default:"31237"`
+	ControlPlaneHost                          string        `envconfig:"CONTROL_PLANE_HOST"`
+	CACertificatePath                         string        `envconfig:"CA_CERTIFICATE_PATH"`
+	CertificatePath                           string        `envconfig:"CERTIFICATE_PATH"`
+	CertificatePrivateKeyPath                 string        `envconfig:"CERTIFICATE_PRIVATE_KEY_PATH"`
+	ContainerStartDelayTimeSeconds            time.Duration `envconfig:"CONTAINER_START_DELAY_TIME_SECONDS" default:"60s"`
 }
 
 func ProvideWorkerNodeReceiverConfig(config WorkerConfigModel) grpc.WorkerNodeReceiverConfig {

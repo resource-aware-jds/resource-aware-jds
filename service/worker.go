@@ -27,9 +27,10 @@ type Worker struct {
 
 	workerNodeDistribution workerdistribution.WorkerDistributor
 
-	taskQueue       taskqueue.Queue
-	taskBuffer      datastructure.Buffer[string, models.Task]
-	containerBuffer datastructure.Buffer[string, container.IContainer]
+	taskQueue              taskqueue.Queue
+	taskBuffer             datastructure.Buffer[string, models.Task]
+	containerBuffer        datastructure.Buffer[string, container.IContainer]
+	containerCoolDownState datastructure.Buffer[string, time.Time]
 }
 
 type IWorker interface {
@@ -62,6 +63,7 @@ func ProvideWorker(
 		workerNodeCertificate:  workerNodeCertificate,
 		taskBuffer:             make(datastructure.Buffer[string, models.Task]),
 		containerBuffer:        make(datastructure.Buffer[string, container.IContainer]),
+		containerCoolDownState: make(datastructure.Buffer[string, time.Time]),
 		workerNodeDistribution: workerNodeDistribution,
 	}
 }
@@ -135,9 +137,9 @@ func (w *Worker) TaskDistributionDaemonLoop(ctx context.Context) {
 	}
 	taskDepointer := *task
 
-	// TODO: Store the ContainerCoolDownState
+	// Store the ContainerCoolDownState
 	distributionResult := w.workerNodeDistribution.Distribute(ctx, taskDepointer, workerdistribution.WorkerState{
-		ContainerCoolDownState: make(datastructure.Buffer[string, time.Time]),
+		ContainerCoolDownState: w.containerCoolDownState,
 		ContainerList:          w.containerBuffer,
 		WorkerNodeConfig:       w.config,
 	})
@@ -146,7 +148,8 @@ func (w *Worker) TaskDistributionDaemonLoop(ctx context.Context) {
 		return
 	}
 
-	// TODO: Remove ContainerCoolDownState
+	// Remove ContainerCoolDownState
+	delete(w.containerCoolDownState, taskDepointer.ImageUrl)
 
 	logrus.Info("Starting container with image:", taskDepointer.ImageUrl)
 	containerInstance := container.ProvideContainer(w.dockerClient, taskDepointer.ImageUrl, types.ImagePullOptions{})
@@ -167,6 +170,6 @@ func (w *Worker) TaskDistributionDaemonLoop(ctx context.Context) {
 	}
 	w.containerBuffer.Store(containerID, containerInstance)
 
-	// TODO: Add the cool down state
-
+	// Add the cool down state
+	w.containerCoolDownState[taskDepointer.ImageUrl] = time.Now().Add(w.config.ContainerStartDelayTimeSeconds)
 }
