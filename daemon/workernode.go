@@ -4,10 +4,9 @@ import (
 	"context"
 	"fmt"
 	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/client"
 	"github.com/resource-aware-jds/resource-aware-jds/config"
-	"github.com/resource-aware-jds/resource-aware-jds/generated/proto/github.com/resource-aware-jds/resource-aware-jds/generated/proto"
 	"github.com/resource-aware-jds/resource-aware-jds/models"
-	"github.com/resource-aware-jds/resource-aware-jds/pkg/cert"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/datastructure"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/taskqueue"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/timeutil"
@@ -22,39 +21,39 @@ const (
 )
 
 type workerNode struct {
-	ctx                    context.Context
-	cancelFunc             func()
-	controlPlaneGRPCClient proto.ControlPlaneClient
-	workerNodeCertificate  cert.TransportCertificate
-	workerService          service.IWorker
-	taskQueue              taskqueue.Queue
-	workerNodeConfig       config.WorkerConfigModel
-	resourceMonitor        service.IResourceMonitor
-	containerBuffer        datastructure.Buffer[string, service.ContainerSvc]
+	ctx        context.Context
+	cancelFunc func()
+
+	dockerClient *client.Client
+
+	workerService    service.IWorker
+	taskQueue        taskqueue.Queue
+	workerNodeConfig config.WorkerConfigModel
+	resourceMonitor  service.IResourceMonitor
+	containerBuffer  datastructure.Buffer[string, service.ContainerSvc]
 }
 
 type WorkerNode interface {
 	Start()
 }
 
-func ProvideWorkerNodeDaemon(controlPlaneGRPCClient proto.ControlPlaneClient, workerService service.IWorker, taskQueue taskqueue.Queue, workerNodeCertificate cert.TransportCertificate, workerNodeConfig config.WorkerConfigModel, resourceMonitor service.IResourceMonitor) WorkerNode {
+func ProvideWorkerNodeDaemon(dockerClient *client.Client, workerService service.IWorker, taskQueue taskqueue.Queue, workerNodeConfig config.WorkerConfigModel, resourceMonitor service.IResourceMonitor) WorkerNode {
 	ctx := context.Background()
 	ctxWithCancel, cancelFunc := context.WithCancel(ctx)
 	return &workerNode{
-		ctx:                    ctxWithCancel,
-		cancelFunc:             cancelFunc,
-		controlPlaneGRPCClient: controlPlaneGRPCClient,
-		workerNodeCertificate:  workerNodeCertificate,
-		workerService:          workerService,
-		taskQueue:              taskQueue,
-		workerNodeConfig:       workerNodeConfig,
-		resourceMonitor:        resourceMonitor,
-		containerBuffer:        make(datastructure.Buffer[string, service.ContainerSvc]),
+		dockerClient:     dockerClient,
+		ctx:              ctxWithCancel,
+		cancelFunc:       cancelFunc,
+		workerService:    workerService,
+		taskQueue:        taskQueue,
+		workerNodeConfig: workerNodeConfig,
+		resourceMonitor:  resourceMonitor,
+		containerBuffer:  make(datastructure.Buffer[string, service.ContainerSvc]),
 	}
 }
 
 func (w *workerNode) Start() {
-	err := w.checkInNodeToControlPlane()
+	err := w.workerService.CheckInWorkerNodeToControlPlane(w.ctx)
 	if err != nil {
 		panic(fmt.Sprintf("Failed to check in worker node to control plane (%s)", err.Error()))
 	}
@@ -82,19 +81,6 @@ func (w *workerNode) Start() {
 			}
 		}
 	}(w.ctx)
-}
-
-func (w *workerNode) checkInNodeToControlPlane() error {
-	certificate, err := w.workerNodeCertificate.GetCertificateInPEM()
-	if err != nil {
-		return err
-	}
-
-	_, err = w.controlPlaneGRPCClient.WorkerCheckIn(w.ctx, &proto.WorkerCheckInRequest{
-		Certificate: certificate,
-		Port:        int32(w.workerNodeConfig.GRPCServerPort),
-	})
-	return err
 }
 
 func (w *workerNode) taskStartContainer(ctx context.Context) {

@@ -52,7 +52,7 @@ func InitializeApplication() (WorkerApp, func(), error) {
 		return WorkerApp{}, nil, err
 	}
 	queue := taskqueue.ProvideTaskQueue()
-	iWorker := service.ProvideWorker(client, workerConfigModel, queue)
+	iWorker := service.ProvideWorker(controlPlaneClient, client, transportCertificate, workerConfigModel, queue)
 	grpcHandler := handler.ProvideWorkerGRPCHandler(rajdsGrpcServer, iWorker)
 	workerNodeReceiverConfig := config.ProvideWorkerNodeReceiverConfig(workerConfigModel)
 	workerNodeReceiverGRPCServer, cleanup3, err := grpc.ProvideWorkerNodeReceiverGRPCServer(workerNodeReceiverConfig)
@@ -63,7 +63,7 @@ func InitializeApplication() (WorkerApp, func(), error) {
 	}
 	workerNodeReceiverGRPCHandler := handler.ProvideWorkerGRPCSocketHandler(workerNodeReceiverGRPCServer, iWorker)
 	iResourceMonitor := service.ProvideResourcesMonitor()
-	workerNode := daemon.ProvideWorkerNodeDaemon(controlPlaneClient, iWorker, queue, transportCertificate, workerConfigModel, iResourceMonitor)
+	workerNode := daemon.ProvideWorkerNodeDaemon(client, iWorker, queue, workerConfigModel, iResourceMonitor)
 	workerApp := ProvideWorkerApp(rajdsGrpcServer, grpcHandler, workerNodeReceiverGRPCServer, workerNodeReceiverGRPCHandler, workerNode)
 	return workerApp, func() {
 		cleanup3()

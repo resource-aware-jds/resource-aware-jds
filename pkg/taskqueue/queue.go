@@ -8,7 +8,7 @@ import (
 )
 
 type queue struct {
-	runnerQueue datastructure.Queue[*models.Task]
+	queue datastructure.Queue[*models.Task]
 }
 
 type Queue interface {
@@ -24,14 +24,14 @@ func ProvideTaskQueue() Queue {
 }
 
 func (q *queue) StoreTask(task *models.Task) {
-	q.runnerQueue.Push(task)
+	q.queue.Push(task)
 }
 
 func (q *queue) GetTask(imageUrl string) (*models.Task, error) {
 	filter := func(t *models.Task) bool {
 		return t.ImageUrl == imageUrl
 	}
-	data, isSuccess := q.runnerQueue.PopWithFilter(filter)
+	data, isSuccess := q.queue.PopWithFilter(filter)
 	if !isSuccess {
 		return nil, fmt.Errorf("unable to get task, queue empty")
 	}
@@ -39,7 +39,7 @@ func (q *queue) GetTask(imageUrl string) (*models.Task, error) {
 }
 
 func (q *queue) ReadQueue() []*models.Task {
-	return q.runnerQueue.ReadQueue()
+	return q.queue.ReadQueue()
 }
 
 func (q *queue) GetDistinctImageList() []string {
@@ -57,9 +57,9 @@ func (q *queue) GetDistinctImageList() []string {
 }
 
 func (q *queue) BulkRemove(tasks []*models.Task) {
-	q.runnerQueue.RemoveWithCondition(func(task *models.Task) bool {
+	q.queue.RemoveWithCondition(func(task *models.Task) bool {
 		return !datastructure.Contains(tasks, task)
 	})
 	logrus.Info("Task removed:", tasks)
-	logrus.Info("Current queue:", q.runnerQueue)
+	logrus.Info("Current queue:", q.queue)
 }

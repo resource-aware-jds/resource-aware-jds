@@ -10,6 +10,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"math/rand"
 	"strconv"
+	"time"
 )
 
 var (
@@ -22,6 +23,7 @@ type containerSvc struct {
 	containerName    string
 	imagePullOptions types.ImagePullOptions
 	containerID      *string
+	startupTime      time.Time
 }
 
 type ContainerSvc interface {
@@ -76,6 +78,7 @@ func (c *containerSvc) Start(ctx context.Context) error {
 
 	logrus.Info("Create container ", c.containerName, " success with id: ", resp.ID)
 
+	c.startupTime = time.Now()
 	c.containerID = util.ToPointer(resp.ID)
 	return nil
 }

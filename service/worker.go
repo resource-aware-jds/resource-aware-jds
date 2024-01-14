@@ -1,12 +1,14 @@
 package service
 
 import (
+	"context"
 	"fmt"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
 	"github.com/resource-aware-jds/resource-aware-jds/config"
 	"github.com/resource-aware-jds/resource-aware-jds/generated/proto/github.com/resource-aware-jds/resource-aware-jds/generated/proto"
 	"github.com/resource-aware-jds/resource-aware-jds/models"
+	"github.com/resource-aware-jds/resource-aware-jds/pkg/cert"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/datastructure"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/taskqueue"
 	"github.com/sirupsen/logrus"
@@ -14,13 +16,18 @@ import (
 )
 
 type Worker struct {
-	dockerClient *client.Client
-	config       config.WorkerConfigModel
-	taskQueue    taskqueue.Queue
-	taskBuffer   datastructure.Buffer[string, models.Task]
+	controlPlaneGRPCClient proto.ControlPlaneClient
+	dockerClient           *client.Client
+
+	workerNodeCertificate cert.TransportCertificate
+	config                config.WorkerConfigModel
+
+	taskQueue  taskqueue.Queue
+	taskBuffer datastructure.Buffer[string, models.Task]
 }
 
 type IWorker interface {
+	CheckInWorkerNodeToControlPlane(ctx context.Context) error
 	SubmitTask(containerImage string, taskId string, input []byte) error
 	GetTask(containerImage string) (*proto.Task, error)
 	SubmitSuccessTask(id string, results [][]byte) error
@@ -28,13 +35,28 @@ type IWorker interface {
 	CreateContainer(image string, imagePullOptions types.ImagePullOptions) ContainerSvc
 }
 
-func ProvideWorker(dockerClient *client.Client, config config.WorkerConfigModel, taskQueue taskqueue.Queue) IWorker {
+func ProvideWorker(controlPlaneGRPCClient proto.ControlPlaneClient, dockerClient *client.Client, workerNodeCertificate cert.TransportCertificate, config config.WorkerConfigModel, taskQueue taskqueue.Queue) IWorker {
 	return &Worker{
-		dockerClient: dockerClient,
-		config:       config,
-		taskQueue:    taskQueue,
-		taskBuffer:   make(datastructure.Buffer[string, models.Task]),
+		controlPlaneGRPCClient: controlPlaneGRPCClient,
+		dockerClient:           dockerClient,
+		config:                 config,
+		taskQueue:              taskQueue,
+		workerNodeCertificate:  workerNodeCertificate,
+		taskBuffer:             make(datastructure.Buffer[string, models.Task]),
 	}
+}
+
+func (w *Worker) CheckInWorkerNodeToControlPlane(ctx context.Context) error {
+	certificate, err := w.workerNodeCertificate.GetCertificateInPEM()
+	if err != nil {
+		return err
+	}
+
+	_, err = w.controlPlaneGRPCClient.WorkerCheckIn(ctx, &proto.WorkerCheckInRequest{
+		Certificate: certificate,
+		Port:        int32(w.config.GRPCServerPort),
+	})
+	return err
 }
 
 func (w *Worker) GetTask(containerImage string) (*proto.Task, error) {
