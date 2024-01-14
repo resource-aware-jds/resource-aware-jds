@@ -5,7 +5,7 @@ import (
 )
 
 type TaskBuffer interface {
-	Store(id string, object *models.Task)
+	Store(id string, object models.Task)
 	Pop(id string) *models.Task
 }
 

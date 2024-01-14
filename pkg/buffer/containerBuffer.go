@@ -1,14 +1,16 @@
 package buffer
 
-import "github.com/resource-aware-jds/resource-aware-jds/models"
+import (
+	"github.com/resource-aware-jds/resource-aware-jds/service"
+)
 
 type ContainerBuffer interface {
-	Store(id string, object *models.Container)
-	Pop(id string) *models.Container
+	Store(id string, object service.ContainerSvc)
+	Pop(id string) *service.ContainerSvc
 }
 
 func ProvideContainerBuffer() ContainerBuffer {
-	buffer := &Buffer[string, models.Container]{}
+	buffer := &Buffer[string, service.ContainerSvc]{}
 	buffer.InitializeMap()
 	return buffer
 }

@@ -6,10 +6,10 @@ import (
 )
 
 type Buffer[T comparable, U any] struct {
-	commonMap map[T]*U
+	commonMap map[T]U
 }
 
-func (t *Buffer[T, U]) Store(id T, object *U) {
+func (t *Buffer[T, U]) Store(id T, object U) {
 	logrus.Info("Buffer ", reflect.TypeOf(object), " with id: ", id)
 	t.commonMap[id] = object
 }
@@ -21,7 +21,7 @@ func (t *Buffer[T, U]) Pop(id T) *U {
 		return nil
 	}
 	delete(t.commonMap, id)
-	return object
+	return &object
 }
 
 func (t *Buffer[T, U]) IsObjectInBuffer(id T) bool {
@@ -30,5 +30,5 @@ func (t *Buffer[T, U]) IsObjectInBuffer(id T) bool {
 }
 
 func (t *Buffer[T, U]) InitializeMap() {
-	t.commonMap = make(map[T]*U)
+	t.commonMap = make(map[T]U)
 }

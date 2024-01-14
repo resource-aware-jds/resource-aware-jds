@@ -14,8 +14,6 @@ import (
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/timeutil"
 	"github.com/resource-aware-jds/resource-aware-jds/service"
 	"github.com/sirupsen/logrus"
-	"math/rand"
-	"strconv"
 	"time"
 )
 
@@ -106,22 +104,23 @@ func (w *workerNode) taskStartContainer(ctx context.Context) {
 	taskList := w.taskQueue.ReadQueue()
 
 	for _, image := range imageList {
-		if !w.workerService.IsContainerExist(ctx, image) {
-			logrus.Info("Starting container with image:", image)
-			// TODO Improve this later
-			randomId := rand.Intn(50000-10000) + 10000
-			containerName := "rajds-" + strconv.Itoa(randomId)
-			err := w.workerService.StartContainer(ctx, image, containerName, types.ImagePullOptions{})
-			if err != nil {
-				logrus.Error("Unable to start container with image:", image, err)
-				errorTaskList := datastructure.Filter(taskList, func(task *models.Task) bool {
-					return task.ImageUrl == image
-				})
-				logrus.Warn("Removing these task due to unable to start container", errorTaskList)
-				w.taskQueue.BulkRemove(errorTaskList)
-				return
-			}
-			w.containerBuffer.Store(containerName, &models.Container{ID: containerName, Image: image})
+		logrus.Info("Starting container with image:", image)
+		container := w.workerService.CreateContainer(image, types.ImagePullOptions{})
+		err := container.Start(ctx)
+		if err != nil {
+			logrus.Error("Unable to start container with image:", image, err)
+			errorTaskList := datastructure.Filter(taskList, func(task *models.Task) bool {
+				return task.ImageUrl == image
+			})
+			logrus.Warn("Removing these task due to unable to start container", errorTaskList)
+			w.taskQueue.BulkRemove(errorTaskList)
+			return
 		}
+		containerID, ok := container.GetContainerID()
+		if !ok {
+			logrus.Error("Unable to get container id")
+			return
+		}
+		w.containerBuffer.Store(containerID, container)
 	}
 }
