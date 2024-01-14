@@ -13,12 +13,19 @@ func (t Buffer[T, U]) Store(id T, object U) {
 }
 
 func (t Buffer[T, U]) Pop(id T) *U {
-	object, ok := t[id]
-	logrus.Info("Remove ", reflect.TypeOf(object), " from Buffer with id: ", id)
-	if !ok {
+	object := t.Get(id)
+	if object == nil {
 		return nil
 	}
 	delete(t, id)
+	return object
+}
+
+func (t Buffer[T, U]) Get(id T) *U {
+	object, ok := t[id]
+	if !ok {
+		return nil
+	}
 	return &object
 }
 
