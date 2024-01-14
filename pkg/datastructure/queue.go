@@ -2,6 +2,7 @@ package datastructure
 
 import "slices"
 
+// Queue is a FIFO (First in Last out) queue data structure
 type Queue[Data any] struct {
 	data []Data
 }
