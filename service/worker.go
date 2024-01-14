@@ -22,8 +22,9 @@ type Worker struct {
 	workerNodeCertificate cert.TransportCertificate
 	config                config.WorkerConfigModel
 
-	taskQueue  taskqueue.Queue
-	taskBuffer datastructure.Buffer[string, models.Task]
+	taskQueue       taskqueue.Queue
+	taskBuffer      datastructure.Buffer[string, models.Task]
+	containerBuffer datastructure.Buffer[string, ContainerSvc]
 }
 
 type IWorker interface {
@@ -33,6 +34,9 @@ type IWorker interface {
 	SubmitSuccessTask(id string, results [][]byte) error
 	ReportFailTask(id string, errorMessage string) error
 	CreateContainer(image string, imagePullOptions types.ImagePullOptions) ContainerSvc
+
+	// TaskDistributionDaemonLoop is a method allowing the daemon to call to accomplish its routine.
+	TaskDistributionDaemonLoop(ctx context.Context)
 }
 
 func ProvideWorker(controlPlaneGRPCClient proto.ControlPlaneClient, dockerClient *client.Client, workerNodeCertificate cert.TransportCertificate, config config.WorkerConfigModel, taskQueue taskqueue.Queue) IWorker {
@@ -43,6 +47,7 @@ func ProvideWorker(controlPlaneGRPCClient proto.ControlPlaneClient, dockerClient
 		taskQueue:              taskQueue,
 		workerNodeCertificate:  workerNodeCertificate,
 		taskBuffer:             make(datastructure.Buffer[string, models.Task]),
+		containerBuffer:        make(datastructure.Buffer[string, ContainerSvc]),
 	}
 }
 
@@ -109,4 +114,31 @@ func (w *Worker) SubmitTask(containerImage string, taskId string, input []byte) 
 
 func (w *Worker) CreateContainer(image string, imagePullOptions types.ImagePullOptions) ContainerSvc {
 	return ProvideContainer(w.dockerClient, image, imagePullOptions)
+}
+
+func (w *Worker) TaskDistributionDaemonLoop(ctx context.Context) {
+	logrus.Info("run start container")
+	imageList := w.taskQueue.GetDistinctImageList()
+	taskList := w.taskQueue.ReadQueue()
+
+	for _, image := range imageList {
+		logrus.Info("Starting container with image:", image)
+		container := w.CreateContainer(image, types.ImagePullOptions{})
+		err := container.Start(ctx)
+		if err != nil {
+			logrus.Error("Unable to start container with image:", image, err)
+			errorTaskList := datastructure.Filter(taskList, func(task *models.Task) bool {
+				return task.ImageUrl == image
+			})
+			logrus.Warn("Removing these task due to unable to start container", errorTaskList)
+			w.taskQueue.BulkRemove(errorTaskList)
+			return
+		}
+		containerID, ok := container.GetContainerID()
+		if !ok {
+			logrus.Error("Unable to get container id")
+			return
+		}
+		w.containerBuffer.Store(containerID, container)
+	}
 }
