@@ -9,10 +9,13 @@ import (
 	"github.com/resource-aware-jds/resource-aware-jds/generated/proto/github.com/resource-aware-jds/resource-aware-jds/generated/proto"
 	"github.com/resource-aware-jds/resource-aware-jds/models"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/cert"
+	"github.com/resource-aware-jds/resource-aware-jds/pkg/container"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/datastructure"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/taskqueue"
+	"github.com/resource-aware-jds/resource-aware-jds/pkg/workerdistribution"
 	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"time"
 )
 
 type Worker struct {
@@ -22,24 +25,35 @@ type Worker struct {
 	workerNodeCertificate cert.TransportCertificate
 	config                config.WorkerConfigModel
 
+	workerNodeDistribution workerdistribution.WorkerDistributor
+
 	taskQueue       taskqueue.Queue
 	taskBuffer      datastructure.Buffer[string, models.Task]
-	containerBuffer datastructure.Buffer[string, ContainerSvc]
+	containerBuffer datastructure.Buffer[string, container.IContainer]
 }
 
 type IWorker interface {
+	// ControlPlane related method
 	CheckInWorkerNodeToControlPlane(ctx context.Context) error
+
+	// Task related method
 	SubmitTask(containerImage string, taskId string, input []byte) error
 	GetTask(containerImage string) (*proto.Task, error)
 	SubmitSuccessTask(id string, results [][]byte) error
 	ReportFailTask(id string, errorMessage string) error
-	CreateContainer(image string, imagePullOptions types.ImagePullOptions) ContainerSvc
 
 	// TaskDistributionDaemonLoop is a method allowing the daemon to call to accomplish its routine.
 	TaskDistributionDaemonLoop(ctx context.Context)
 }
 
-func ProvideWorker(controlPlaneGRPCClient proto.ControlPlaneClient, dockerClient *client.Client, workerNodeCertificate cert.TransportCertificate, config config.WorkerConfigModel, taskQueue taskqueue.Queue) IWorker {
+func ProvideWorker(
+	controlPlaneGRPCClient proto.ControlPlaneClient,
+	dockerClient *client.Client,
+	workerNodeCertificate cert.TransportCertificate,
+	config config.WorkerConfigModel,
+	taskQueue taskqueue.Queue,
+	workerNodeDistribution workerdistribution.WorkerDistributor,
+) IWorker {
 	return &Worker{
 		controlPlaneGRPCClient: controlPlaneGRPCClient,
 		dockerClient:           dockerClient,
@@ -47,7 +61,8 @@ func ProvideWorker(controlPlaneGRPCClient proto.ControlPlaneClient, dockerClient
 		taskQueue:              taskQueue,
 		workerNodeCertificate:  workerNodeCertificate,
 		taskBuffer:             make(datastructure.Buffer[string, models.Task]),
-		containerBuffer:        make(datastructure.Buffer[string, ContainerSvc]),
+		containerBuffer:        make(datastructure.Buffer[string, container.IContainer]),
+		workerNodeDistribution: workerNodeDistribution,
 	}
 }
 
@@ -112,33 +127,46 @@ func (w *Worker) SubmitTask(containerImage string, taskId string, input []byte) 
 	return nil
 }
 
-func (w *Worker) CreateContainer(image string, imagePullOptions types.ImagePullOptions) ContainerSvc {
-	return ProvideContainer(w.dockerClient, image, imagePullOptions)
-}
-
 func (w *Worker) TaskDistributionDaemonLoop(ctx context.Context) {
 	logrus.Info("run start container")
-	imageList := w.taskQueue.GetDistinctImageList()
-	taskList := w.taskQueue.ReadQueue()
-
-	for _, image := range imageList {
-		logrus.Info("Starting container with image:", image)
-		container := w.CreateContainer(image, types.ImagePullOptions{})
-		err := container.Start(ctx)
-		if err != nil {
-			logrus.Error("Unable to start container with image:", image, err)
-			errorTaskList := datastructure.Filter(taskList, func(task *models.Task) bool {
-				return task.ImageUrl == image
-			})
-			logrus.Warn("Removing these task due to unable to start container", errorTaskList)
-			w.taskQueue.BulkRemove(errorTaskList)
-			return
-		}
-		containerID, ok := container.GetContainerID()
-		if !ok {
-			logrus.Error("Unable to get container id")
-			return
-		}
-		w.containerBuffer.Store(containerID, container)
+	task, ok := w.taskQueue.Pop()
+	if !ok {
+		return
 	}
+	taskDepointer := *task
+
+	// TODO: Store the ContainerCoolDownState
+	distributionResult := w.workerNodeDistribution.Distribute(ctx, taskDepointer, workerdistribution.WorkerState{
+		ContainerCoolDownState: make(datastructure.Buffer[string, time.Time]),
+		ContainerList:          w.containerBuffer,
+		WorkerNodeConfig:       w.config,
+	})
+
+	if !distributionResult.CreateContainerToSupportTask {
+		return
+	}
+
+	// TODO: Remove ContainerCoolDownState
+
+	logrus.Info("Starting container with image:", taskDepointer.ImageUrl)
+	containerInstance := container.ProvideContainer(w.dockerClient, taskDepointer.ImageUrl, types.ImagePullOptions{})
+	err := containerInstance.Start(ctx)
+	if err != nil {
+		logrus.Error("Unable to start container with image:", taskDepointer.ImageUrl, err)
+		errorTaskList := datastructure.Filter(w.taskQueue.ReadQueue(), func(task *models.Task) bool {
+			return task.ImageUrl == taskDepointer.ImageUrl
+		})
+		logrus.Warn("Removing these task due to unable to start container", errorTaskList)
+		w.taskQueue.BulkRemove(errorTaskList)
+		return
+	}
+	containerID, ok := containerInstance.GetContainerID()
+	if !ok {
+		logrus.Error("Unable to get container id")
+		return
+	}
+	w.containerBuffer.Store(containerID, containerInstance)
+
+	// TODO: Add the cool down state
+
 }

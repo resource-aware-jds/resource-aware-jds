@@ -8,6 +8,7 @@ import (
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/mongo"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/pool"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/taskqueue"
+	"github.com/resource-aware-jds/resource-aware-jds/pkg/workerdistribution"
 )
 
 var PKGWireSet = wire.NewSet(
@@ -19,4 +20,5 @@ var PKGWireSet = wire.NewSet(
 	taskqueue.ProvideTaskQueue,
 	pool.ProvideWorkerNode,
 	distribution.ProvideRoundRobinDistributor,
+	workerdistribution.ProvideDelayWorkerDistributor,
 )
