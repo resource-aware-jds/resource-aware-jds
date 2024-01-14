@@ -1,4 +1,4 @@
-package service
+package container
 
 import (
 	"context"
@@ -26,7 +26,7 @@ type containerSvc struct {
 	startupTime      time.Time
 }
 
-type ContainerSvc interface {
+type IContainer interface {
 	Start(ctx context.Context) error
 	Stop(ctx context.Context) error
 	RemoveContainer(ctx context.Context) error
@@ -34,7 +34,7 @@ type ContainerSvc interface {
 	GetContainerName() string
 }
 
-func ProvideContainer(dockerClient *client.Client, imageURL string, imagePullOptions types.ImagePullOptions) ContainerSvc {
+func ProvideContainer(dockerClient *client.Client, imageURL string, imagePullOptions types.ImagePullOptions) IContainer {
 	randomId := rand.Intn(50000-10000) + 10000
 	containerName := "rads-" + strconv.Itoa(randomId)
 
