@@ -18,6 +18,10 @@ import (
 	"time"
 )
 
+const (
+	ContainerIdShortSize = 12
+)
+
 type Worker struct {
 	controlPlaneGRPCClient proto.ControlPlaneClient
 	dockerClient           *client.Client
@@ -45,6 +49,9 @@ type IWorker interface {
 
 	// TaskDistributionDaemonLoop is a method allowing the daemon to call to accomplish its routine.
 	TaskDistributionDaemonLoop(ctx context.Context)
+
+	// Container management related method
+	GetContainerIdShort() []string
 }
 
 func ProvideWorker(
@@ -93,6 +100,16 @@ func (w *Worker) GetTask(containerImage string) (*proto.Task, error) {
 		ID:             task.ID.Hex(),
 		TaskAttributes: task.TaskAttributes,
 	}, nil
+}
+
+func (w *Worker) GetContainerIdShort() []string {
+	containerIds := w.containerBuffer.GetKeys()
+	return datastructure.Map(containerIds, func(id string) string {
+		if len(id) <= ContainerIdShortSize {
+			return id
+		}
+		return id[:ContainerIdShortSize]
+	})
 }
 
 func (w *Worker) SubmitSuccessTask(id string, results [][]byte) error {

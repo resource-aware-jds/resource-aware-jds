@@ -2,7 +2,6 @@ package daemon
 
 import (
 	"context"
-	"fmt"
 	"github.com/docker/docker/client"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/timeutil"
 	"github.com/resource-aware-jds/resource-aware-jds/service"
@@ -62,7 +61,7 @@ func (w *workerNode) Start() {
 			case <-ctx.Done():
 				return
 			default:
-				w.resourceMonitor.GetResourceUsage(ctx)
+				w.resourceMonitor.GetResourceUsage()
 				timeutil.SleepWithContext(ctx, ResourceMonitorDuration)
 			}
 		}

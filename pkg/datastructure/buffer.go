@@ -33,3 +33,11 @@ func (t Buffer[T, U]) IsObjectInBuffer(id T) bool {
 	_, ok := t[id]
 	return ok
 }
+
+func (t Buffer[T, U]) GetKeys() []T {
+	keys := make([]T, len(t))
+	for k := range t {
+		keys = append(keys, k)
+	}
+	return keys
+}

@@ -1,9 +1,13 @@
 package models
 
+import (
+	"github.com/nabhan-au/dockerstats"
+)
+
 type ContainerResourceUsage struct {
 	ContainerId string
-	CpuUsage    float64
-	MemoryUsage MemoryUsage
+	CpuUsage    string
+	MemoryUsage dockerstats.MemoryStats
 }
 
 type MemoryUsage struct {
