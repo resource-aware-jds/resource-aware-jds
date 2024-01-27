@@ -35,9 +35,9 @@ func (r *ResourceMonitor) GetResourceUsage() ([]models.ContainerResourceUsage, e
 			containerStatList = append(
 				containerStatList,
 				models.ContainerResourceUsage{
-					ContainerId: s.Container,
-					CpuUsage:    s.CPU,
-					MemoryUsage: s.Memory,
+					ContainerIdShort: s.Container,
+					CpuUsage:         s.CPU,
+					MemoryUsage:      s.Memory,
 				})
 		}
 	}

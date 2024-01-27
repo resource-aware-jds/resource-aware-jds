@@ -5,7 +5,7 @@ import (
 )
 
 type ContainerResourceUsage struct {
-	ContainerId string
-	CpuUsage    string
-	MemoryUsage dockerstats.MemoryStats
+	ContainerIdShort string
+	CpuUsage         string
+	MemoryUsage      dockerstats.MemoryStats
 }
