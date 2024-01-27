@@ -9,8 +9,3 @@ type ContainerResourceUsage struct {
 	CpuUsage    string
 	MemoryUsage dockerstats.MemoryStats
 }
-
-type MemoryUsage struct {
-	Usage float64
-	Limit float64
-}
