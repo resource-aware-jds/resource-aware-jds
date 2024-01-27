@@ -2,9 +2,7 @@ package daemon
 
 import (
 	"context"
-	"fmt"
 	"github.com/docker/docker/client"
-	"github.com/resource-aware-jds/resource-aware-jds/config"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/timeutil"
 	"github.com/resource-aware-jds/resource-aware-jds/service"
 	"time"
@@ -16,30 +14,26 @@ const (
 )
 
 type workerNode struct {
-	ctx        context.Context
-	cancelFunc func()
-
-	dockerClient *client.Client
-
-	workerService    service.IWorker
-	workerNodeConfig config.WorkerConfigModel
-	resourceMonitor  service.IResourceMonitor
+	ctx             context.Context
+	cancelFunc      func()
+	dockerClient    *client.Client
+	workerService   service.IWorker
+	resourceMonitor service.IResourceMonitor
 }
 
 type WorkerNode interface {
 	Start()
 }
 
-func ProvideWorkerNodeDaemon(dockerClient *client.Client, workerService service.IWorker, workerNodeConfig config.WorkerConfigModel, resourceMonitor service.IResourceMonitor) WorkerNode {
+func ProvideWorkerNodeDaemon(dockerClient *client.Client, workerService service.IWorker, resourceMonitor service.IResourceMonitor) WorkerNode {
 	ctx := context.Background()
 	ctxWithCancel, cancelFunc := context.WithCancel(ctx)
 	return &workerNode{
-		dockerClient:     dockerClient,
-		ctx:              ctxWithCancel,
-		cancelFunc:       cancelFunc,
-		workerService:    workerService,
-		workerNodeConfig: workerNodeConfig,
-		resourceMonitor:  resourceMonitor,
+		dockerClient:    dockerClient,
+		ctx:             ctxWithCancel,
+		cancelFunc:      cancelFunc,
+		workerService:   workerService,
+		resourceMonitor: resourceMonitor,
 	}
 }
 
@@ -67,7 +61,11 @@ func (w *workerNode) Start() {
 			case <-ctx.Done():
 				return
 			default:
-				w.resourceMonitor.GetMemoryUsage()
+				usage, err := w.resourceMonitor.GetResourceUsage()
+				if err != nil {
+					return
+				}
+				fmt.Println(usage)
 				timeutil.SleepWithContext(ctx, ResourceMonitorDuration)
 			}
 		}

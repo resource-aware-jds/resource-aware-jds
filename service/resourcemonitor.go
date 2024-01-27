@@ -1,34 +1,45 @@
 package service
 
 import (
-	"github.com/sirupsen/logrus"
-	"runtime"
+	"github.com/docker/docker/client"
+	"github.com/nabhan-au/dockerstats"
+	"github.com/resource-aware-jds/resource-aware-jds/models"
+	"github.com/resource-aware-jds/resource-aware-jds/pkg/datastructure"
 )
 
 type ResourceMonitor struct {
-	m runtime.MemStats
+	dockerClient  *client.Client
+	workerService IWorker
 }
 
 type IResourceMonitor interface {
-	GetMemoryUsage()
+	GetResourceUsage() ([]models.ContainerResourceUsage, error)
 }
 
-func ProvideResourcesMonitor() IResourceMonitor {
-	return &ResourceMonitor{}
+func ProvideResourcesMonitor(dockerClient *client.Client, workerService IWorker) IResourceMonitor {
+	return &ResourceMonitor{
+		dockerClient:  dockerClient,
+		workerService: workerService,
+	}
 }
 
-func (r *ResourceMonitor) GetMemoryUsage() {
-	runtime.ReadMemStats(&r.m)
-	logrus.Infof("Alloc = %v MiB", bToMb(r.m.Alloc))
-	logrus.Infof("\tTotalAlloc = %v MiB", bToMb(r.m.TotalAlloc))
-	logrus.Infof("\tSys = %v MiB", bToMb(r.m.Sys))
-	logrus.Infof("\tNumGC = %v\n", r.m.NumGC)
-}
-
-func (r *ResourceMonitor) getCPUUsage() {
-
-}
-
-func bToMb(b uint64) uint64 {
-	return b / 1024 / 1024
+func (r *ResourceMonitor) GetResourceUsage() ([]models.ContainerResourceUsage, error) {
+	var containerStatList []models.ContainerResourceUsage
+	containerKeys := r.workerService.GetContainerIdShort()
+	stats, err := dockerstats.Current()
+	if err != nil {
+		panic(err)
+	}
+	for _, s := range stats {
+		if datastructure.Contains(containerKeys, s.Container) {
+			containerStatList = append(
+				containerStatList,
+				models.ContainerResourceUsage{
+					ContainerIdShort: s.Container,
+					CpuUsage:         s.CPU,
+					MemoryUsage:      s.Memory,
+				})
+		}
+	}
+	return containerStatList, nil
 }
