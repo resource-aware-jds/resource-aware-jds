@@ -7,8 +7,6 @@ import (
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/datastructure"
 )
 
-const MEGABYTE_SIZE = 1024 * 1024
-
 type ResourceMonitor struct {
 	dockerClient  *client.Client
 	workerService IWorker
