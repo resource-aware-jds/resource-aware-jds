@@ -65,11 +65,9 @@ func InitializeApplication() (WorkerApp, func(), error) {
 		return WorkerApp{}, nil, err
 	}
 	workerNodeReceiverGRPCHandler := handler.ProvideWorkerGRPCSocketHandler(workerNodeReceiverGRPCServer, iWorker)
-	iResourceMonitor := service.ProvideResourcesMonitor()
-	workerNode := daemon.ProvideWorkerNodeDaemon(client, iWorker, workerConfigModel, iResourceMonitor)
 	containerBuffer := buffer.ProvideContainerBuffer()
 	iResourceMonitor := service.ProvideResourcesMonitor(client, containerBuffer)
-	workerNode := daemon.ProvideWorkerNodeDaemon(controlPlaneClient, iWorker, queue, transportCertificate, workerConfigModel, iResourceMonitor, containerBuffer)
+	workerNode := daemon.ProvideWorkerNodeDaemon(client, iWorker, iResourceMonitor)
 	workerApp := ProvideWorkerApp(rajdsGrpcServer, grpcHandler, workerNodeReceiverGRPCServer, workerNodeReceiverGRPCHandler, workerNode)
 	return workerApp, func() {
 		cleanup3()
