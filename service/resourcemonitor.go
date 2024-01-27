@@ -8,7 +8,6 @@ import (
 	"github.com/docker/docker/client"
 	"github.com/nabhan-au/dockerstats"
 	"github.com/resource-aware-jds/resource-aware-jds/models"
-	"github.com/resource-aware-jds/resource-aware-jds/pkg/buffer"
 	"github.com/sirupsen/logrus"
 	"io"
 	"time"
@@ -17,18 +16,18 @@ import (
 const MEGABYTE_SIZE = 1024 * 1024
 
 type ResourceMonitor struct {
-	dockerClient    *client.Client
-	containerBuffer buffer.ContainerBuffer
+	dockerClient  *client.Client
+	workerService IWorker
 }
 
 type IResourceMonitor interface {
 	GetResourceUsage(ctx context.Context) ([]*models.ContainerResourceUsage, error)
 }
 
-func ProvideResourcesMonitor(dockerClient *client.Client, containerBuffer buffer.ContainerBuffer) IResourceMonitor {
+func ProvideResourcesMonitor(dockerClient *client.Client, workerService IWorker) IResourceMonitor {
 	return &ResourceMonitor{
-		dockerClient:    dockerClient,
-		containerBuffer: containerBuffer,
+		dockerClient:  dockerClient,
+		workerService: workerService,
 	}
 }
 

@@ -10,7 +10,6 @@ import (
 	"github.com/resource-aware-jds/resource-aware-jds/cmd/worker/handler"
 	"github.com/resource-aware-jds/resource-aware-jds/config"
 	"github.com/resource-aware-jds/resource-aware-jds/daemon"
-	"github.com/resource-aware-jds/resource-aware-jds/pkg/buffer"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/cert"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/dockerclient"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/grpc"
@@ -65,8 +64,7 @@ func InitializeApplication() (WorkerApp, func(), error) {
 		return WorkerApp{}, nil, err
 	}
 	workerNodeReceiverGRPCHandler := handler.ProvideWorkerGRPCSocketHandler(workerNodeReceiverGRPCServer, iWorker)
-	containerBuffer := buffer.ProvideContainerBuffer()
-	iResourceMonitor := service.ProvideResourcesMonitor(client, containerBuffer)
+	iResourceMonitor := service.ProvideResourcesMonitor(client, iWorker)
 	workerNode := daemon.ProvideWorkerNodeDaemon(client, iWorker, iResourceMonitor)
 	workerApp := ProvideWorkerApp(rajdsGrpcServer, grpcHandler, workerNodeReceiverGRPCServer, workerNodeReceiverGRPCHandler, workerNode)
 	return workerApp, func() {

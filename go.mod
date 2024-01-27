@@ -8,6 +8,7 @@ require (
 	github.com/google/wire v0.5.0
 	github.com/joho/godotenv v1.5.1
 	github.com/kelseyhightower/envconfig v1.4.0
+	github.com/nabhan-au/dockerstats v0.0.0-20230525155409-5a20400da8a2
 	github.com/sirupsen/logrus v1.9.0
 	github.com/stretchr/testify v1.8.1
 	go.mongodb.org/mongo-driver v1.13.0
@@ -30,7 +31,6 @@ require (
 	github.com/moby/term v0.5.0 // indirect
 	github.com/montanaflynn/stats v0.0.0-20171201202039-1bf9dbcd8cbe // indirect
 	github.com/morikuni/aec v1.0.0 // indirect
-	github.com/nabhan-au/dockerstats v0.0.0-20230525155409-5a20400da8a2 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.0.2 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
