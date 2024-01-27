@@ -4,21 +4,25 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
+	"github.com/nabhan-au/dockerstats"
+	"github.com/resource-aware-jds/resource-aware-jds/models"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/buffer"
 	"github.com/sirupsen/logrus"
-	"runtime"
+	"io"
 	"time"
 )
 
+const MEGABYTE_SIZE = 1024 * 1024
+
 type ResourceMonitor struct {
-	m               runtime.MemStats
 	dockerClient    *client.Client
 	containerBuffer buffer.ContainerBuffer
 }
 
 type IResourceMonitor interface {
-	GetMemoryUsage(ctx context.Context)
+	GetResourceUsage(ctx context.Context) ([]*models.ContainerResourceUsage, error)
 }
 
 func ProvideResourcesMonitor(dockerClient *client.Client, containerBuffer buffer.ContainerBuffer) IResourceMonitor {
@@ -28,66 +32,146 @@ func ProvideResourcesMonitor(dockerClient *client.Client, containerBuffer buffer
 	}
 }
 
-func (r *ResourceMonitor) GetMemoryUsage(ctx context.Context) {
-	//runtime.ReadMemStats(&r.m)
-	//logrus.Infof("Alloc = %v MiB", bToMb(r.m.Alloc))
-	//logrus.Infof("\tTotalAlloc = %v MiB", bToMb(r.m.TotalAlloc))
-	//logrus.Infof("\tSys = %v MiB", bToMb(r.m.Sys))
-	//logrus.Infof("\tNumGC = %v\n", r.m.NumGC)
-	containerIds := r.containerBuffer.GetKeys()
-	for _, containerId := range containerIds {
-		r.getDockerContainerStat(ctx, containerId)
+func (r *ResourceMonitor) GetResourceUsage(ctx context.Context) ([]*models.ContainerResourceUsage, error) {
+	//containerIds := r.containerBuffer.GetKeys()
+	var containerStatList []*models.ContainerResourceUsage
+	//for _, containerId := range containerIds {
+	//	previousCpu, currentCpu, memoryStats, err := r.getDockerContainerStat(ctx, containerId)
+	//	// TODO Shouldn't this part return error??? Fix later
+	//	if err != nil {
+	//		return nil, err
+	//	}
+	//	cpuUsages := extractCpuUsage(previousCpu, currentCpu)
+	//	totalMemoryUsage, memoryLimit := extractMemoryUsage(memoryStats)
+	//	logrus.Info("Memory usage: ", totalMemoryUsage, ", Limit: ", memoryLimit)
+	//	memoryUsage := models.MemoryUsage{
+	//		Usage: totalMemoryUsage,
+	//		Limit: memoryLimit,
+	//	}
+	//	containerResourceUsage := models.ContainerResourceUsage{
+	//		ContainerId: containerId,
+	//		CpuUsage:    cpuUsages,
+	//		MemoryUsage: memoryUsage,
+	//	}
+	//	containerStatList = append(containerStatList, &containerResourceUsage)
+	//}
+	stats, err := dockerstats.Current()
+	if err != nil {
+		panic(err)
 	}
-}
 
-func (r *ResourceMonitor) getCPUUsage() {
-
-}
-
-type myStruct struct {
-	Id       string `json:"id"`
-	Read     string `json:"read"`
-	Preread  string `json:"preread"`
-	CpuStats cpu    `json:"cpu_stats"`
-}
-
-type cpu struct {
-	Usage cpuUsage `json:"cpu_usage"`
-}
-
-type cpuUsage struct {
-	Total float64 `json:"total_usage"`
-}
-
-func (r *ResourceMonitor) getDockerContainerStat(ctx context.Context, containerId string) {
-	ctxWithTimeout, cancel := context.WithTimeout(ctx, 5*time.Second)
-	stats, e := r.dockerClient.ContainerStats(ctxWithTimeout, containerId, true)
-	if stats.Body == nil {
-		return
+	for _, s := range stats {
+		fmt.Println(s.Container)
+		fmt.Println(s.Memory)
+		fmt.Println(s.CPU)
 	}
-	if e != nil {
-		fmt.Errorf("%s", e.Error())
+	return containerStatList, nil
+}
+
+func (r *ResourceMonitor) getDockerContainerStat(ctx context.Context, containerId string) (*types.CPUStats, *types.CPUStats, *types.MemoryStats, error) {
+	var (
+		previousCPU    uint64
+		previousSystem uint64
+		u              = make(chan error, 1)
+	)
+
+	response, err := r.dockerClient.ContainerStats(ctx, containerId, true)
+	if err != nil {
+		return nil, nil, nil, err
 	}
-	for {
-		select {
-		case <-ctxWithTimeout.Done():
-			stats.Body.Close()
-			fmt.Println("Stop logging")
-			return
-		default:
-			var containerStats map[string]interface{}
-			logrus.Infof(stats.OSType)
-			logrus.Info(stats.Body)
-			err := json.NewDecoder(stats.Body).Decode(&containerStats)
-			if err != nil {
-				cancel()
+	defer response.Body.Close()
+	if response.Body == nil {
+		return nil, nil, nil, fmt.Errorf("unable to get container stats from daemon")
+	}
+	dec := json.NewDecoder(response.Body)
+
+	go func() {
+		for {
+			var (
+				v                *types.StatsJSON
+				memPercent       = 0.0
+				cpuPercent       = 0.0 // Only used on Linux
+				mem              = 0.0
+				memLimit         = 0.0
+				memPerc          = 0.0
+				pidsStatsCurrent uint64
+			)
+
+			if err := dec.Decode(&v); err != nil {
+				dec = json.NewDecoder(io.MultiReader(dec.Buffered(), response.Body))
+				u <- err
+				if err == io.EOF {
+					break
+				}
+				time.Sleep(100 * time.Millisecond)
+				continue
 			}
-			logrus.Info("==================================")
-			logrus.Info(containerStats)
+			if v.MemoryStats.Limit != 0 {
+				memPercent = float64(v.MemoryStats.Usage) / float64(v.MemoryStats.Limit) * 100.0
+			}
+			previousCPU = v.PreCPUStats.CPUUsage.TotalUsage
+			previousSystem = v.PreCPUStats.SystemUsage
+			cpuPercent = calculateCPUPercentUnix(previousCPU, previousSystem, v)
+			mem = float64(v.MemoryStats.Usage)
+			memLimit = float64(v.MemoryStats.Limit)
+			memPerc = memPercent
+			pidsStatsCurrent = v.PidsStats.Current
+
+			logrus.Info(cpuPercent)
+			logrus.Info(mem)
+			logrus.Info(memLimit)
+			logrus.Info(memPerc)
+			logrus.Info(pidsStatsCurrent)
+			u <- nil
 		}
+	}()
+
+	var stats types.Stats
+	err = json.NewDecoder(response.Body).Decode(&stats)
+	if err != nil {
+		return nil, nil, nil, err
 	}
+	return &stats.PreCPUStats, &stats.CPUStats, &stats.MemoryStats, nil
 }
 
-func bToMb(b uint64) uint64 {
-	return b / 1024 / 1024
+func calculateCPUPercentUnix(previousCPU, previousSystem uint64, v *types.StatsJSON) float64 {
+	var (
+		cpuPercent = 0.0
+		// calculate the change for the cpu usage of the container in between readings
+		cpuDelta = float64(v.CPUStats.CPUUsage.TotalUsage) - float64(previousCPU)
+		// calculate the change for the entire system between readings
+		systemDelta = float64(v.CPUStats.SystemUsage) - float64(previousSystem)
+	)
+
+	if systemDelta > 0.0 && cpuDelta > 0.0 {
+		cpuPercent = (cpuDelta / systemDelta) * float64(len(v.CPUStats.CPUUsage.PercpuUsage)) * 100.0
+	}
+	return cpuPercent
+}
+
+func extractCpuUsage(previousCpu *types.CPUStats, currentCpu *types.CPUStats) float64 {
+	var (
+		cpuPercent = 0.0
+		// calculate the change for the cpu usage of the container in between readings
+		cpuDelta = float64(currentCpu.CPUUsage.TotalUsage) - float64(previousCpu.CPUUsage.TotalUsage)
+		// calculate the change for the entire system between readings
+		systemDelta = float64(currentCpu.SystemUsage) - float64(previousCpu.CPUUsage.TotalUsage)
+	)
+
+	if systemDelta > 0.0 && cpuDelta > 0.0 {
+		cpuPercent = (cpuDelta / systemDelta) * float64(5) * 100.0
+	}
+	logrus.Info("Total: ", currentCpu.CPUUsage.TotalUsage, " prev: ", previousCpu.CPUUsage.TotalUsage)
+	logrus.Info("System: ", currentCpu.SystemUsage, " prev: ", previousCpu.CPUUsage.TotalUsage)
+	logrus.Info("PerCPU: ", currentCpu.CPUUsage.PercpuUsage)
+	logrus.Info("CPU usage: ", cpuPercent)
+	return cpuPercent
+}
+
+func extractMemoryUsage(memoryStats *types.MemoryStats) (float64, float64) {
+	return byteToMegaByte(float64(memoryStats.Usage)), byteToMegaByte(float64(memoryStats.Limit))
+}
+
+func byteToMegaByte(byte float64) float64 {
+	return byte / MEGABYTE_SIZE
 }

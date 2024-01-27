@@ -83,7 +83,7 @@ func (w *workerNode) Start() {
 			case <-ctx.Done():
 				return
 			default:
-				w.resourceMonitor.GetMemoryUsage(ctx)
+				w.resourceMonitor.GetResourceUsage(ctx)
 				timeutil.SleepWithContext(ctx, ResourceMonitorDuration)
 			}
 		}
@@ -104,9 +104,8 @@ func (w *workerNode) checkInNodeToControlPlane() error {
 }
 
 func (w *workerNode) taskStartContainer(ctx context.Context) {
-	logrus.Info("run start container")
+	logrus.Info("running start container")
 	imageList := w.taskQueue.GetDistinctImageList()
-	logrus.Info("All image list:", imageList)
 	taskList := w.taskQueue.ReadQueue()
 
 	for _, image := range imageList {
