@@ -63,7 +63,7 @@ func InitializeApplication() (ControlPlaneApp, func(), error) {
 	task := service.ProvideTaskService(iTask)
 	grpcHandler := grpc2.ProvideControlPlaneGRPCHandler(rajdsGrpcServer, iControlPlane, job, task)
 	daemonIControlPlane, cleanup4 := daemon.ProvideControlPlaneDaemon(workerNode, iControlPlane, task)
-	jobHandler := http2.ProvideJobHandler()
+	jobHandler := http2.ProvideJobHandler(job)
 	handler := http2.ProvideHandler(jobHandler)
 	routerResult := http2.ProvideHTTPRouter(handler, server)
 	controlPlaneApp := ProvideControlPlaneApp(rajdsGrpcServer, server, grpcHandler, daemonIControlPlane, routerResult)

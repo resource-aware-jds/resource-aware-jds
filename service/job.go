@@ -12,6 +12,7 @@ type job struct {
 
 type Job interface {
 	CreateJob(ctx context.Context, imageURL string) (*models.Job, error)
+	ListJob(ctx context.Context) ([]models.Job, error)
 }
 
 func ProvideJobService(jobRepository repository.IJob) Job {
@@ -33,4 +34,8 @@ func (j *job) CreateJob(ctx context.Context, imageURL string) (*models.Job, erro
 	jobResult.ID = insertedJobID
 
 	return &jobResult, nil
+}
+
+func (j *job) ListJob(ctx context.Context) ([]models.Job, error) {
+	return j.jobRepository.FindAll(ctx)
 }
