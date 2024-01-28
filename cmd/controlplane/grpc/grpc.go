@@ -15,11 +15,13 @@ import (
 type GRPCHandler struct {
 	proto.UnimplementedControlPlaneServer
 	controlPlaneService service.IControlPlane
+	jobService          service.Job
 }
 
-func ProvideControlPlaneGRPCHandler(grpcServer grpc.RAJDSGrpcServer, controlPlaneService service.IControlPlane) GRPCHandler {
+func ProvideControlPlaneGRPCHandler(grpcServer grpc.RAJDSGrpcServer, controlPlaneService service.IControlPlane, jobService service.Job) GRPCHandler {
 	handler := GRPCHandler{
 		controlPlaneService: controlPlaneService,
+		jobService:          jobService,
 	}
 	proto.RegisterControlPlaneServer(grpcServer.GetGRPCServer(), &handler)
 	return handler
@@ -63,7 +65,7 @@ func (g *GRPCHandler) WorkerRegistration(ctx context.Context, req *proto.Compute
 }
 
 func (g *GRPCHandler) CreateJob(ctx context.Context, req *proto.CreateJobRequest) (*proto.CreateJobResponse, error) {
-	job, tasks, err := g.controlPlaneService.CreateJob(ctx, req.GetImageURL(), req.GetTaskAttributes())
+	job, tasks, err := g.jobService.CreateJob(ctx, req.GetImageURL(), req.GetTaskAttributes())
 	if err != nil {
 		return nil, err
 	}

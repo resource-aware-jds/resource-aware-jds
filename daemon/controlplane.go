@@ -18,6 +18,7 @@ type controlPlane struct {
 	cancelFunc          func()
 	workerNodePool      pool.WorkerNode
 	controlPlaneService service.IControlPlane
+	taskService         service.Task
 }
 
 type IControlPlane interface {
@@ -25,7 +26,7 @@ type IControlPlane interface {
 	GracefullyShutdown()
 }
 
-func ProvideControlPlaneDaemon(workerNodePool pool.WorkerNode, controlPlaneService service.IControlPlane) (IControlPlane, func()) {
+func ProvideControlPlaneDaemon(workerNodePool pool.WorkerNode, controlPlaneService service.IControlPlane, taskService service.Task) (IControlPlane, func()) {
 	ctx := context.Background()
 	ctxWithCancel, cancelFunc := context.WithCancel(ctx)
 
@@ -34,6 +35,7 @@ func ProvideControlPlaneDaemon(workerNodePool pool.WorkerNode, controlPlaneServi
 		cancelFunc:          cancelFunc,
 		workerNodePool:      workerNodePool,
 		controlPlaneService: controlPlaneService,
+		taskService:         taskService,
 	}
 
 	cleanup := func() {
@@ -85,7 +87,7 @@ func (c *controlPlane) taskScanLoop(ctx context.Context) {
 		return
 	}
 
-	tasks, err := c.controlPlaneService.GetAvailableTask(ctx)
+	tasks, err := c.taskService.GetAvailableTask(ctx)
 	if err != nil {
 		logrus.Errorf("[ControlPlane Daemon] Failed to get available task (%s)", err.Error())
 		return
@@ -103,7 +105,7 @@ func (c *controlPlane) taskScanLoop(ctx context.Context) {
 		return
 	}
 
-	err = c.controlPlaneService.UpdateTaskAfterDistribution(ctx, successTask, failureTask)
+	err = c.taskService.UpdateTaskAfterDistribution(ctx, successTask, failureTask)
 	if err != nil {
 		logrus.Warnf("[ControlPlane Daemon] Failed to update task status (%s)", err.Error())
 	}
