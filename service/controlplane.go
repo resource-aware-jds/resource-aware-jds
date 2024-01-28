@@ -9,7 +9,6 @@ import (
 	"github.com/resource-aware-jds/resource-aware-jds/config"
 	"github.com/resource-aware-jds/resource-aware-jds/models"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/cert"
-	"github.com/resource-aware-jds/resource-aware-jds/pkg/distribution"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/pool"
 	"github.com/resource-aware-jds/resource-aware-jds/repository"
 	"github.com/sirupsen/logrus"
@@ -22,8 +21,6 @@ var (
 
 type ControlPlane struct {
 	nodeRegistryRepository repository.INodeRegistry
-	jobRepository          repository.IJob
-	taskRepository         repository.ITask
 	caCertificate          cert.CACertificate
 	config                 config.ControlPlaneConfigModel
 	workerNodePool         pool.WorkerNode
@@ -32,24 +29,17 @@ type ControlPlane struct {
 type IControlPlane interface {
 	RegisterWorker(ctx context.Context, ip string, port int32, nodePublicKey cert.KeyData) (certificate cert.TLSCertificate, err error)
 	GetAllWorkerNodeFromRegistry(ctx context.Context) ([]models.NodeEntry, error)
-	CreateJob(ctx context.Context, imageURL string, taskAttributes [][]byte) (*models.Job, []models.Task, error)
-	GetAvailableTask(ctx context.Context) ([]models.Task, error)
-	UpdateTaskAfterDistribution(ctx context.Context, successTask []models.Task, errorTask []distribution.DistributeError) error
 	CheckInWorkerNode(ctx context.Context, ip string, port int32, cert []byte) error
 }
 
 func ProvideControlPlane(
-	jobRepository repository.IJob,
-	taskRepository repository.ITask,
 	nodeRegistryRepository repository.INodeRegistry,
 	caCertificate cert.CACertificate,
 	config config.ControlPlaneConfigModel,
 	workerNodePool pool.WorkerNode,
 ) IControlPlane {
 	return &ControlPlane{
-		jobRepository:          jobRepository,
 		nodeRegistryRepository: nodeRegistryRepository,
-		taskRepository:         taskRepository,
 		caCertificate:          caCertificate,
 		config:                 config,
 		workerNodePool:         workerNodePool,
@@ -94,60 +84,8 @@ func (s *ControlPlane) RegisterWorker(ctx context.Context, ip string, port int32
 	return signedCertificate, nil
 }
 
-func (s *ControlPlane) CreateJob(ctx context.Context, imageURL string, taskAttributes [][]byte) (*models.Job, []models.Task, error) {
-	// Create Job
-	job := models.Job{
-		Status:   models.PendingJobStatus,
-		ImageURL: imageURL,
-	}
-	insertedJobID, err := s.jobRepository.Insert(ctx, job)
-	if err != nil {
-		return nil, nil, err
-	}
-	job.ID = insertedJobID
-
-	// Create Tasks
-	tasks := make([]models.Task, 0, len(taskAttributes))
-	for _, taskAttribute := range taskAttributes {
-		newTask := models.Task{
-			JobID:          insertedJobID,
-			Status:         models.CreatedTaskStatus,
-			ImageUrl:       imageURL,
-			TaskAttributes: taskAttribute,
-		}
-		tasks = append(tasks, newTask)
-	}
-	err = s.taskRepository.InsertMany(ctx, tasks)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	tasksResponse, err := s.taskRepository.FindManyByJobID(ctx, insertedJobID)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return &job, tasksResponse, nil
-}
-
 func (s *ControlPlane) GetAllWorkerNodeFromRegistry(ctx context.Context) ([]models.NodeEntry, error) {
 	return s.nodeRegistryRepository.GetAllWorkerNode(ctx)
-}
-
-func (s *ControlPlane) GetAvailableTask(ctx context.Context) ([]models.Task, error) {
-	return s.taskRepository.GetTaskToDistribute(ctx)
-}
-
-func (s *ControlPlane) UpdateTaskAfterDistribution(ctx context.Context, successTasks []models.Task, errorTasks []distribution.DistributeError) error {
-	taskToUpdate := make([]models.Task, 0, len(successTasks)+len(errorTasks))
-	taskToUpdate = append(taskToUpdate, successTasks...)
-
-	// Add failure task
-	for _, errorTask := range errorTasks {
-		taskToUpdate = append(taskToUpdate, errorTask.Task)
-	}
-
-	return s.taskRepository.BulkWriteStatusAndLogByID(ctx, taskToUpdate)
 }
 
 func (s *ControlPlane) CheckInWorkerNode(ctx context.Context, ip string, port int32, rawPEMCertificateData []byte) error {

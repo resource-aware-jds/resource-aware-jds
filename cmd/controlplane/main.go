@@ -21,6 +21,7 @@ func main() {
 
 	app.GRPCServer.Serve()
 	app.ControlPlaneDaemon.Start()
+	app.HTTPServer.Serve()
 
 	// Gracefully Shutdown
 	// Make channel listen for signals from OS

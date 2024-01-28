@@ -7,12 +7,14 @@
 package di
 
 import (
-	"github.com/resource-aware-jds/resource-aware-jds/cmd/controlplane/handler"
+	grpc2 "github.com/resource-aware-jds/resource-aware-jds/cmd/controlplane/grpc"
+	http2 "github.com/resource-aware-jds/resource-aware-jds/cmd/controlplane/http"
 	"github.com/resource-aware-jds/resource-aware-jds/config"
 	"github.com/resource-aware-jds/resource-aware-jds/daemon"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/cert"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/distribution"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/grpc"
+	"github.com/resource-aware-jds/resource-aware-jds/pkg/http"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/mongo"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/pool"
 	"github.com/resource-aware-jds/resource-aware-jds/repository"
@@ -42,22 +44,31 @@ func InitializeApplication() (ControlPlaneApp, func(), error) {
 	if err != nil {
 		return ControlPlaneApp{}, nil, err
 	}
+	serverConfig := config.ProvideHTTPServerConfig(controlPlaneConfigModel)
+	server, cleanup2 := http.ProvideHttpServer(serverConfig)
 	mongoConfig := config.ProvideMongoConfig(controlPlaneConfigModel)
-	database, cleanup2, err := mongo.ProvideMongoConnection(mongoConfig)
+	database, cleanup3, err := mongo.ProvideMongoConnection(mongoConfig)
 	if err != nil {
+		cleanup2()
 		cleanup()
 		return ControlPlaneApp{}, nil, err
 	}
-	iJob := repository.ProvideJob(database)
-	iTask := repository.ProvideTask(database)
 	iNodeRegistry := repository.ProvideControlPlane(database)
 	distributor := distribution.ProvideRoundRobinDistributor()
 	workerNode := pool.ProvideWorkerNode(caCertificate, distributor)
-	iControlPlane := service.ProvideControlPlane(iJob, iTask, iNodeRegistry, caCertificate, controlPlaneConfigModel, workerNode)
-	grpcHandler := handler.ProvideControlPlaneGRPCHandler(rajdsGrpcServer, iControlPlane)
-	daemonIControlPlane, cleanup3 := daemon.ProvideControlPlaneDaemon(workerNode, iControlPlane)
-	controlPlaneApp := ProvideControlPlaneApp(rajdsGrpcServer, grpcHandler, daemonIControlPlane)
+	iControlPlane := service.ProvideControlPlane(iNodeRegistry, caCertificate, controlPlaneConfigModel, workerNode)
+	iJob := repository.ProvideJob(database)
+	job := service.ProvideJobService(iJob)
+	iTask := repository.ProvideTask(database)
+	task := service.ProvideTaskService(iTask)
+	grpcHandler := grpc2.ProvideControlPlaneGRPCHandler(rajdsGrpcServer, iControlPlane, job, task)
+	daemonIControlPlane, cleanup4 := daemon.ProvideControlPlaneDaemon(workerNode, iControlPlane, task)
+	jobHandler := http2.ProvideJobHandler(job)
+	handler := http2.ProvideHandler(jobHandler)
+	routerResult := http2.ProvideHTTPRouter(handler, server)
+	controlPlaneApp := ProvideControlPlaneApp(rajdsGrpcServer, server, grpcHandler, daemonIControlPlane, routerResult)
 	return controlPlaneApp, func() {
+		cleanup4()
 		cleanup3()
 		cleanup2()
 		cleanup()

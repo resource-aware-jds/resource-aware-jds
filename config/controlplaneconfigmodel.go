@@ -2,12 +2,14 @@ package config
 
 import (
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/cert"
+	"github.com/resource-aware-jds/resource-aware-jds/pkg/http"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/mongo"
 	"time"
 )
 
 type ControlPlaneConfigModel struct {
 	GRPCServerPort            int          `envconfig:"GRPC_SERVER_PORT" default:"31234"`
+	HTTPServerPort            int          `envconfig:"HTTP_SERVER_PORT" default:"31313"`
 	MongoConfig               mongo.Config `envconfig:"MONGO"`
 	CACertificatePath         string       `envconfig:"CA_CERTIFICATE_PATH"`
 	CAPrivateKeyPath          string       `envconfig:"CA_PRIVATE_KEY_PATH"`
@@ -32,5 +34,11 @@ func ProvideTransportCertificateConfig(config ControlPlaneConfigModel) cert.Tran
 		PrivateKeyFileLocation:  config.CertificatePrivateKeyPath,
 		ValidDuration:           365 * 24 * time.Hour,
 		CommonName:              "Resource Aware Job Distribution Transport",
+	}
+}
+
+func ProvideHTTPServerConfig(config ControlPlaneConfigModel) http.ServerConfig {
+	return http.ServerConfig{
+		Port: config.HTTPServerPort,
 	}
 }

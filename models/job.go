@@ -1,17 +1,23 @@
 package models
 
-import "go.mongodb.org/mongo-driver/bson/primitive"
+import (
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"time"
+)
 
 type JobStatus string
 
 const (
-	PendingJobStatus      JobStatus = "pending"
+	CreatedJobStatus      JobStatus = "created"
 	DistributingJobStatus JobStatus = "distributing"
 	SuccessJobStatus      JobStatus = "success"
 )
 
 type Job struct {
-	ID       *primitive.ObjectID `bson:"_id,omitempty"`
-	Status   JobStatus           `bson:"status"`
-	ImageURL string              `bson:"image_url"`
+	ID        *primitive.ObjectID `bson:"_id,omitempty" json:"id"`
+	Name      string              `bson:"name" json:"name"`
+	Status    JobStatus           `bson:"status" json:"status"`
+	ImageURL  string              `bson:"image_url" json:"imageURL"`
+	CreatedAt time.Time           `bson:"created_at" json:"createdAt"`
+	UpdatedAt time.Time           `bson:"updated_at" json:"updatedAt"`
 }
