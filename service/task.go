@@ -14,6 +14,7 @@ type task struct {
 type Task interface {
 	GetAvailableTask(ctx context.Context) ([]models.Task, error)
 	UpdateTaskAfterDistribution(ctx context.Context, successTasks []models.Task, errorTasks []distribution.DistributeError) error
+	CreateTask(ctx context.Context, job *models.Job, taskAttributes [][]byte) ([]models.Task, error)
 }
 
 func ProvideTaskService(taskRepository repository.ITask) Task {
@@ -36,4 +37,25 @@ func (t *task) UpdateTaskAfterDistribution(ctx context.Context, successTasks []m
 	}
 
 	return t.taskRepository.BulkWriteStatusAndLogByID(ctx, taskToUpdate)
+}
+
+func (t *task) CreateTask(ctx context.Context, job *models.Job, taskAttributes [][]byte) ([]models.Task, error) {
+	// Create Tasks
+	tasks := make([]models.Task, 0, len(taskAttributes))
+	for _, taskAttribute := range taskAttributes {
+		newTask := models.Task{
+			JobID:          job.ID,
+			Status:         models.CreatedTaskStatus,
+			ImageUrl:       job.ImageURL,
+			TaskAttributes: taskAttribute,
+		}
+		tasks = append(tasks, newTask)
+	}
+
+	err := t.taskRepository.InsertMany(ctx, tasks)
+	if err != nil {
+		return nil, err
+	}
+
+	return t.taskRepository.FindManyByJobID(ctx, job.ID)
 }
