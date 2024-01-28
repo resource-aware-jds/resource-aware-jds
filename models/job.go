@@ -12,6 +12,7 @@ const (
 
 type Job struct {
 	ID       *primitive.ObjectID `bson:"_id,omitempty" json:"id"`
+	Name     string              `bson:"name" json:"name"`
 	Status   JobStatus           `bson:"status" json:"status"`
 	ImageURL string              `bson:"image_url" json:"imageURL"`
 }
