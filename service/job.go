@@ -11,7 +11,7 @@ type job struct {
 }
 
 type Job interface {
-	CreateJob(ctx context.Context, imageURL string) (*models.Job, error)
+	CreateJob(ctx context.Context, name, imageURL string) (*models.Job, error)
 	ListJob(ctx context.Context) ([]models.Job, error)
 }
 
@@ -21,9 +21,10 @@ func ProvideJobService(jobRepository repository.IJob) Job {
 	}
 }
 
-func (j *job) CreateJob(ctx context.Context, imageURL string) (*models.Job, error) {
+func (j *job) CreateJob(ctx context.Context, name, imageURL string) (*models.Job, error) {
 	// Create Job
 	jobResult := models.Job{
+		Name:     name,
 		Status:   models.PendingJobStatus,
 		ImageURL: imageURL,
 	}
