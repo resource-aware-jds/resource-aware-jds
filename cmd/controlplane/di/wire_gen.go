@@ -61,7 +61,9 @@ func InitializeApplication() (ControlPlaneApp, func(), error) {
 	iControlPlane := service.ProvideControlPlane(iJob, iTask, iNodeRegistry, caCertificate, controlPlaneConfigModel, workerNode)
 	grpcHandler := grpc2.ProvideControlPlaneGRPCHandler(rajdsGrpcServer, iControlPlane)
 	daemonIControlPlane, cleanup4 := daemon.ProvideControlPlaneDaemon(workerNode, iControlPlane)
-	routerResult := http2.ProvideHTTPRouter(server)
+	jobHandler := http2.ProvideJobHandler()
+	handler := http2.ProvideHandler(jobHandler)
+	routerResult := http2.ProvideHTTPRouter(handler, server)
 	controlPlaneApp := ProvideControlPlaneApp(rajdsGrpcServer, server, grpcHandler, daemonIControlPlane, routerResult)
 	return controlPlaneApp, func() {
 		cleanup4()

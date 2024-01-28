@@ -6,7 +6,7 @@ package di
 import (
 	"github.com/google/wire"
 	"github.com/resource-aware-jds/resource-aware-jds/cmd/controlplane/grpc"
-	"github.com/resource-aware-jds/resource-aware-jds/cmd/controlplane/http"
+	httpDI "github.com/resource-aware-jds/resource-aware-jds/cmd/controlplane/http/di"
 	configDI "github.com/resource-aware-jds/resource-aware-jds/config/di"
 	daemonDI "github.com/resource-aware-jds/resource-aware-jds/daemon/di"
 	certDI "github.com/resource-aware-jds/resource-aware-jds/pkg/cert/di"
@@ -28,7 +28,7 @@ func InitializeApplication() (ControlPlaneApp, func(), error) {
 			daemonDI.DaemonWireSet,
 			certDI.ControlPlaneCertWireSet,
 			ProvideControlPlaneApp,
-			http.ProvideHTTPRouter,
+			httpDI.HTTPWireSet,
 		),
 	)
 }
