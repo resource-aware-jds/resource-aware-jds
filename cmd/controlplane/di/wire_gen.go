@@ -7,7 +7,7 @@
 package di
 
 import (
-	"github.com/resource-aware-jds/resource-aware-jds/cmd/controlplane/handler"
+	grpc2 "github.com/resource-aware-jds/resource-aware-jds/cmd/controlplane/grpc"
 	"github.com/resource-aware-jds/resource-aware-jds/config"
 	"github.com/resource-aware-jds/resource-aware-jds/daemon"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/cert"
@@ -54,7 +54,7 @@ func InitializeApplication() (ControlPlaneApp, func(), error) {
 	distributor := distribution.ProvideRoundRobinDistributor()
 	workerNode := pool.ProvideWorkerNode(caCertificate, distributor)
 	iControlPlane := service.ProvideControlPlane(iJob, iTask, iNodeRegistry, caCertificate, controlPlaneConfigModel, workerNode)
-	grpcHandler := handler.ProvideControlPlaneGRPCHandler(rajdsGrpcServer, iControlPlane)
+	grpcHandler := grpc2.ProvideControlPlaneGRPCHandler(rajdsGrpcServer, iControlPlane)
 	daemonIControlPlane, cleanup3 := daemon.ProvideControlPlaneDaemon(workerNode, iControlPlane)
 	controlPlaneApp := ProvideControlPlaneApp(rajdsGrpcServer, grpcHandler, daemonIControlPlane)
 	return controlPlaneApp, func() {
