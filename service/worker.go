@@ -29,7 +29,7 @@ type Worker struct {
 	config                config.WorkerConfigModel
 
 	workerNodeDistribution workerdistribution.WorkerDistributor
-	containerService       ContainerService
+	containerService       IContainer
 
 	taskQueue              taskqueue.Queue
 	taskBuffer             datastructure.Buffer[string, models.Task]
@@ -61,7 +61,7 @@ func ProvideWorker(
 	config config.WorkerConfigModel,
 	taskQueue taskqueue.Queue,
 	workerNodeDistribution workerdistribution.WorkerDistributor,
-	containerService ContainerService,
+	containerService IContainer,
 ) IWorker {
 	return &Worker{
 		controlPlaneGRPCClient: controlPlaneGRPCClient,

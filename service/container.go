@@ -10,9 +10,21 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+type IContainer interface {
+	StartContainer(ctx context.Context, imageUrl string) (container.IContainer, error)
+	GetContainerIdShort() []string
+}
+
 type ContainerService struct {
 	dockerClient    *client.Client
 	containerBuffer datastructure.Buffer[string, container.IContainer]
+}
+
+func ProvideContainer(dockerClient *client.Client) IContainer {
+	return &ContainerService{
+		dockerClient:    dockerClient,
+		containerBuffer: make(datastructure.Buffer[string, container.IContainer]),
+	}
 }
 
 func (c *ContainerService) StartContainer(ctx context.Context, imageUrl string) (container.IContainer, error) {
