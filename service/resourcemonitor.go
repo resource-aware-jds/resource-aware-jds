@@ -2,7 +2,7 @@ package service
 
 import (
 	"github.com/docker/docker/client"
-	"github.com/nabhan-au/dockerstats"
+	"github.com/resource-aware-jds/dockerstats"
 	"github.com/resource-aware-jds/resource-aware-jds/models"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/datastructure"
 	"github.com/sirupsen/logrus"

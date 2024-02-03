@@ -1,7 +1,7 @@
 package models
 
 import (
-	"github.com/nabhan-au/dockerstats"
+	"github.com/resource-aware-jds/dockerstats"
 )
 
 type ContainerResourceUsage struct {
