@@ -20,6 +20,8 @@ type Task struct {
 	TaskAttributes          []byte              `bson:"task_attributes" json:"taskAttributes"`
 	LatestDistributedNodeID string              `bson:"latest_distributed_node_id,omitempty" json:"latestDistributedNodeID,omitempty"`
 	Logs                    []TaskLog           `bson:"logs,omitempty" json:"logs"`
+	CreatedAt               time.Time           `bson:"created_at" json:"createdAt"`
+	UpdatedAt               time.Time           `bson:"updated_at" json:"updatedAt"`
 }
 
 func (t *Task) DistributionSuccess(nodeID string) {

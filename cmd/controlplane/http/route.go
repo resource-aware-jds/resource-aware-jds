@@ -16,7 +16,7 @@ func ProvideHTTPRouter(handler Handler, server httpServer.Server) RouterResult {
 
 	task := server.Engine().Group("/task")
 	{
-		task.GET("/:taskID", handler.httpHandler.GetSpecificTaskDetail)
+		task.GET("/:taskID/detail", handler.httpHandler.GetSpecificTaskDetail)
 	}
 
 	return true

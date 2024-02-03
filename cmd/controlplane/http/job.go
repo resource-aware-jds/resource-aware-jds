@@ -125,6 +125,8 @@ func (j *HttpHandler) GetJobDetail(c *gin.Context) {
 			LatestDistributedNodeID: task.LatestDistributedNodeID,
 			JobID:                   task.JobID,
 			ImageUrl:                task.ImageUrl,
+			CreatedAt:               task.CreatedAt,
+			UpdatedAt:               task.UpdatedAt,
 		})
 	}
 
@@ -156,5 +158,24 @@ func (j *HttpHandler) GetSpecificTaskDetail(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, task)
+	taskRes := requestmodel.TaskJobFullDetailResponse{
+		TaskJobDetailResponse: requestmodel.TaskJobDetailResponse{
+			ID:                      task.ID,
+			JobID:                   task.JobID,
+			LatestDistributedNodeID: task.LatestDistributedNodeID,
+			CreatedAt:               task.CreatedAt,
+			UpdatedAt:               task.UpdatedAt,
+			Status:                  task.Status,
+			ImageUrl:                task.ImageUrl,
+		},
+		Logs: task.Logs,
+	}
+
+	var taskAttributesMap map[string]interface{}
+	err = json.Unmarshal(task.TaskAttributes, &taskAttributesMap)
+	if err == nil {
+		taskRes.TaskAttributes = taskAttributesMap
+	}
+
+	c.JSON(http.StatusOK, taskRes)
 }

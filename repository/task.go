@@ -6,6 +6,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"time"
 )
 
 const (
@@ -35,6 +36,8 @@ func ProvideTask(database *mongo.Database) ITask {
 func (t *task) InsertMany(ctx context.Context, tasks []models.Task) error {
 	iTasksSlice := make([]interface{}, 0, len(tasks))
 	for _, element := range tasks {
+		element.CreatedAt = time.Now()
+		element.UpdatedAt = time.Now()
 		iTasksSlice = append(iTasksSlice, element)
 	}
 
@@ -82,6 +85,7 @@ func (t *task) BulkWriteStatusAndLogByID(ctx context.Context, tasks []models.Tas
 				"task_status":                task.Status,
 				"logs":                       task.Logs,
 				"latest_distributed_node_id": task.LatestDistributedNodeID,
+				"updated_at":                 time.Now(),
 			},
 		})
 
