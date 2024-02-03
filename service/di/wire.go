@@ -11,4 +11,5 @@ var ServiceWireSet = wire.NewSet(
 	service.ProvideResourcesMonitor,
 	service.ProvideJobService,
 	service.ProvideTaskService,
+	service.ProvideContainer,
 )
