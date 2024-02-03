@@ -36,7 +36,7 @@ type IContainer interface {
 
 func ProvideContainer(dockerClient *client.Client, imageURL string, imagePullOptions types.ImagePullOptions) IContainer {
 	randomId := rand.Intn(50000-10000) + 10000
-	containerName := "rads-" + strconv.Itoa(randomId)
+	containerName := "rajds-" + strconv.Itoa(randomId)
 
 	return &containerSvc{
 		dockerClient:     dockerClient,
