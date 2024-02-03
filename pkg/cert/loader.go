@@ -37,7 +37,7 @@ func LoadKeyFromFile(privateKeyFilePath string) (KeyData, error) {
 		return nil, fmt.Errorf("failure reading private key from \"%s\": %s", privateKeyFile, err)
 	}
 
-	if rest != nil && len(rest) != 0 {
+	if len(rest) != 0 {
 		logrus.Warn("The Private Key file contain more than one key which won't be loaded.")
 	}
 

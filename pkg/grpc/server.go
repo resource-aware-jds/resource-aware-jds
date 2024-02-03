@@ -39,7 +39,7 @@ func ProvideGRPCServer(config Config, transportCertificate cert.TransportCertifi
 	caPool := x509.NewCertPool()
 	caCertificate, err := transportCertificate.GetCACertificate()
 	if err != nil {
-		logrus.Error("failed to get CA certificate: %v", err)
+		logrus.Errorf("failed to get CA certificate: %v", err)
 		return nil, nil, err
 	}
 	caPool.AddCert(caCertificate)
@@ -73,7 +73,7 @@ func ProvideGRPCServer(config Config, transportCertificate cert.TransportCertifi
 func (r *rajdsGRPCServer) Serve() {
 	go func() {
 		r.logger.Info("GRPC Server is Listening on: ", r.Listener.Addr())
-		r.GRPCServer.Serve(r.Listener)
+		r.GRPCServer.Serve(r.Listener) // nolint:errcheck
 	}()
 }
 

@@ -9,3 +9,6 @@ generate:
         		--go-grpc_out=./generated/proto/ \
         		./proto/* & \
 	go generate ./...
+
+lint:
+	golangci-lint run ./...

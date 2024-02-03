@@ -59,7 +59,7 @@ func ProvideWorkerNode(caCertificate cert.CACertificate, distributor distributio
 
 func (w *workerNode) InitializePool(ctx context.Context, nodeEntries []models.NodeEntry) {
 	for _, node := range nodeEntries {
-		w.AddWorkerNode(ctx, node)
+		w.AddWorkerNode(ctx, node) // nolint:errcheck
 	}
 
 	logrus.Infof("[WorkerNode Pool] Added %d available worker node to the pool", len(w.pool))
