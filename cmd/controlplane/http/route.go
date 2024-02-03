@@ -9,9 +9,14 @@ type RouterResult bool
 func ProvideHTTPRouter(handler Handler, server httpServer.Server) RouterResult {
 	job := server.Engine().Group("/job")
 	{
-		job.GET("/", handler.JobHandler.ListJob)
-		job.POST("/", handler.JobHandler.CreateJob)
-		job.GET("/:jobID/detail", handler.JobHandler.GetJobDetail)
+		job.GET("/", handler.httpHandler.ListJob)
+		job.POST("/", handler.httpHandler.CreateJob)
+		job.GET("/:jobID/detail", handler.httpHandler.GetJobDetail)
+	}
+
+	task := server.Engine().Group("/task")
+	{
+		task.GET("/:taskID", handler.httpHandler.GetSpecificTaskDetail)
 	}
 
 	return true

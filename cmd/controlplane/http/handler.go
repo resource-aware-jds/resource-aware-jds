@@ -1,11 +1,11 @@
 package http
 
 type Handler struct {
-	JobHandler HttpHandler
+	httpHandler HttpHandler
 }
 
 func ProvideHandler(jobHandler HttpHandler) Handler {
 	return Handler{
-		JobHandler: jobHandler,
+		httpHandler: jobHandler,
 	}
 }
