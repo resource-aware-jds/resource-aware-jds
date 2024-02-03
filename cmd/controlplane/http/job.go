@@ -12,19 +12,19 @@ import (
 	"net/http"
 )
 
-type JobHandler struct {
+type HttpHandler struct {
 	jobService  service.Job
 	taskService service.Task
 }
 
-func ProvideJobHandler(jobService service.Job, taskService service.Task) JobHandler {
-	return JobHandler{
+func ProvideHTTPHandler(jobService service.Job, taskService service.Task) HttpHandler {
+	return HttpHandler{
 		jobService:  jobService,
 		taskService: taskService,
 	}
 }
 
-func (j *JobHandler) ListJob(c *gin.Context) {
+func (j *HttpHandler) ListJob(c *gin.Context) {
 	results, err := j.jobService.ListJob(c.Request.Context())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -38,7 +38,7 @@ func (j *JobHandler) ListJob(c *gin.Context) {
 	})
 }
 
-func (j *JobHandler) CreateJob(c *gin.Context) {
+func (j *HttpHandler) CreateJob(c *gin.Context) {
 	ctx := c.Request.Context()
 	var req requestmodel.CreateJobRequest
 	err := c.ShouldBind(&req)
@@ -76,7 +76,7 @@ func (j *JobHandler) CreateJob(c *gin.Context) {
 	})
 }
 
-func (j *JobHandler) GetJobDetail(c *gin.Context) {
+func (j *HttpHandler) GetJobDetail(c *gin.Context) {
 	ctx := c.Request.Context()
 	jobID := c.Param("jobID")
 	if jobID == "" {

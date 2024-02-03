@@ -7,6 +7,6 @@ import (
 
 var HTTPWireSet = wire.NewSet(
 	http.ProvideHTTPRouter,
-	http.ProvideJobHandler,
+	http.ProvideHTTPHandler,
 	http.ProvideHandler,
 )
