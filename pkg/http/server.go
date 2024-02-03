@@ -60,13 +60,13 @@ func ProvideHttpServer(config ServerConfig) (Server, func()) {
 
 func (h *httpServer) Serve() {
 	go func() {
-		h.server.ListenAndServe()
+		h.server.ListenAndServe() //nolint:errcheck
 	}()
 }
 
 func (h *httpServer) GracefullyShutdown() {
 	logrus.Info("Gracefully shutting down the HTTP Server")
-	h.server.Shutdown(context.Background())
+	h.server.Shutdown(context.Background()) //nolint:errcheck
 }
 
 func (h *httpServer) Engine() *gin.Engine {

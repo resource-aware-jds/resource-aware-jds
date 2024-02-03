@@ -59,6 +59,9 @@ func ProvideWorkerNodeTransportCertificate(workerCertificateConfig WorkerNodeTra
 
 func registerWorker(controlPlaneClient proto.ControlPlaneClient) (*proto.ComputeNodeRegistrationResponse, KeyData, error) {
 	publicKeyData, privateKeyData, err := GeneratePublicAndPrivateKeyPair()
+	if err != nil {
+		return nil, nil, err
+	}
 	result, err := controlPlaneClient.WorkerRegistration(context.Background(), &proto.ComputeNodeRegistrationRequest{
 		Port:          1234,
 		NodePublicKey: x509.MarshalPKCS1PublicKey(publicKeyData.GetRawKeyData().(*rsa.PublicKey)),
