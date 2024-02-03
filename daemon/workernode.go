@@ -2,7 +2,6 @@ package daemon
 
 import (
 	"context"
-	"fmt"
 	"github.com/docker/docker/client"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/timeutil"
 	"github.com/resource-aware-jds/resource-aware-jds/service"
@@ -39,10 +38,10 @@ func ProvideWorkerNodeDaemon(dockerClient *client.Client, workerService service.
 }
 
 func (w *workerNode) Start() {
-	err := w.workerService.CheckInWorkerNodeToControlPlane(w.ctx)
-	if err != nil {
-		panic(fmt.Sprintf("Failed to check in worker node to control plane (%s)", err.Error()))
-	}
+	//err := w.workerService.CheckInWorkerNodeToControlPlane(w.ctx)
+	//if err != nil {
+	//	panic(fmt.Sprintf("Failed to check in worker node to control plane (%s)", err.Error()))
+	//}
 
 	go func(ctx context.Context) {
 		for {
@@ -62,11 +61,10 @@ func (w *workerNode) Start() {
 			case <-ctx.Done():
 				return
 			default:
-				usage, err := w.resourceMonitor.GetResourceUsage()
+				_, err := w.resourceMonitor.GetResourceUsage()
 				if err != nil {
 					return
 				}
-				fmt.Println(usage)
 				timeutil.SleepWithContext(ctx, ResourceMonitorDuration)
 			}
 		}

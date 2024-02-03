@@ -5,6 +5,7 @@ import (
 	"github.com/nabhan-au/dockerstats"
 	"github.com/resource-aware-jds/resource-aware-jds/models"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/datastructure"
+	"github.com/sirupsen/logrus"
 )
 
 type ResourceMonitor struct {
@@ -28,7 +29,7 @@ func (r *ResourceMonitor) GetResourceUsage() ([]models.ContainerResourceUsage, e
 	containerKeys := r.containerService.GetContainerIdShort()
 	stats, err := dockerstats.Current()
 	if err != nil {
-		panic(err)
+		logrus.Errorf("Unable to collect docker stats: %e", err)
 	}
 	for _, s := range stats {
 		if datastructure.Contains(containerKeys, s.Container) {

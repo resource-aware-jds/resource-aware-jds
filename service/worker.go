@@ -130,7 +130,6 @@ func (w *Worker) SubmitTask(containerImage string, taskId string, input []byte) 
 }
 
 func (w *Worker) TaskDistributionDaemonLoop(ctx context.Context) {
-	logrus.Info("run start container")
 	task, ok := w.taskQueue.Pop()
 	if !ok {
 		return
