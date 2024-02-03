@@ -8,7 +8,6 @@ import (
 	"github.com/resource-aware-jds/resource-aware-jds/generated/proto/github.com/resource-aware-jds/resource-aware-jds/generated/proto"
 	"github.com/resource-aware-jds/resource-aware-jds/models"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/cert"
-	"github.com/resource-aware-jds/resource-aware-jds/pkg/container"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/datastructure"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/taskqueue"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/workerdistribution"
@@ -33,7 +32,6 @@ type Worker struct {
 
 	taskQueue              taskqueue.Queue
 	taskBuffer             datastructure.Buffer[string, models.Task]
-	containerBuffer        datastructure.Buffer[string, container.IContainer]
 	containerCoolDownState datastructure.Buffer[string, time.Time]
 }
 
@@ -49,9 +47,6 @@ type IWorker interface {
 
 	// TaskDistributionDaemonLoop is a method allowing the daemon to call to accomplish its routine.
 	TaskDistributionDaemonLoop(ctx context.Context)
-
-	// Container management related method
-	GetContainerIdShort() []string
 }
 
 func ProvideWorker(
@@ -70,7 +65,6 @@ func ProvideWorker(
 		taskQueue:              taskQueue,
 		workerNodeCertificate:  workerNodeCertificate,
 		taskBuffer:             make(datastructure.Buffer[string, models.Task]),
-		containerBuffer:        make(datastructure.Buffer[string, container.IContainer]),
 		containerCoolDownState: make(datastructure.Buffer[string, time.Time]),
 		workerNodeDistribution: workerNodeDistribution,
 		containerService:       containerService,
@@ -102,16 +96,6 @@ func (w *Worker) GetTask(containerImage string) (*proto.Task, error) {
 		ID:             task.ID.Hex(),
 		TaskAttributes: task.TaskAttributes,
 	}, nil
-}
-
-func (w *Worker) GetContainerIdShort() []string {
-	containerIds := w.containerBuffer.GetKeys()
-	return datastructure.Map(containerIds, func(id string) string {
-		if len(id) <= ContainerIdShortSize {
-			return id
-		}
-		return id[:ContainerIdShortSize]
-	})
 }
 
 func (w *Worker) SubmitSuccessTask(id string, results [][]byte) error {
@@ -159,7 +143,6 @@ func (w *Worker) TaskDistributionDaemonLoop(ctx context.Context) {
 	// Store the ContainerCoolDownState
 	distributionResult := w.workerNodeDistribution.Distribute(ctx, taskDepointer, workerdistribution.WorkerState{
 		ContainerCoolDownState: w.containerCoolDownState,
-		ContainerList:          w.containerBuffer,
 		WorkerNodeConfig:       w.config,
 	})
 
