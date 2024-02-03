@@ -13,7 +13,6 @@ import (
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/workerdistribution"
 	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"time"
 )
 
 const (
@@ -30,9 +29,8 @@ type Worker struct {
 	workerNodeDistribution workerdistribution.WorkerDistributor
 	containerService       IContainer
 
-	taskQueue              taskqueue.Queue
-	taskBuffer             datastructure.Buffer[string, models.Task]
-	containerCoolDownState datastructure.Buffer[string, time.Time]
+	taskQueue  taskqueue.Queue
+	taskBuffer datastructure.Buffer[string, models.Task]
 }
 
 type IWorker interface {
@@ -65,7 +63,6 @@ func ProvideWorker(
 		taskQueue:              taskQueue,
 		workerNodeCertificate:  workerNodeCertificate,
 		taskBuffer:             make(datastructure.Buffer[string, models.Task]),
-		containerCoolDownState: make(datastructure.Buffer[string, time.Time]),
 		workerNodeDistribution: workerNodeDistribution,
 		containerService:       containerService,
 	}
@@ -142,16 +139,13 @@ func (w *Worker) TaskDistributionDaemonLoop(ctx context.Context) {
 
 	// Store the ContainerCoolDownState
 	distributionResult := w.workerNodeDistribution.Distribute(ctx, taskDepointer, workerdistribution.WorkerState{
-		ContainerCoolDownState: w.containerCoolDownState,
+		ContainerCoolDownState: w.containerService.GetContainerCoolDownState(),
 		WorkerNodeConfig:       w.config,
 	})
 
 	if !distributionResult.CreateContainerToSupportTask {
 		return
 	}
-
-	// Remove ContainerCoolDownState
-	delete(w.containerCoolDownState, taskDepointer.ImageUrl)
 
 	logrus.Info("Starting container with image:", taskDepointer.ImageUrl)
 	_, err := w.containerService.StartContainer(ctx, taskDepointer.ImageUrl)
@@ -164,7 +158,4 @@ func (w *Worker) TaskDistributionDaemonLoop(ctx context.Context) {
 		w.taskQueue.BulkRemove(errorTaskList)
 		return
 	}
-
-	// Add the cool down state
-	w.containerCoolDownState[taskDepointer.ImageUrl] = time.Now().Add(w.config.ContainerStartDelayTimeSeconds)
 }
