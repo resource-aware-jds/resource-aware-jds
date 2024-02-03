@@ -15,6 +15,7 @@ type Task interface {
 	GetAvailableTask(ctx context.Context) ([]models.Task, error)
 	UpdateTaskAfterDistribution(ctx context.Context, successTasks []models.Task, errorTasks []distribution.DistributeError) error
 	CreateTask(ctx context.Context, job *models.Job, taskAttributes [][]byte) ([]models.Task, error)
+	GetTaskByJob(ctx context.Context, job *models.Job) ([]models.Task, error)
 }
 
 func ProvideTaskService(taskRepository repository.ITask) Task {
@@ -57,5 +58,9 @@ func (t *task) CreateTask(ctx context.Context, job *models.Job, taskAttributes [
 		return nil, err
 	}
 
+	return t.taskRepository.FindManyByJobID(ctx, job.ID)
+}
+
+func (t *task) GetTaskByJob(ctx context.Context, job *models.Job) ([]models.Task, error) {
 	return t.taskRepository.FindManyByJobID(ctx, job.ID)
 }

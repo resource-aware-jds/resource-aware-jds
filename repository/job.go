@@ -20,6 +20,7 @@ type job struct {
 type IJob interface {
 	Insert(ctx context.Context, job models.Job) (insertedJobID *primitive.ObjectID, err error)
 	FindAll(ctx context.Context) ([]models.Job, error)
+	FindOneByDocumentID(ctx context.Context, id primitive.ObjectID) (*models.Job, error)
 }
 
 func ProvideJob(database *mongo.Database) IJob {
@@ -52,4 +53,17 @@ func (j *job) FindAll(ctx context.Context) ([]models.Job, error) {
 	}
 
 	return result, nil
+}
+
+func (j *job) FindOneByDocumentID(ctx context.Context, id primitive.ObjectID) (*models.Job, error) {
+	result := j.collection.FindOne(ctx, bson.M{
+		"_id": id,
+	})
+	if result.Err() != nil {
+		return nil, result.Err()
+	}
+
+	var jobResult models.Job
+	err := result.Decode(&jobResult)
+	return &jobResult, err
 }

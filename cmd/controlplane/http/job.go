@@ -2,10 +2,13 @@ package http
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/resource-aware-jds/resource-aware-jds/cmd/controlplane/http/requestmodel"
 	"github.com/resource-aware-jds/resource-aware-jds/service"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
 	"net/http"
 )
 
@@ -71,4 +74,52 @@ func (j *JobHandler) CreateJob(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"data": job,
 	})
+}
+
+func (j *JobHandler) GetJobDetail(c *gin.Context) {
+	ctx := c.Request.Context()
+	jobID := c.Param("jobID")
+	if jobID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "invalid jobID",
+		})
+		return
+	}
+
+	jobIDParsed, err := primitive.ObjectIDFromHex(jobID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "invalid jobID",
+		})
+		return
+	}
+
+	job, err := j.jobService.GetJob(ctx, jobIDParsed)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			c.JSON(http.StatusNotFound, gin.H{
+				"error": "job not found",
+			})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": fmt.Sprintf("can't get job: %v", err),
+		})
+		return
+	}
+
+	tasks, err := j.taskService.GetTaskByJob(ctx, job)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": fmt.Sprintf("can't get job: %v", err),
+		})
+		return
+	}
+
+	res := requestmodel.JobDetailResponse{
+		Job:   *job,
+		Tasks: tasks,
+	}
+
+	c.JSON(http.StatusOK, res)
 }

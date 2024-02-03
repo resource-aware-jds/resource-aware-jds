@@ -11,6 +11,7 @@ func ProvideHTTPRouter(handler Handler, server httpServer.Server) RouterResult {
 	{
 		job.GET("/", handler.JobHandler.ListJob)
 		job.POST("/", handler.JobHandler.CreateJob)
+		job.GET("/:jobID/detail", handler.JobHandler.GetJobDetail)
 	}
 
 	return true

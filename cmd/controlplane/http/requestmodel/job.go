@@ -14,3 +14,8 @@ func (c *CreateJobRequest) ToJobModel() models.Job {
 		ImageURL: c.ImageURL,
 	}
 }
+
+type JobDetailResponse struct {
+	models.Job
+	Tasks []models.Task `json:"tasks"`
+}
