@@ -6,6 +6,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"time"
 )
 
 const (
@@ -18,6 +19,7 @@ type task struct {
 }
 
 type ITask interface {
+	FindOneByID(ctx context.Context, taskID primitive.ObjectID) (*models.Task, error)
 	FindManyByJobID(ctx context.Context, jobID *primitive.ObjectID) ([]models.Task, error)
 	InsertMany(ctx context.Context, tasks []models.Task) error
 	GetTaskToDistribute(ctx context.Context) ([]models.Task, error)
@@ -34,6 +36,8 @@ func ProvideTask(database *mongo.Database) ITask {
 func (t *task) InsertMany(ctx context.Context, tasks []models.Task) error {
 	iTasksSlice := make([]interface{}, 0, len(tasks))
 	for _, element := range tasks {
+		element.CreatedAt = time.Now()
+		element.UpdatedAt = time.Now()
 		iTasksSlice = append(iTasksSlice, element)
 	}
 
@@ -78,8 +82,10 @@ func (t *task) BulkWriteStatusAndLogByID(ctx context.Context, tasks []models.Tas
 		})
 		operation.SetUpdate(bson.M{
 			"$set": bson.M{
-				"task_status": task.Status,
-				"logs":        task.Logs,
+				"task_status":                task.Status,
+				"logs":                       task.Logs,
+				"latest_distributed_node_id": task.LatestDistributedNodeID,
+				"updated_at":                 time.Now(),
 			},
 		})
 
@@ -88,4 +94,18 @@ func (t *task) BulkWriteStatusAndLogByID(ctx context.Context, tasks []models.Tas
 
 	_, err := t.collection.BulkWrite(ctx, operations)
 	return err
+}
+
+func (t *task) FindOneByID(ctx context.Context, taskID primitive.ObjectID) (*models.Task, error) {
+	result := t.collection.FindOne(ctx, bson.M{
+		"_id": taskID,
+	})
+
+	if result.Err() != nil {
+		return nil, result.Err()
+	}
+
+	var taskRes models.Task
+	err := result.Decode(&taskRes)
+	return &taskRes, err
 }
