@@ -78,8 +78,9 @@ func (t *task) BulkWriteStatusAndLogByID(ctx context.Context, tasks []models.Tas
 		})
 		operation.SetUpdate(bson.M{
 			"$set": bson.M{
-				"task_status": task.Status,
-				"logs":        task.Logs,
+				"task_status":                task.Status,
+				"logs":                       task.Logs,
+				"latest_distributed_node_id": task.LatestDistributedNodeID,
 			},
 		})
 

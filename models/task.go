@@ -13,16 +13,18 @@ const (
 )
 
 type Task struct {
-	ID             *primitive.ObjectID `bson:"_id,omitempty" json:"id"`
-	Status         TaskStatus          `bson:"task_status" json:"status" `
-	ImageUrl       string              `bson:"image_url" json:"imageURL"`
-	JobID          *primitive.ObjectID `bson:"job_id" json:"jobID"`
-	TaskAttributes []byte              `bson:"task_attributes" json:"taskAttributes"`
-	Logs           []TaskLog           `bson:"logs,omitempty" json:"logs"`
+	ID                      *primitive.ObjectID `bson:"_id,omitempty" json:"id"`
+	Status                  TaskStatus          `bson:"task_status" json:"status" `
+	ImageUrl                string              `bson:"image_url" json:"imageURL"`
+	JobID                   *primitive.ObjectID `bson:"job_id" json:"jobID"`
+	TaskAttributes          []byte              `bson:"task_attributes" json:"taskAttributes"`
+	LatestDistributedNodeID string              `bson:"latest_distributed_node_id,omitempty" json:"latestDistributedNodeID,omitempty"`
+	Logs                    []TaskLog           `bson:"logs,omitempty" json:"logs"`
 }
 
 func (t *Task) DistributionSuccess(nodeID string) {
 	t.Status = DistributedTaskStatus
+	t.LatestDistributedNodeID = nodeID
 	t.AddLog(InfoLogSeverity, "Distributed to node", map[string]string{
 		"nodeID": nodeID,
 	})
