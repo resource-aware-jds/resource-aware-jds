@@ -3,19 +3,16 @@ package service
 import (
 	"context"
 	"fmt"
-	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
 	"github.com/resource-aware-jds/resource-aware-jds/config"
 	"github.com/resource-aware-jds/resource-aware-jds/generated/proto/github.com/resource-aware-jds/resource-aware-jds/generated/proto"
 	"github.com/resource-aware-jds/resource-aware-jds/models"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/cert"
-	"github.com/resource-aware-jds/resource-aware-jds/pkg/container"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/datastructure"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/taskqueue"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/workerdistribution"
 	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"time"
 )
 
 const (
@@ -30,11 +27,10 @@ type Worker struct {
 	config                config.WorkerConfigModel
 
 	workerNodeDistribution workerdistribution.WorkerDistributor
+	containerService       IContainer
 
-	taskQueue              taskqueue.Queue
-	taskBuffer             datastructure.Buffer[string, models.Task]
-	containerBuffer        datastructure.Buffer[string, container.IContainer]
-	containerCoolDownState datastructure.Buffer[string, time.Time]
+	taskQueue  taskqueue.Queue
+	taskBuffer datastructure.Buffer[string, models.Task]
 }
 
 type IWorker interface {
@@ -49,9 +45,6 @@ type IWorker interface {
 
 	// TaskDistributionDaemonLoop is a method allowing the daemon to call to accomplish its routine.
 	TaskDistributionDaemonLoop(ctx context.Context)
-
-	// Container management related method
-	GetContainerIdShort() []string
 }
 
 func ProvideWorker(
@@ -61,6 +54,7 @@ func ProvideWorker(
 	config config.WorkerConfigModel,
 	taskQueue taskqueue.Queue,
 	workerNodeDistribution workerdistribution.WorkerDistributor,
+	containerService IContainer,
 ) IWorker {
 	return &Worker{
 		controlPlaneGRPCClient: controlPlaneGRPCClient,
@@ -69,9 +63,8 @@ func ProvideWorker(
 		taskQueue:              taskQueue,
 		workerNodeCertificate:  workerNodeCertificate,
 		taskBuffer:             make(datastructure.Buffer[string, models.Task]),
-		containerBuffer:        make(datastructure.Buffer[string, container.IContainer]),
-		containerCoolDownState: make(datastructure.Buffer[string, time.Time]),
 		workerNodeDistribution: workerNodeDistribution,
+		containerService:       containerService,
 	}
 }
 
@@ -100,16 +93,6 @@ func (w *Worker) GetTask(containerImage string) (*proto.Task, error) {
 		ID:             task.ID.Hex(),
 		TaskAttributes: task.TaskAttributes,
 	}, nil
-}
-
-func (w *Worker) GetContainerIdShort() []string {
-	containerIds := w.containerBuffer.GetKeys()
-	return datastructure.Map(containerIds, func(id string) string {
-		if len(id) <= ContainerIdShortSize {
-			return id
-		}
-		return id[:ContainerIdShortSize]
-	})
 }
 
 func (w *Worker) SubmitSuccessTask(id string, results [][]byte) error {
@@ -147,7 +130,6 @@ func (w *Worker) SubmitTask(containerImage string, taskId string, input []byte) 
 }
 
 func (w *Worker) TaskDistributionDaemonLoop(ctx context.Context) {
-	logrus.Info("run start container")
 	task, ok := w.taskQueue.Pop()
 	if !ok {
 		return
@@ -156,8 +138,7 @@ func (w *Worker) TaskDistributionDaemonLoop(ctx context.Context) {
 
 	// Store the ContainerCoolDownState
 	distributionResult := w.workerNodeDistribution.Distribute(ctx, taskDepointer, workerdistribution.WorkerState{
-		ContainerCoolDownState: w.containerCoolDownState,
-		ContainerList:          w.containerBuffer,
+		ContainerCoolDownState: w.containerService.GetContainerCoolDownState(),
 		WorkerNodeConfig:       w.config,
 	})
 
@@ -165,12 +146,8 @@ func (w *Worker) TaskDistributionDaemonLoop(ctx context.Context) {
 		return
 	}
 
-	// Remove ContainerCoolDownState
-	delete(w.containerCoolDownState, taskDepointer.ImageUrl)
-
 	logrus.Info("Starting container with image:", taskDepointer.ImageUrl)
-	containerInstance := container.ProvideContainer(w.dockerClient, taskDepointer.ImageUrl, types.ImagePullOptions{})
-	err := containerInstance.Start(ctx)
+	_, err := w.containerService.StartContainer(ctx, taskDepointer.ImageUrl)
 	if err != nil {
 		logrus.Error("Unable to start container with image:", taskDepointer.ImageUrl, err)
 		errorTaskList := datastructure.Filter(w.taskQueue.ReadQueue(), func(task *models.Task) bool {
@@ -180,13 +157,4 @@ func (w *Worker) TaskDistributionDaemonLoop(ctx context.Context) {
 		w.taskQueue.BulkRemove(errorTaskList)
 		return
 	}
-	containerID, ok := containerInstance.GetContainerID()
-	if !ok {
-		logrus.Error("Unable to get container id")
-		return
-	}
-	w.containerBuffer.Store(containerID, containerInstance)
-
-	// Add the cool down state
-	w.containerCoolDownState[taskDepointer.ImageUrl] = time.Now().Add(w.config.ContainerStartDelayTimeSeconds)
 }

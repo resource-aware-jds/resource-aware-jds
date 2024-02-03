@@ -62,11 +62,10 @@ func (w *workerNode) Start() {
 			case <-ctx.Done():
 				return
 			default:
-				usage, err := w.resourceMonitor.GetResourceUsage()
+				_, err := w.resourceMonitor.GetResourceUsage()
 				if err != nil {
 					return
 				}
-				fmt.Println(usage)
 				timeutil.SleepWithContext(ctx, ResourceMonitorDuration)
 			}
 		}
