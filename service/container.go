@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/container"
@@ -14,19 +15,20 @@ type ContainerService struct {
 	containerBuffer datastructure.Buffer[string, container.IContainer]
 }
 
-func (c *ContainerService) StartContainer(ctx context.Context, imageUrl string) {
+func (c *ContainerService) StartContainer(ctx context.Context, imageUrl string) (container.IContainer, error) {
 	logrus.Info("Starting container with image:", imageUrl)
 	containerInstance := container.ProvideContainer(c.dockerClient, imageUrl, types.ImagePullOptions{})
 	err := containerInstance.Start(ctx)
 	if err != nil {
-
+		return nil, err
 	}
 	containerID, ok := containerInstance.GetContainerID()
 	if !ok {
 		logrus.Error("Unable to get container id")
-		return
+		return nil, fmt.Errorf("Unable to get container id")
 	}
 	c.containerBuffer.Store(containerID, containerInstance)
+	return containerInstance, err
 }
 
 func (c *ContainerService) GetContainerIdShort() []string {

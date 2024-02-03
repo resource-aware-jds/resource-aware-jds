@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"fmt"
-	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
 	"github.com/resource-aware-jds/resource-aware-jds/config"
 	"github.com/resource-aware-jds/resource-aware-jds/generated/proto/github.com/resource-aware-jds/resource-aware-jds/generated/proto"
@@ -30,6 +29,7 @@ type Worker struct {
 	config                config.WorkerConfigModel
 
 	workerNodeDistribution workerdistribution.WorkerDistributor
+	containerService       ContainerService
 
 	taskQueue              taskqueue.Queue
 	taskBuffer             datastructure.Buffer[string, models.Task]
@@ -61,6 +61,7 @@ func ProvideWorker(
 	config config.WorkerConfigModel,
 	taskQueue taskqueue.Queue,
 	workerNodeDistribution workerdistribution.WorkerDistributor,
+	containerService ContainerService,
 ) IWorker {
 	return &Worker{
 		controlPlaneGRPCClient: controlPlaneGRPCClient,
@@ -72,6 +73,7 @@ func ProvideWorker(
 		containerBuffer:        make(datastructure.Buffer[string, container.IContainer]),
 		containerCoolDownState: make(datastructure.Buffer[string, time.Time]),
 		workerNodeDistribution: workerNodeDistribution,
+		containerService:       containerService,
 	}
 }
 
@@ -169,8 +171,7 @@ func (w *Worker) TaskDistributionDaemonLoop(ctx context.Context) {
 	delete(w.containerCoolDownState, taskDepointer.ImageUrl)
 
 	logrus.Info("Starting container with image:", taskDepointer.ImageUrl)
-	containerInstance := container.ProvideContainer(w.dockerClient, taskDepointer.ImageUrl, types.ImagePullOptions{})
-	err := containerInstance.Start(ctx)
+	_, err := w.containerService.StartContainer(ctx, taskDepointer.ImageUrl)
 	if err != nil {
 		logrus.Error("Unable to start container with image:", taskDepointer.ImageUrl, err)
 		errorTaskList := datastructure.Filter(w.taskQueue.ReadQueue(), func(task *models.Task) bool {
@@ -180,12 +181,6 @@ func (w *Worker) TaskDistributionDaemonLoop(ctx context.Context) {
 		w.taskQueue.BulkRemove(errorTaskList)
 		return
 	}
-	containerID, ok := containerInstance.GetContainerID()
-	if !ok {
-		logrus.Error("Unable to get container id")
-		return
-	}
-	w.containerBuffer.Store(containerID, containerInstance)
 
 	// Add the cool down state
 	w.containerCoolDownState[taskDepointer.ImageUrl] = time.Now().Add(w.config.ContainerStartDelayTimeSeconds)
