@@ -116,10 +116,45 @@ func (j *HttpHandler) GetJobDetail(c *gin.Context) {
 		return
 	}
 
+	taskResponse := make([]requestmodel.TaskJobDetailResponse, 0, len(tasks))
+
+	for _, task := range tasks {
+		taskResponse = append(taskResponse, requestmodel.TaskJobDetailResponse{
+			ID:                      task.ID,
+			Status:                  task.Status,
+			LatestDistributedNodeID: task.LatestDistributedNodeID,
+			JobID:                   task.JobID,
+			ImageUrl:                task.ImageUrl,
+		})
+	}
+
 	res := requestmodel.JobDetailResponse{
 		Job:   *job,
-		Tasks: tasks,
+		Tasks: taskResponse,
 	}
 
 	c.JSON(http.StatusOK, res)
+}
+
+func (j *HttpHandler) GetSpecificTaskDetail(c *gin.Context) {
+	ctx := c.Request.Context()
+	taskID := c.Param("taskID")
+
+	taskIDParsed, err := primitive.ObjectIDFromHex(taskID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "bad task id",
+		})
+		return
+	}
+
+	task, err := j.taskService.GetTaskByID(ctx, taskIDParsed)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": err,
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, task)
 }

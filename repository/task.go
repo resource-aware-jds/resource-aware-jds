@@ -18,6 +18,7 @@ type task struct {
 }
 
 type ITask interface {
+	FindOneByID(ctx context.Context, taskID primitive.ObjectID) (*models.Task, error)
 	FindManyByJobID(ctx context.Context, jobID *primitive.ObjectID) ([]models.Task, error)
 	InsertMany(ctx context.Context, tasks []models.Task) error
 	GetTaskToDistribute(ctx context.Context) ([]models.Task, error)
@@ -89,4 +90,18 @@ func (t *task) BulkWriteStatusAndLogByID(ctx context.Context, tasks []models.Tas
 
 	_, err := t.collection.BulkWrite(ctx, operations)
 	return err
+}
+
+func (t *task) FindOneByID(ctx context.Context, taskID primitive.ObjectID) (*models.Task, error) {
+	result := t.collection.FindOne(ctx, bson.M{
+		"_id": taskID,
+	})
+
+	if result.Err() != nil {
+		return nil, result.Err()
+	}
+
+	var taskRes models.Task
+	err := result.Decode(&taskRes)
+	return &taskRes, err
 }
