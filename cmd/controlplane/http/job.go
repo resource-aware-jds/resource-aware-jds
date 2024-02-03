@@ -40,7 +40,7 @@ func (j *JobHandler) CreateJob(c *gin.Context) {
 	var req requestmodel.CreateJobRequest
 	err := c.ShouldBind(&req)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("req binding error: %e", err)})
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("req binding error: %v", err)})
 		return
 	}
 
