@@ -13,12 +13,12 @@ const (
 )
 
 type Task struct {
-	ID             *primitive.ObjectID `bson:"_id,omitempty"`
-	Status         TaskStatus          `bson:"task_status"`
-	ImageUrl       string              `bson:"image_url"`
-	JobID          *primitive.ObjectID `bson:"job_id"`
-	TaskAttributes []byte              `bson:"task_attributes"`
-	Logs           []TaskLog           `bson:"logs,omitempty"`
+	ID             *primitive.ObjectID `bson:"_id,omitempty" json:"id"`
+	Status         TaskStatus          `bson:"task_status" json:"status" `
+	ImageUrl       string              `bson:"image_url" json:"imageURL"`
+	JobID          *primitive.ObjectID `bson:"job_id" json:"jobID"`
+	TaskAttributes []byte              `bson:"task_attributes" json:"taskAttributes"`
+	Logs           []TaskLog           `bson:"logs,omitempty" json:"logs"`
 }
 
 func (t *Task) DistributionSuccess(nodeID string) {
@@ -56,8 +56,8 @@ const (
 )
 
 type TaskLog struct {
-	Severity   LogSeverity       `bson:"severity"`
-	Parameters map[string]string `bson:"parameters"`
-	Message    string            `bson:"message"`
-	Timestamp  time.Time         `bson:"timestamp"`
+	Severity   LogSeverity       `bson:"severity" json:"severity"`
+	Parameters map[string]string `bson:"parameters" json:"parameters"`
+	Message    string            `bson:"message" json:"message"`
+	Timestamp  time.Time         `bson:"timestamp" json:"timestamp"`
 }
