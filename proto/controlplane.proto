@@ -11,6 +11,13 @@ service ControlPlane {
   rpc CreateJob(CreateJobRequest) returns (CreateJobResponse);
   rpc WorkerCheckIn(WorkerCheckInRequest) returns (google.protobuf.Empty);
   rpc ReportFailureTask(ReportFailureTaskRequest) returns (google.protobuf.Empty);
+  rpc ReportSuccessTask(ReportSuccessTaskRequest) returns (google.protobuf.Empty);
+}
+
+message ReportSuccessTaskRequest {
+  string id = 1;
+  string nodeID = 2;
+  bytes result = 3;
 }
 
 message ReportFailureTaskRequest {

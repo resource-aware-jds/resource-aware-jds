@@ -11,6 +11,7 @@ const (
 	CreatedTaskStatus     TaskStatus = "created"
 	DistributedTaskStatus TaskStatus = "distributed"
 	WorkOnTaskFailure     TaskStatus = "work-on-task-failure"
+	SuccessTaskStatus     TaskStatus = "success"
 )
 
 type Task struct {
@@ -23,6 +24,7 @@ type Task struct {
 	Logs                    []TaskLog           `bson:"logs,omitempty" json:"logs"`
 	CreatedAt               time.Time           `bson:"created_at" json:"createdAt"`
 	UpdatedAt               time.Time           `bson:"updated_at" json:"updatedAt"`
+	Result                  *[]byte             `bson:"result,omitempty" json:"-"`
 }
 
 func (t *Task) DistributionSuccess(nodeID string) {
@@ -46,6 +48,16 @@ func (t *Task) WorkOnTaskFailure(nodeID string, message string) {
 	t.AddLog(ErrorLogSeverity, "Node Report Task Failure", map[string]string{
 		"nodeID":     nodeID,
 		"errMessage": message,
+	})
+}
+
+func (t *Task) SuccessTask(nodeID string, result []byte) {
+	t.Status = SuccessTaskStatus
+	if len(result) != 0 {
+		t.Result = &result
+	}
+	t.AddLog(InfoLogSeverity, "Node Submit Successful Task", map[string]string{
+		"nodeID": nodeID,
 	})
 }
 

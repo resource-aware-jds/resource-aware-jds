@@ -17,6 +17,7 @@ type Task interface {
 	GetAvailableTask(ctx context.Context) ([]models.Task, error)
 	UpdateTaskAfterDistribution(ctx context.Context, successTasks []models.Task, errorTasks []distribution.DistributeError) error
 	UpdateTaskWorkOnFailure(ctx context.Context, taskID primitive.ObjectID, nodeID string, errMessage string) error
+	UpdateTaskSuccess(ctx context.Context, taskID primitive.ObjectID, nodeID string, result []byte) error
 	CreateTask(ctx context.Context, job *models.Job, taskAttributes [][]byte) ([]models.Task, error)
 	GetTaskByJob(ctx context.Context, job *models.Job) ([]models.Task, error)
 	GetTaskByID(ctx context.Context, taskID primitive.ObjectID) (*models.Task, error)
@@ -82,4 +83,15 @@ func (t *task) UpdateTaskWorkOnFailure(ctx context.Context, taskID primitive.Obj
 
 	taskResult.WorkOnTaskFailure(nodeID, errMessage)
 	return t.taskRepository.BulkWriteStatusAndLogByID(ctx, []models.Task{*taskResult})
+}
+
+func (t *task) UpdateTaskSuccess(ctx context.Context, taskID primitive.ObjectID, nodeID string, result []byte) error {
+	taskResult, err := t.GetTaskByID(ctx, taskID)
+	if err != nil {
+		logrus.Errorf("get task error %v", err)
+		return err
+	}
+
+	taskResult.SuccessTask(nodeID, result)
+	return t.taskRepository.WriteTaskResult(ctx, *taskResult)
 }

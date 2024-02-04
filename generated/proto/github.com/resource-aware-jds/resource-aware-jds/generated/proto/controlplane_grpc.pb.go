@@ -23,6 +23,7 @@ type ControlPlaneClient interface {
 	CreateJob(ctx context.Context, in *CreateJobRequest, opts ...grpc.CallOption) (*CreateJobResponse, error)
 	WorkerCheckIn(ctx context.Context, in *WorkerCheckInRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	ReportFailureTask(ctx context.Context, in *ReportFailureTaskRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	ReportSuccessTask(ctx context.Context, in *ReportSuccessTaskRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 }
 
 type controlPlaneClient struct {
@@ -69,6 +70,15 @@ func (c *controlPlaneClient) ReportFailureTask(ctx context.Context, in *ReportFa
 	return out, nil
 }
 
+func (c *controlPlaneClient) ReportSuccessTask(ctx context.Context, in *ReportSuccessTaskRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, "/controlplane.ControlPlane/ReportSuccessTask", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ControlPlaneServer is the server API for ControlPlane service.
 // All implementations must embed UnimplementedControlPlaneServer
 // for forward compatibility
@@ -77,6 +87,7 @@ type ControlPlaneServer interface {
 	CreateJob(context.Context, *CreateJobRequest) (*CreateJobResponse, error)
 	WorkerCheckIn(context.Context, *WorkerCheckInRequest) (*emptypb.Empty, error)
 	ReportFailureTask(context.Context, *ReportFailureTaskRequest) (*emptypb.Empty, error)
+	ReportSuccessTask(context.Context, *ReportSuccessTaskRequest) (*emptypb.Empty, error)
 	mustEmbedUnimplementedControlPlaneServer()
 }
 
@@ -95,6 +106,9 @@ func (UnimplementedControlPlaneServer) WorkerCheckIn(context.Context, *WorkerChe
 }
 func (UnimplementedControlPlaneServer) ReportFailureTask(context.Context, *ReportFailureTaskRequest) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ReportFailureTask not implemented")
+}
+func (UnimplementedControlPlaneServer) ReportSuccessTask(context.Context, *ReportSuccessTaskRequest) (*emptypb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ReportSuccessTask not implemented")
 }
 func (UnimplementedControlPlaneServer) mustEmbedUnimplementedControlPlaneServer() {}
 
@@ -181,6 +195,24 @@ func _ControlPlane_ReportFailureTask_Handler(srv interface{}, ctx context.Contex
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ControlPlane_ReportSuccessTask_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ReportSuccessTaskRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ControlPlaneServer).ReportSuccessTask(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/controlplane.ControlPlane/ReportSuccessTask",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ControlPlaneServer).ReportSuccessTask(ctx, req.(*ReportSuccessTaskRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ControlPlane_ServiceDesc is the grpc.ServiceDesc for ControlPlane service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -203,6 +235,10 @@ var ControlPlane_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ReportFailureTask",
 			Handler:    _ControlPlane_ReportFailureTask_Handler,
+		},
+		{
+			MethodName: "ReportSuccessTask",
+			Handler:    _ControlPlane_ReportSuccessTask_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

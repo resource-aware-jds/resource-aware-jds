@@ -124,3 +124,15 @@ func (g *GRPCHandler) ReportFailureTask(ctx context.Context, req *proto.ReportFa
 	err = g.taskService.UpdateTaskWorkOnFailure(ctx, parsedTaskID, req.GetNodeID(), req.GetMessage())
 	return &emptypb.Empty{}, err
 }
+
+func (g *GRPCHandler) ReportSuccessTask(ctx context.Context, req *proto.ReportSuccessTaskRequest) (*emptypb.Empty, error) {
+	id := req.GetId()
+	parsedTaskID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		logrus.Errorf("parsing task id error %v", err)
+		return nil, err
+	}
+
+	err = g.taskService.UpdateTaskSuccess(ctx, parsedTaskID, req.GetNodeID(), req.GetResult())
+	return &emptypb.Empty{}, err
+}

@@ -24,6 +24,7 @@ type ITask interface {
 	InsertMany(ctx context.Context, tasks []models.Task) error
 	GetTaskToDistribute(ctx context.Context) ([]models.Task, error)
 	BulkWriteStatusAndLogByID(ctx context.Context, tasks []models.Task) error
+	WriteTaskResult(ctx context.Context, task models.Task) error
 }
 
 func ProvideTask(database *mongo.Database) ITask {
@@ -108,4 +109,22 @@ func (t *task) FindOneByID(ctx context.Context, taskID primitive.ObjectID) (*mod
 	var taskRes models.Task
 	err := result.Decode(&taskRes)
 	return &taskRes, err
+}
+
+func (t *task) WriteTaskResult(ctx context.Context, task models.Task) error {
+	operation := mongo.NewUpdateOneModel()
+	operation.SetFilter(bson.M{
+		"_id": task.ID,
+	})
+	operation.SetUpdate(bson.M{
+		"$set": bson.M{
+			"result":     task.Result,
+			"logs":       task.Logs,
+			"status":     task.Status,
+			"updated_at": time.Now(),
+		},
+	})
+
+	_, err := t.collection.BulkWrite(ctx, []mongo.WriteModel{operation})
+	return err
 }
