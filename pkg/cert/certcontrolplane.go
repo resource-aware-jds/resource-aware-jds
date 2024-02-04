@@ -2,6 +2,7 @@ package cert
 
 import (
 	"crypto/x509/pkix"
+	"fmt"
 	"time"
 )
 
@@ -30,6 +31,7 @@ func ProvideCACertificate(caCertificateConfig CACertificateConfig) (CACertificat
 			ValidDuration:        24 * 365 * 10 * time.Hour,
 			ParentTLSCertificate: nil,
 			IsCA:                 true,
+			DNSName:              []string{fmt.Sprintf("ca.%s", GetDefaultDomainName())},
 		})
 		if err != nil {
 			return nil, err
@@ -79,6 +81,7 @@ func ProvideTransportCertificate(transportCertificateConfig TransportCertificate
 			},
 			ValidDuration:        transportCertificateConfig.ValidDuration,
 			ParentTLSCertificate: caCertificate,
+			DNSName:              []string{fmt.Sprintf("cp.%s", GetDefaultDomainName())},
 		})
 		if err != nil {
 			return nil, err

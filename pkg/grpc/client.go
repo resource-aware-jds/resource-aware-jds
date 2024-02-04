@@ -19,6 +19,7 @@ type RAJDSGrpcClient interface {
 type ClientConfig struct {
 	Target        string
 	CACertificate cert.WorkerNodeCACertificate
+	ServerName    string
 }
 
 func ProvideRAJDSGrpcClient(config ClientConfig) (RAJDSGrpcClient, error) {
@@ -32,7 +33,8 @@ func ProvideRAJDSGrpcClient(config ClientConfig) (RAJDSGrpcClient, error) {
 
 	caCertificatePool.AddCert(caCertificate)
 	tlsConfig := &tls.Config{
-		RootCAs: caCertificatePool,
+		RootCAs:    caCertificatePool,
+		ServerName: config.ServerName,
 	}
 
 	grpcConnection, err := grpc.Dial(

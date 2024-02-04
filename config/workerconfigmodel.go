@@ -32,11 +32,15 @@ func ProvideClientCATLSCertificateConfig(config WorkerConfigModel) cert.WorkerNo
 	}
 }
 
-func ProvideGRPCClientConfig(config WorkerConfigModel, clientCACertificate cert.WorkerNodeCACertificate) grpc.ClientConfig {
-	// TODO: Check if ControlPlaneHost is in the /etc/host
+func ProvideGRPCClientConfig(config WorkerConfigModel, clientCACertificate cert.WorkerNodeCACertificate, grpcResolver grpc.RAJDSGRPCResolver) grpc.ClientConfig {
+	// Add ControlPlaneHost is in the Local DNS Resolver
+	focusedDomainName := fmt.Sprintf("cp.%s", cert.GetDefaultDomainName())
+	grpcResolver.AddHost(focusedDomainName, config.ControlPlaneHost)
+
 	return grpc.ClientConfig{
-		Target:        fmt.Sprintf("cp.%s", cert.GetDefaultDomainName()),
+		Target:        "rajds://cp.rajds",
 		CACertificate: clientCACertificate,
+		ServerName:    "cp.rajds",
 	}
 }
 

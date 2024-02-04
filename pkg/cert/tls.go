@@ -9,6 +9,7 @@ import (
 	"crypto/x509/pkix"
 	"encoding/pem"
 	"errors"
+	"fmt"
 	"os"
 	"time"
 )
@@ -161,6 +162,9 @@ func (t *tlsCertificate) CreateCertificateAndSign(certificateSubject pkix.Name, 
 		CertificateSubject:   certificateSubject,
 		ParentTLSCertificate: t,
 		IsCA:                 false,
+		DNSName: []string{
+			fmt.Sprintf("%s.%s", certificateSubject.SerialNumber, GetDefaultDomainName()),
+		},
 	})
 }
 

@@ -40,6 +40,7 @@ type workerNode struct {
 	caCertificate cert.CACertificate
 	distributor   distribution.Distributor
 	poolMu        sync.Mutex
+	grpcResolver  grpc.RAJDSGRPCResolver
 }
 
 type WorkerNode interface {
@@ -50,11 +51,12 @@ type WorkerNode interface {
 	IsAvailableWorkerNode() bool
 }
 
-func ProvideWorkerNode(caCertificate cert.CACertificate, distributor distribution.Distributor) WorkerNode {
+func ProvideWorkerNode(caCertificate cert.CACertificate, distributor distribution.Distributor, grpcResolver grpc.RAJDSGRPCResolver) WorkerNode {
 	return &workerNode{
 		caCertificate: caCertificate,
 		pool:          make(map[string]workerNodePoolMapper),
 		distributor:   distributor,
+		grpcResolver:  grpcResolver,
 	}
 }
 
@@ -73,12 +75,17 @@ func (w *workerNode) AddWorkerNode(ctx context.Context, node models.NodeEntry) e
 		"port":   node.Port,
 	})
 
-	joinedHostPort := net.JoinHostPort(fmt.Sprintf("%s.%s", node.NodeID, cert.GetDefaultDomainName()), strconv.Itoa(int(node.Port)))
+	// Check if /etc/host/ already contain the host and domain
+	focusedHost := fmt.Sprintf("%s.%s", node.NodeID, cert.GetDefaultDomainName())
+	target := fmt.Sprintf("rajds://%s", focusedHost)
+
+	w.grpcResolver.AddHost(focusedHost, net.JoinHostPort(node.IP, strconv.Itoa(int(node.Port))))
 
 	// Create gRPC connection
 	client, err := grpc.ProvideRAJDSGrpcClient(grpc.ClientConfig{
-		Target:        joinedHostPort,
+		Target:        target,
 		CACertificate: w.caCertificate,
+		ServerName:    focusedHost,
 	})
 	if err != nil {
 		logger.Warnf("[WorkerNode Pool] Failed add worker node to the pool with error (%s)", err.Error())

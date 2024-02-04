@@ -34,11 +34,12 @@ type CreateCertificateOptions struct {
 	CertificateSubject   pkix.Name
 	ParentTLSCertificate TLSCertificate
 	IsCA                 bool
+	DNSName              []string
 }
 
 func CreateCertificate(c CreateCertificateOptions) (TLSCertificate, error) {
-	if c.PublicKey == nil || c.PrivateKey == nil {
-		return nil, fmt.Errorf("public key or private key is nil")
+	if c.PublicKey == nil {
+		return nil, fmt.Errorf("public key is nil")
 	}
 
 	// Create the Certificate
@@ -57,15 +58,16 @@ func CreateCertificate(c CreateCertificateOptions) (TLSCertificate, error) {
 			net.IPv4zero,
 			net.IPv6unspecified,
 		},
-		DNSNames: []string{"localhost"},
+		DNSNames: c.DNSName,
 	}
 
 	var parentCertificateValue *x509.Certificate
-	keyToSignCertificate := c.PrivateKey.GetRawKeyData()
+	var keyToSignCertificate any
 	if c.ParentTLSCertificate != nil {
 		keyToSignCertificate = c.ParentTLSCertificate.GetPrivateKey().GetRawKeyData()
 		parentCertificateValue = c.ParentTLSCertificate.GetCertificate()
 	} else {
+		keyToSignCertificate = c.PrivateKey.GetRawKeyData()
 		certificate.IsCA = true
 		parentCertificateValue = certificate
 	}

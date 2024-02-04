@@ -34,7 +34,8 @@ func InitializeApplication() (WorkerApp, func(), error) {
 	if err != nil {
 		return WorkerApp{}, nil, err
 	}
-	clientConfig := config.ProvideGRPCClientConfig(workerConfigModel, workerNodeCACertificate)
+	rajdsgrpcResolver := grpc.ProvideRAJDSGRPCResolver()
+	clientConfig := config.ProvideGRPCClientConfig(workerConfigModel, workerNodeCACertificate, rajdsgrpcResolver)
 	rajdsGrpcClient, err := grpc.ProvideRAJDSGrpcClient(clientConfig)
 	if err != nil {
 		return WorkerApp{}, nil, err

@@ -23,4 +23,5 @@ var PKGWireSet = wire.NewSet(
 	distribution.ProvideRoundRobinDistributor,
 	workerdistribution.ProvideDelayWorkerDistributor,
 	http.ProvideHttpServer,
+	grpc.ProvideRAJDSGRPCResolver,
 )
