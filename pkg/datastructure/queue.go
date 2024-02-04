@@ -9,7 +9,7 @@ type Queue[Data any] struct {
 
 func ProvideQueue[Data any](size int) Queue[Data] {
 	return Queue[Data]{
-		data: make([]Data, size),
+		data: make([]Data, 0, size),
 	}
 }
 

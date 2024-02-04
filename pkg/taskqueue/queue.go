@@ -24,7 +24,9 @@ type Queue interface {
 }
 
 func ProvideTaskQueue() Queue {
-	return &queue{}
+	return &queue{
+		queue: datastructure.ProvideQueue[*models.Task](0),
+	}
 }
 
 func (q *queue) Pop() (*models.Task, bool) {

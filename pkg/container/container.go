@@ -123,9 +123,7 @@ func (c *containerSvc) RemoveContainer(ctx context.Context) error {
 }
 
 func (c *containerSvc) getHostConfig() *container.HostConfig {
-	return &container.HostConfig{
-		ExtraHosts: []string{"host.docker.internal:host-gateway"},
-	}
+	return &container.HostConfig{}
 }
 
 func (c *containerSvc) getContainerConfig(dockerImage string) *container.Config {
