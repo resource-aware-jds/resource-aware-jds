@@ -134,6 +134,7 @@ func (c *containerSvc) getContainerConfig(dockerImage string) *container.Config 
 		Env: []string{
 			"INITIAL_TASK_RUNNER=1",
 			"IMAGE_URL=" + dockerImage,
+			"CONTAINER_GRPC_LISTENING_URL=0.0.0.0:30000",
 		},
 		// For testing
 		//Entrypoint: []string{"/bin/sh", "-c", "sleep infinity"},
