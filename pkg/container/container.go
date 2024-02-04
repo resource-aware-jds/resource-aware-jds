@@ -49,13 +49,18 @@ func ProvideContainer(dockerClient *client.Client, imageURL string, imagePullOpt
 func (c *containerSvc) Start(ctx context.Context) error {
 	logrus.Info("Creating container: ", c.containerName, " with image: ", c.imageURL)
 
-	// Pull image
-	logrus.Info("Pulling docker image")
-	out, err := c.dockerClient.ImagePull(ctx, c.imageURL, c.imagePullOptions)
+	// Check if image is already exists in the local machine
+	_, _, err := c.dockerClient.ImageInspectWithRaw(ctx, c.imageURL)
 	if err != nil {
-		logrus.Error("Pull image error: ", err)
+		logrus.Info("Pulling docker image")
+		_, err = c.dockerClient.ImagePull(ctx, c.imageURL, c.imagePullOptions)
+		if err != nil {
+			logrus.Error("Pull image error: ", err)
+			return err
+		}
+	} else {
+		logrus.Debug("Using the cached docker image")
 	}
-	defer out.Close()
 
 	// Create container
 	resp, err := c.dockerClient.ContainerCreate(
