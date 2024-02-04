@@ -3,6 +3,7 @@ package pool
 import (
 	"context"
 	"errors"
+	"fmt"
 	"github.com/resource-aware-jds/resource-aware-jds/generated/proto/github.com/resource-aware-jds/resource-aware-jds/generated/proto"
 	"github.com/resource-aware-jds/resource-aware-jds/models"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/cert"
@@ -72,7 +73,7 @@ func (w *workerNode) AddWorkerNode(ctx context.Context, node models.NodeEntry) e
 		"port":   node.Port,
 	})
 
-	joinedHostPort := net.JoinHostPort(node.IP, strconv.Itoa(int(node.Port)))
+	joinedHostPort := net.JoinHostPort(fmt.Sprintf("%s.%s", node.NodeID, cert.GetDefaultDomainName()), strconv.Itoa(int(node.Port)))
 
 	// Create gRPC connection
 	client, err := grpc.ProvideRAJDSGrpcClient(grpc.ClientConfig{

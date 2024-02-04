@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/cert"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/grpc"
 	httpServer "github.com/resource-aware-jds/resource-aware-jds/pkg/http"
@@ -32,8 +33,9 @@ func ProvideClientCATLSCertificateConfig(config WorkerConfigModel) cert.WorkerNo
 }
 
 func ProvideGRPCClientConfig(config WorkerConfigModel, clientCACertificate cert.WorkerNodeCACertificate) grpc.ClientConfig {
+	// TODO: Check if ControlPlaneHost is in the /etc/host
 	return grpc.ClientConfig{
-		Target:        config.ControlPlaneHost,
+		Target:        fmt.Sprintf("cp.%s", cert.GetDefaultDomainName()),
 		CACertificate: clientCACertificate,
 	}
 }
