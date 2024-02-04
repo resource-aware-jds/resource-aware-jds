@@ -10,6 +10,7 @@ type TaskStatus string
 const (
 	CreatedTaskStatus     TaskStatus = "created"
 	DistributedTaskStatus TaskStatus = "distributed"
+	WorkOnTaskFailure     TaskStatus = "work-on-task-failure"
 )
 
 type Task struct {
@@ -39,6 +40,15 @@ func (t *Task) DistributionFailure(nodeID string, err error) {
 	})
 }
 
+func (t *Task) WorkOnTaskFailure(nodeID string, message string) {
+	t.LatestDistributedNodeID = ""
+	t.Status = WorkOnTaskFailure
+	t.AddLog(ErrorLogSeverity, "Node Report Task Failure", map[string]string{
+		"nodeID":     nodeID,
+		"errMessage": message,
+	})
+}
+
 func (t *Task) AddLog(severity LogSeverity, message string, parameters map[string]string) {
 	if t.Logs == nil {
 		t.Logs = make([]TaskLog, 0)
@@ -55,8 +65,9 @@ func (t *Task) AddLog(severity LogSeverity, message string, parameters map[strin
 type LogSeverity string
 
 const (
-	InfoLogSeverity LogSeverity = "info"
-	WarnLogSeverity LogSeverity = "warn"
+	InfoLogSeverity  LogSeverity = "info"
+	WarnLogSeverity  LogSeverity = "warn"
+	ErrorLogSeverity LogSeverity = "error"
 )
 
 type TaskLog struct {

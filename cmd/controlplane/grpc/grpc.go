@@ -7,6 +7,8 @@ import (
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/cert"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/grpc"
 	"github.com/resource-aware-jds/resource-aware-jds/service"
+	"github.com/sirupsen/logrus"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"google.golang.org/grpc/peer"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"net"
@@ -108,5 +110,17 @@ func (g *GRPCHandler) WorkerCheckIn(ctx context.Context, req *proto.WorkerCheckI
 	}
 
 	err = g.controlPlaneService.CheckInWorkerNode(ctx, host, req.Port, req.GetCertificate())
+	return &emptypb.Empty{}, err
+}
+
+func (g *GRPCHandler) ReportFailureTask(ctx context.Context, req *proto.ReportFailureTaskRequest) (*emptypb.Empty, error) {
+	id := req.GetId()
+	parsedTaskID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		logrus.Errorf("parsing task id error %v", err)
+		return nil, err
+	}
+
+	err = g.taskService.UpdateTaskWorkOnFailure(ctx, parsedTaskID, req.GetNodeID(), req.GetMessage())
 	return &emptypb.Empty{}, err
 }

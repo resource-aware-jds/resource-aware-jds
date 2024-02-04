@@ -10,6 +10,13 @@ service ControlPlane {
   rpc WorkerRegistration(ComputeNodeRegistrationRequest) returns (ComputeNodeRegistrationResponse);
   rpc CreateJob(CreateJobRequest) returns (CreateJobResponse);
   rpc WorkerCheckIn(WorkerCheckInRequest) returns (google.protobuf.Empty);
+  rpc ReportFailureTask(ReportFailureTaskRequest) returns (google.protobuf.Empty);
+}
+
+message ReportFailureTaskRequest {
+  string id = 1;
+  string nodeID = 2;
+  string message = 3;
 }
 
 message WorkerCheckInRequest {

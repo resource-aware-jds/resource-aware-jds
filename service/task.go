@@ -5,6 +5,7 @@ import (
 	"github.com/resource-aware-jds/resource-aware-jds/models"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/distribution"
 	"github.com/resource-aware-jds/resource-aware-jds/repository"
+	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -15,6 +16,7 @@ type task struct {
 type Task interface {
 	GetAvailableTask(ctx context.Context) ([]models.Task, error)
 	UpdateTaskAfterDistribution(ctx context.Context, successTasks []models.Task, errorTasks []distribution.DistributeError) error
+	UpdateTaskWorkOnFailure(ctx context.Context, taskID primitive.ObjectID, nodeID string, errMessage string) error
 	CreateTask(ctx context.Context, job *models.Job, taskAttributes [][]byte) ([]models.Task, error)
 	GetTaskByJob(ctx context.Context, job *models.Job) ([]models.Task, error)
 	GetTaskByID(ctx context.Context, taskID primitive.ObjectID) (*models.Task, error)
@@ -69,4 +71,15 @@ func (t *task) GetTaskByJob(ctx context.Context, job *models.Job) ([]models.Task
 
 func (t *task) GetTaskByID(ctx context.Context, taskID primitive.ObjectID) (*models.Task, error) {
 	return t.taskRepository.FindOneByID(ctx, taskID)
+}
+
+func (t *task) UpdateTaskWorkOnFailure(ctx context.Context, taskID primitive.ObjectID, nodeID string, errMessage string) error {
+	taskResult, err := t.GetTaskByID(ctx, taskID)
+	if err != nil {
+		logrus.Errorf("get task error %v", err)
+		return err
+	}
+
+	taskResult.WorkOnTaskFailure(nodeID, errMessage)
+	return t.taskRepository.BulkWriteStatusAndLogByID(ctx, []models.Task{*taskResult})
 }
