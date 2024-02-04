@@ -3,6 +3,7 @@ package config
 import (
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/cert"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/grpc"
+	httpServer "github.com/resource-aware-jds/resource-aware-jds/pkg/http"
 	"time"
 )
 
@@ -14,6 +15,7 @@ type WorkerConfigModel struct {
 	CertificatePath                           string        `envconfig:"CERTIFICATE_PATH"`
 	CertificatePrivateKeyPath                 string        `envconfig:"CERTIFICATE_PRIVATE_KEY_PATH"`
 	ContainerStartDelayTimeSeconds            time.Duration `envconfig:"CONTAINER_START_DELAY_TIME_SECONDS" default:"60s"`
+	HTTPServerPort                            int           `envconfig:"HTTP_SERVER_PORT" default:"30001"`
 }
 
 func ProvideWorkerNodeReceiverConfig(config WorkerConfigModel) grpc.WorkerNodeReceiverConfig {
@@ -40,5 +42,11 @@ func ProvideWorkerNodeTransportCertificate(config WorkerConfigModel) cert.Worker
 	return cert.WorkerNodeTransportCertificateConfig{
 		CertificateFileLocation: config.CertificatePath,
 		PrivateKeyFileLocation:  config.CertificatePrivateKeyPath,
+	}
+}
+
+func ProvideWorkerHTTPServerConfig(config WorkerConfigModel) httpServer.ServerConfig {
+	return httpServer.ServerConfig{
+		Port: config.HTTPServerPort,
 	}
 }

@@ -5,6 +5,7 @@ import (
 	"github.com/resource-aware-jds/resource-aware-jds/daemon"
 	"github.com/resource-aware-jds/resource-aware-jds/generated/proto/github.com/resource-aware-jds/resource-aware-jds/generated/proto"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/grpc"
+	httpServer "github.com/resource-aware-jds/resource-aware-jds/pkg/http"
 )
 
 type WorkerApp struct {
@@ -14,6 +15,7 @@ type WorkerApp struct {
 	WorkerGRPCSocketHandler      handler.WorkerNodeReceiverGRPCHandler
 	WorkerNodeDaemon             daemon.WorkerNode
 	ControlPlaneGRPCClient       proto.ControlPlaneClient
+	WorkerHTTPServer             httpServer.Server
 }
 
 func ProvideControlPlaneGRPCClient(grpcClient grpc.RAJDSGrpcClient) proto.ControlPlaneClient {
@@ -26,6 +28,7 @@ func ProvideWorkerApp(
 	workerNodeReceiverGRPCServer grpc.WorkerNodeReceiverGRPCServer,
 	workerGRPCSocketHandler handler.WorkerNodeReceiverGRPCHandler,
 	workerNodeDaemon daemon.WorkerNode,
+	workerHTTPServer httpServer.Server,
 ) WorkerApp {
 	return WorkerApp{
 		GRPCServer:                   grpcServer,
@@ -33,5 +36,6 @@ func ProvideWorkerApp(
 		WorkerNodeReceiverGRPCServer: workerNodeReceiverGRPCServer,
 		WorkerGRPCSocketHandler:      workerGRPCSocketHandler,
 		WorkerNodeDaemon:             workerNodeDaemon,
+		WorkerHTTPServer:             workerHTTPServer,
 	}
 }

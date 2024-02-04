@@ -22,6 +22,7 @@ func main() {
 	app.GRPCServer.Serve()
 	app.WorkerNodeReceiverGRPCServer.Serve()
 	app.WorkerNodeDaemon.Start()
+	app.WorkerHTTPServer.Serve()
 
 	// Gracefully Shutdown
 	// Make channel listen for signals from OS

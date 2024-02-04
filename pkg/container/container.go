@@ -127,7 +127,7 @@ func (c *containerSvc) getContainerConfig(dockerImage string) *container.Config 
 	return &container.Config{
 		Image: dockerImage,
 		Env: []string{
-			"INITIAL_TASK_RUNNER=3",
+			"INITIAL_TASK_RUNNER=1",
 			"IMAGE_URL=" + dockerImage,
 		},
 		// For testing

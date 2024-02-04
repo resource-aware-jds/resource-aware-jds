@@ -13,6 +13,7 @@ import (
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/cert"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/dockerclient"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/grpc"
+	"github.com/resource-aware-jds/resource-aware-jds/pkg/http"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/taskqueue"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/workerdistribution"
 	"github.com/resource-aware-jds/resource-aware-jds/service"
@@ -67,8 +68,11 @@ func InitializeApplication() (WorkerApp, func(), error) {
 	workerNodeReceiverGRPCHandler := handler.ProvideWorkerGRPCSocketHandler(workerNodeReceiverGRPCServer, iWorker)
 	iResourceMonitor := service.ProvideResourcesMonitor(client, iContainer)
 	workerNode := daemon.ProvideWorkerNodeDaemon(client, iWorker, iResourceMonitor)
-	workerApp := ProvideWorkerApp(rajdsGrpcServer, grpcHandler, workerNodeReceiverGRPCServer, workerNodeReceiverGRPCHandler, workerNode)
+	serverConfig := config.ProvideWorkerHTTPServerConfig(workerConfigModel)
+	server, cleanup4 := http.ProvideHttpServer(serverConfig)
+	workerApp := ProvideWorkerApp(rajdsGrpcServer, grpcHandler, workerNodeReceiverGRPCServer, workerNodeReceiverGRPCHandler, workerNode, server)
 	return workerApp, func() {
+		cleanup4()
 		cleanup3()
 		cleanup2()
 		cleanup()
