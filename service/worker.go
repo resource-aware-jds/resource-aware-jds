@@ -38,7 +38,7 @@ type IWorker interface {
 	CheckInWorkerNodeToControlPlane(ctx context.Context) error
 
 	// Task related method
-	SubmitTask(containerImage string, taskId string, input []byte) error
+	StoreTaskInQueue(containerImage string, taskId string, input []byte) error
 	GetTask(containerImage string) (*proto.Task, error)
 	SubmitSuccessTask(id string, results [][]byte) error
 	ReportFailTask(id string, errorMessage string) error
@@ -114,7 +114,7 @@ func (w *Worker) ReportFailTask(id string, errorMessage string) error {
 	return nil
 }
 
-func (w *Worker) SubmitTask(containerImage string, taskId string, input []byte) error {
+func (w *Worker) StoreTaskInQueue(containerImage string, taskId string, input []byte) error {
 	hex, err := primitive.ObjectIDFromHex(taskId)
 	if err != nil {
 		return err

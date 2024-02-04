@@ -26,6 +26,6 @@ func (j *GRPCHandler) HealthCheck(ctx context.Context, req *emptypb.Empty) (*emp
 }
 
 func (j *GRPCHandler) SendTask(context context.Context, task *proto.RecievedTask) (*emptypb.Empty, error) {
-	err := j.workerService.SubmitTask(task.DockerImage, task.ID, task.TaskAttributes)
+	err := j.workerService.StoreTaskInQueue(task.DockerImage, task.ID, task.TaskAttributes)
 	return &emptypb.Empty{}, err
 }
