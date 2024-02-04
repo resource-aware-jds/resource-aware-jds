@@ -21,6 +21,7 @@ type Queue interface {
 	GetDistinctImageList() []string
 	BulkRemove(tasks []*models.Task)
 	Pop() (*models.Task, bool)
+	PeakForNextTask() (*models.Task, bool)
 }
 
 func ProvideTaskQueue() Queue {
@@ -76,4 +77,12 @@ func (q *queue) BulkRemove(tasks []*models.Task) {
 	})
 	logrus.Info("Task removed:", tasks)
 	logrus.Info("Current queue:", q.queue)
+}
+
+func (q *queue) PeakForNextTask() (*models.Task, bool) {
+	if len(q.queue.ReadQueue()) == 0 {
+		return nil, false
+	}
+
+	return q.queue.ReadQueue()[0], true
 }

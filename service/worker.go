@@ -41,7 +41,7 @@ type IWorker interface {
 	StoreTaskInQueue(containerImage string, taskId string, input []byte) error
 	GetTask(containerImage string) (*proto.Task, error)
 	SubmitSuccessTask(id string, results [][]byte) error
-	ReportFailTask(id string, errorMessage string) error
+	ReportFailTask(ctx context.Context, id string, errorMessage string) error
 
 	// TaskDistributionDaemonLoop is a method allowing the daemon to call to accomplish its routine.
 	TaskDistributionDaemonLoop(ctx context.Context)
@@ -104,14 +104,19 @@ func (w *Worker) SubmitSuccessTask(id string, results [][]byte) error {
 	return nil
 }
 
-func (w *Worker) ReportFailTask(id string, errorMessage string) error {
+func (w *Worker) ReportFailTask(ctx context.Context, id string, errorMessage string) error {
 	task := w.taskBuffer.Pop(id)
 	if task == nil {
 		return fmt.Errorf("Task with id:" + id + "not existed in buffer")
 	}
+
 	logrus.Error("Task failed with id: " + id)
-	w.taskQueue.StoreTask(task)
-	return nil
+	_, err := w.controlPlaneGRPCClient.ReportFailureTask(ctx, &proto.ReportFailureTaskRequest{
+		Id:      id,
+		NodeID:  "",
+		Message: errorMessage,
+	})
+	return err
 }
 
 func (w *Worker) StoreTaskInQueue(containerImage string, taskId string, input []byte) error {
@@ -130,7 +135,7 @@ func (w *Worker) StoreTaskInQueue(containerImage string, taskId string, input []
 }
 
 func (w *Worker) TaskDistributionDaemonLoop(ctx context.Context) {
-	task, ok := w.taskQueue.Pop()
+	task, ok := w.taskQueue.PeakForNextTask()
 	if !ok {
 		return
 	}

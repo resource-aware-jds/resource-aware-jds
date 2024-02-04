@@ -35,7 +35,7 @@ func (w *WorkerNodeReceiverGRPCHandler) SubmitSuccessTask(ctx context.Context, p
 }
 
 func (w *WorkerNodeReceiverGRPCHandler) ReportTaskFailure(ctx context.Context, payload *proto.ReportTaskFailureRequest) (*emptypb.Empty, error) {
-	err := w.workerService.ReportFailTask(payload.ID, payload.ErrorDetail)
+	err := w.workerService.ReportFailTask(ctx, payload.GetID(), payload.GetErrorDetail())
 	if err != nil {
 		return &emptypb.Empty{}, err
 	}
