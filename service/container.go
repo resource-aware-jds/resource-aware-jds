@@ -9,6 +9,7 @@ import (
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/container"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/datastructure"
 	"github.com/sirupsen/logrus"
+	"go.opentelemetry.io/otel/metric"
 	"time"
 )
 
@@ -25,11 +26,13 @@ type ContainerService struct {
 	containerCoolDownState datastructure.Buffer[string, time.Time]
 }
 
-func ProvideContainer(dockerClient *client.Client, config config.WorkerConfigModel) IContainer {
+func ProvideContainer(dockerClient *client.Client, config config.WorkerConfigModel, meter metric.Meter) IContainer {
 	return &ContainerService{
-		dockerClient:           dockerClient,
-		config:                 config,
-		containerBuffer:        make(datastructure.Buffer[string, container.IContainer]),
+		dockerClient: dockerClient,
+		config:       config,
+		containerBuffer: datastructure.ProvideBuffer[string, container.IContainer](
+			datastructure.WithBufferMetrics(meter, "container_buffer_size"),
+		),
 		containerCoolDownState: make(datastructure.Buffer[string, time.Time]),
 	}
 }

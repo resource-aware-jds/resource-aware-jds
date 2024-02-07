@@ -27,5 +27,6 @@ message ReportTaskFailureRequest {
 
 message Task {
   string ID = 1;
-  bytes TaskAttributes = 2;
+  string JobID = 2;
+  bytes TaskAttributes = 3;
 }

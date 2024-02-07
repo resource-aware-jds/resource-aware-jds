@@ -5,6 +5,7 @@ import (
 	"github.com/resource-aware-jds/resource-aware-jds/models"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/datastructure"
 	"github.com/sirupsen/logrus"
+	"go.opentelemetry.io/otel/metric"
 )
 
 type queue struct {
@@ -24,9 +25,11 @@ type Queue interface {
 	PeakForNextTask() (*models.Task, bool)
 }
 
-func ProvideTaskQueue() Queue {
+func ProvideTaskQueue(meter metric.Meter) Queue {
 	return &queue{
-		queue: datastructure.ProvideQueue[*models.Task](0),
+		queue: datastructure.ProvideQueue[*models.Task](
+			datastructure.WithQueueMetrics(meter, "task_queue_size"),
+		),
 	}
 }
 

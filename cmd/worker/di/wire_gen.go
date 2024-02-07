@@ -8,12 +8,14 @@ package di
 
 import (
 	"github.com/resource-aware-jds/resource-aware-jds/cmd/worker/handler"
+	http2 "github.com/resource-aware-jds/resource-aware-jds/cmd/worker/http"
 	"github.com/resource-aware-jds/resource-aware-jds/config"
 	"github.com/resource-aware-jds/resource-aware-jds/daemon"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/cert"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/dockerclient"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/grpc"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/http"
+	"github.com/resource-aware-jds/resource-aware-jds/pkg/metrics"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/taskqueue"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/workerdistribution"
 	"github.com/resource-aware-jds/resource-aware-jds/service"
@@ -54,11 +56,17 @@ func InitializeApplication() (WorkerApp, func(), error) {
 		cleanup()
 		return WorkerApp{}, nil, err
 	}
-	queue := taskqueue.ProvideTaskQueue()
+	meter, err := metrics.ProvideMeter()
+	if err != nil {
+		cleanup2()
+		cleanup()
+		return WorkerApp{}, nil, err
+	}
+	queue := taskqueue.ProvideTaskQueue(meter)
 	workerDistributor := workerdistribution.ProvideDelayWorkerDistributor()
-	iContainer := service.ProvideContainer(client, workerConfigModel)
-	iWorker := service.ProvideWorker(controlPlaneClient, client, transportCertificate, workerConfigModel, queue, workerDistributor, iContainer)
-	grpcHandler := handler.ProvideWorkerGRPCHandler(rajdsGrpcServer, iWorker)
+	iContainer := service.ProvideContainer(client, workerConfigModel, meter)
+	iWorker := service.ProvideWorker(controlPlaneClient, client, transportCertificate, workerConfigModel, queue, workerDistributor, iContainer, meter)
+	grpcHandler := handler.ProvideWorkerGRPCHandler(rajdsGrpcServer, iWorker, meter)
 	workerNodeReceiverConfig := config.ProvideWorkerNodeReceiverConfig(workerConfigModel)
 	workerNodeReceiverGRPCServer, cleanup3, err := grpc.ProvideWorkerNodeReceiverGRPCServer(workerNodeReceiverConfig)
 	if err != nil {
@@ -66,12 +74,13 @@ func InitializeApplication() (WorkerApp, func(), error) {
 		cleanup()
 		return WorkerApp{}, nil, err
 	}
-	workerNodeReceiverGRPCHandler := handler.ProvideWorkerGRPCSocketHandler(workerNodeReceiverGRPCServer, iWorker)
+	workerNodeReceiverGRPCHandler := handler.ProvideWorkerGRPCSocketHandler(workerNodeReceiverGRPCServer, iWorker, meter)
 	iResourceMonitor := service.ProvideResourcesMonitor(client, iContainer)
 	workerNode := daemon.ProvideWorkerNodeDaemon(client, iWorker, iResourceMonitor)
 	serverConfig := config.ProvideWorkerHTTPServerConfig(workerConfigModel)
 	server, cleanup4 := http.ProvideHttpServer(serverConfig)
-	workerApp := ProvideWorkerApp(rajdsGrpcServer, grpcHandler, workerNodeReceiverGRPCServer, workerNodeReceiverGRPCHandler, workerNode, server)
+	routerResult := http2.ProvideHTTPRouter(server)
+	workerApp := ProvideWorkerApp(rajdsGrpcServer, grpcHandler, workerNodeReceiverGRPCServer, workerNodeReceiverGRPCHandler, workerNode, server, routerResult)
 	return workerApp, func() {
 		cleanup4()
 		cleanup3()

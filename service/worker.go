@@ -13,6 +13,7 @@ import (
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/workerdistribution"
 	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.opentelemetry.io/otel/metric"
 )
 
 const (
@@ -55,6 +56,7 @@ func ProvideWorker(
 	taskQueue taskqueue.Queue,
 	workerNodeDistribution workerdistribution.WorkerDistributor,
 	containerService IContainer,
+	meter metric.Meter,
 ) IWorker {
 	return &Worker{
 		controlPlaneGRPCClient: controlPlaneGRPCClient,
@@ -62,7 +64,9 @@ func ProvideWorker(
 		config:                 config,
 		taskQueue:              taskQueue,
 		workerNodeCertificate:  workerNodeCertificate,
-		taskBuffer:             make(datastructure.Buffer[string, models.Task]),
+		taskBuffer: datastructure.ProvideBuffer[string, models.Task](
+			datastructure.WithBufferMetrics(meter, "task_buffer_size"),
+		),
 		workerNodeDistribution: workerNodeDistribution,
 		containerService:       containerService,
 	}

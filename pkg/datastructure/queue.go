@@ -1,15 +1,60 @@
 package datastructure
 
-import "slices"
+import (
+	"context"
+	"go.opentelemetry.io/otel/metric"
+	"slices"
+)
+
+type queueOption struct {
+	size int
+
+	// Metrics
+	meter     metric.Meter
+	meterName string
+}
+
+type QueueOptionFunc func(option *queueOption)
+
+func WithQueueSize(size int) QueueOptionFunc {
+	return func(q *queueOption) {
+		q.size = size
+	}
+}
+
+func WithQueueMetrics(meter metric.Meter, meterName string) QueueOptionFunc {
+	return func(q *queueOption) {
+		q.meter = meter
+		q.meterName = meterName
+	}
+}
 
 // Queue is a FIFO (First in Last out) queue data structure
 type Queue[Data any] struct {
 	data []Data
 }
 
-func ProvideQueue[Data any](size int) Queue[Data] {
+func ProvideQueue[Data any](ops ...QueueOptionFunc) Queue[Data] {
+	var option queueOption
+
+	for _, eachOps := range ops {
+		eachOps(&option)
+	}
+
+	data := make([]Data, 0, option.size)
+
+	if option.meter != nil {
+		_, err := option.meter.Int64ObservableCounter(option.meterName, metric.WithInt64Callback(func(ctx context.Context, observer metric.Int64Observer) error {
+			observer.Observe(int64(len(data)))
+			return nil
+		}))
+		if err != nil {
+			panic(err)
+		}
+	}
+
 	return Queue[Data]{
-		data: make([]Data, 0, size),
+		data: data,
 	}
 }
 

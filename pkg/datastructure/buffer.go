@@ -1,11 +1,49 @@
 package datastructure
 
 import (
+	"context"
 	"github.com/sirupsen/logrus"
+	"go.opentelemetry.io/otel/metric"
 	"reflect"
 )
 
 type Buffer[T comparable, U any] map[T]U
+
+type bufferOption struct {
+	// Metrics
+	meter     metric.Meter
+	meterName string
+}
+
+type BufferOptionFunc func(option *bufferOption)
+
+func WithBufferMetrics(meter metric.Meter, meterName string) BufferOptionFunc {
+	return func(q *bufferOption) {
+		q.meter = meter
+		q.meterName = meterName
+	}
+}
+
+func ProvideBuffer[T comparable, U any](ops ...BufferOptionFunc) Buffer[T, U] {
+	data := make(map[T]U)
+
+	var option bufferOption
+
+	for _, eachOps := range ops {
+		eachOps(&option)
+	}
+	if option.meter != nil {
+		_, err := option.meter.Int64ObservableCounter(option.meterName, metric.WithInt64Callback(func(ctx context.Context, observer metric.Int64Observer) error {
+			observer.Observe(int64(len(data)))
+			return nil
+		}))
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	return data
+}
 
 func (t Buffer[T, U]) Store(id T, object U) {
 	logrus.Info("Buffer ", reflect.TypeOf(object), " with id: ", id)
