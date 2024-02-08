@@ -122,7 +122,7 @@ func (w *Worker) ReportFailTask(ctx context.Context, id string, errorMessage str
 	logrus.Error("Task failed with id: " + id)
 	_, err := w.controlPlaneGRPCClient.ReportFailureTask(ctx, &proto.ReportFailureTaskRequest{
 		Id:      id,
-		NodeID:  "",
+		NodeID:  w.workerNodeCertificate.GetNodeID(),
 		Message: errorMessage,
 	})
 	return err
