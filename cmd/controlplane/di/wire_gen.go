@@ -55,8 +55,6 @@ func InitializeApplication() (ControlPlaneApp, func(), error) {
 		return ControlPlaneApp{}, nil, err
 	}
 	iNodeRegistry := repository.ProvideControlPlane(database)
-	distributor := distribution.ProvideRoundRobinDistributor()
-	rajdsgrpcResolver := grpc.ProvideRAJDSGRPCResolver()
 	meter, err := metrics.ProvideMeter()
 	if err != nil {
 		cleanup3()
@@ -64,13 +62,15 @@ func InitializeApplication() (ControlPlaneApp, func(), error) {
 		cleanup()
 		return ControlPlaneApp{}, nil, err
 	}
+	distributor := distribution.ProvideRoundRobinDistributor(meter)
+	rajdsgrpcResolver := grpc.ProvideRAJDSGRPCResolver()
 	workerNode := pool.ProvideWorkerNode(caCertificate, distributor, rajdsgrpcResolver, meter)
 	iControlPlane := service.ProvideControlPlane(iNodeRegistry, caCertificate, controlPlaneConfigModel, workerNode)
 	iJob := repository.ProvideJob(database)
 	job := service.ProvideJobService(iJob)
 	iTask := repository.ProvideTask(database)
 	task := service.ProvideTaskService(iTask)
-	grpcHandler := grpc2.ProvideControlPlaneGRPCHandler(rajdsGrpcServer, iControlPlane, job, task)
+	grpcHandler := grpc2.ProvideControlPlaneGRPCHandler(rajdsGrpcServer, iControlPlane, job, task, meter)
 	daemonIControlPlane, cleanup4 := daemon.ProvideControlPlaneDaemon(workerNode, iControlPlane, task)
 	httpHandler := http2.ProvideHTTPHandler(job, task)
 	handler := http2.ProvideHandler(httpHandler)

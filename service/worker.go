@@ -41,7 +41,7 @@ type IWorker interface {
 	// Task related method
 	StoreTaskInQueue(containerImage string, taskId string, input []byte) error
 	GetTask(containerImage string) (*proto.Task, error)
-	SubmitSuccessTask(id string, results [][]byte) error
+	SubmitSuccessTask(ctx context.Context, id string, results []byte) error
 	ReportFailTask(ctx context.Context, id string, errorMessage string) error
 
 	// TaskDistributionDaemonLoop is a method allowing the daemon to call to accomplish its routine.
@@ -99,13 +99,18 @@ func (w *Worker) GetTask(containerImage string) (*proto.Task, error) {
 	}, nil
 }
 
-func (w *Worker) SubmitSuccessTask(id string, results [][]byte) error {
+func (w *Worker) SubmitSuccessTask(ctx context.Context, id string, results []byte) error {
 	task := w.taskBuffer.Pop(id)
 	if task == nil {
 		logrus.Error("Task is not running")
 	}
 	logrus.Info("Task succeed with id: " + id)
-	return nil
+	_, err := w.controlPlaneGRPCClient.ReportSuccessTask(ctx, &proto.ReportSuccessTaskRequest{
+		Id:     id,
+		NodeID: w.workerNodeCertificate.GetNodeID(),
+		Result: results,
+	})
+	return err
 }
 
 func (w *Worker) ReportFailTask(ctx context.Context, id string, errorMessage string) error {

@@ -54,7 +54,7 @@ type WorkerNode interface {
 }
 
 func ProvideWorkerNode(caCertificate cert.CACertificate, distributor distribution.Distributor, grpcResolver grpc.RAJDSGRPCResolver, meter metric.Meter) WorkerNode {
-	workerNodeCounter, _ := meter.Int64UpDownCounter("worker_node_total")
+	workerNodeCounter, _ := meter.Int64UpDownCounter("cp_total_connected_worker_node")
 	return &workerNode{
 		caCertificate:     caCertificate,
 		pool:              make(map[string]workerNodePoolMapper),

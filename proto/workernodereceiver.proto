@@ -17,7 +17,7 @@ message GetTaskPayload {
 
 message SubmitSuccessTaskRequest {
   string ID=1;
-  repeated bytes Results=2;
+  bytes Results=2;
 }
 
 message ReportTaskFailureRequest {

@@ -9,6 +9,8 @@ import (
 	"github.com/resource-aware-jds/resource-aware-jds/service"
 	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/metric"
 	"google.golang.org/grpc/peer"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"net"
@@ -19,14 +21,20 @@ type GRPCHandler struct {
 	controlPlaneService service.IControlPlane
 	jobService          service.Job
 	taskService         service.Task
+	taskSubmitCounter   metric.Int64Counter
 }
 
-func ProvideControlPlaneGRPCHandler(grpcServer grpc.RAJDSGrpcServer, controlPlaneService service.IControlPlane, jobService service.Job, taskService service.Task) GRPCHandler {
+func ProvideControlPlaneGRPCHandler(grpcServer grpc.RAJDSGrpcServer, controlPlaneService service.IControlPlane, jobService service.Job, taskService service.Task, meter metric.Meter) GRPCHandler {
 	handler := GRPCHandler{
 		controlPlaneService: controlPlaneService,
 		jobService:          jobService,
 		taskService:         taskService,
 	}
+	taskSubmitCounter, err := meter.Int64Counter("cp_submit_task")
+	if err != nil {
+		panic(err)
+	}
+	handler.taskSubmitCounter = taskSubmitCounter
 	proto.RegisterControlPlaneServer(grpcServer.GetGRPCServer(), &handler)
 	return handler
 }
@@ -120,6 +128,7 @@ func (g *GRPCHandler) ReportFailureTask(ctx context.Context, req *proto.ReportFa
 		logrus.Errorf("parsing task id error %v", err)
 		return nil, err
 	}
+	g.taskSubmitCounter.Add(ctx, 1, metric.WithAttributes(attribute.String("status", "success")))
 
 	err = g.taskService.UpdateTaskWorkOnFailure(ctx, parsedTaskID, req.GetNodeID(), req.GetMessage())
 	return &emptypb.Empty{}, err
@@ -132,6 +141,7 @@ func (g *GRPCHandler) ReportSuccessTask(ctx context.Context, req *proto.ReportSu
 		logrus.Errorf("parsing task id error %v", err)
 		return nil, err
 	}
+	g.taskSubmitCounter.Add(ctx, 1, metric.WithAttributes(attribute.String("status", "failure")))
 
 	err = g.taskService.UpdateTaskSuccess(ctx, parsedTaskID, req.GetNodeID(), req.GetResult())
 	return &emptypb.Empty{}, err

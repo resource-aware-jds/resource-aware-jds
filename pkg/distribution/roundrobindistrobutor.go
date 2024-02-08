@@ -5,13 +5,22 @@ import (
 	"github.com/resource-aware-jds/resource-aware-jds/generated/proto/github.com/resource-aware-jds/resource-aware-jds/generated/proto"
 	"github.com/resource-aware-jds/resource-aware-jds/models"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/datastructure"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/metric"
 )
 
 type RoundRobinDistributor struct {
+	distributedTaskCounter metric.Int64Counter
 }
 
-func ProvideRoundRobinDistributor() Distributor {
-	return &RoundRobinDistributor{}
+func ProvideRoundRobinDistributor(meter metric.Meter) Distributor {
+	counter, err := meter.Int64Counter("cp_distributed_task")
+	if err != nil {
+		panic(err)
+	}
+	return &RoundRobinDistributor{
+		distributedTaskCounter: counter,
+	}
 }
 
 func (r RoundRobinDistributor) Distribute(ctx context.Context, nodes []NodeMapper, tasks []models.Task) (successTask []models.Task, distributionError []DistributeError, err error) {
@@ -42,6 +51,7 @@ func (r RoundRobinDistributor) Distribute(ctx context.Context, nodes []NodeMappe
 		// Add log to success task
 		task.DistributionSuccess(focusedNode.NodeEntry.NodeID)
 		successTask = append(successTask, task)
+		r.distributedTaskCounter.Add(ctx, 1, metric.WithAttributes(attribute.String("nodeID", focusedNode.NodeEntry.NodeID)))
 		logger.Info("[Distributor] Worker Node accepted the task")
 	}
 	return successTask, distributionError, nil

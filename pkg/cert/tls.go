@@ -49,6 +49,8 @@ type TLSCertificate interface {
 	GetCertificateSubjectSerialNumber() string
 
 	ValidateSignature(underValidateCertificate *x509.Certificate) error
+
+	GetNodeID() string
 }
 
 func ProvideTLSCertificate(certificateChain []*x509.Certificate, privateKey KeyData, isCA bool) (TLSCertificate, error) {
@@ -242,4 +244,8 @@ func (t *tlsCertificate) ValidateSignature(underValidateCertificate *x509.Certif
 	hash.Write(underValidateCertificate.RawTBSCertificate)
 	hashData := hash.Sum(nil)
 	return rsa.VerifyPKCS1v15(t.publicKey.GetRawKeyData().(*rsa.PublicKey), crypto.SHA256, hashData, underValidateCertificate.Signature)
+}
+
+func (t *tlsCertificate) GetNodeID() string {
+	return t.GetCertificate().Subject.SerialNumber
 }
