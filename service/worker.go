@@ -154,6 +154,7 @@ func (w *Worker) TaskDistributionDaemonLoop(ctx context.Context) {
 	distributionResult := w.workerNodeDistribution.Distribute(ctx, taskDepointer, workerdistribution.WorkerState{
 		ContainerCoolDownState: w.containerService.GetContainerCoolDownState(),
 		WorkerNodeConfig:       w.config,
+		ContainerBuffer:        w.containerService.GetContainerBuffer(),
 	})
 
 	if !distributionResult.CreateContainerToSupportTask {

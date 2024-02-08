@@ -15,7 +15,7 @@ type WorkerConfigModel struct {
 	CACertificatePath                         string        `envconfig:"CA_CERTIFICATE_PATH"`
 	CertificatePath                           string        `envconfig:"CERTIFICATE_PATH"`
 	CertificatePrivateKeyPath                 string        `envconfig:"CERTIFICATE_PRIVATE_KEY_PATH"`
-	ContainerStartDelayTimeSeconds            time.Duration `envconfig:"CONTAINER_START_DELAY_TIME_SECONDS" default:"60s"`
+	ContainerStartDelayTimeSeconds            time.Duration `envconfig:"CONTAINER_START_DELAY_TIME_SECONDS" default:"5m"`
 	HTTPServerPort                            int           `envconfig:"HTTP_SERVER_PORT" default:"30001"`
 }
 

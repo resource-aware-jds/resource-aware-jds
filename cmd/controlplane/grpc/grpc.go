@@ -128,7 +128,7 @@ func (g *GRPCHandler) ReportFailureTask(ctx context.Context, req *proto.ReportFa
 		logrus.Errorf("parsing task id error %v", err)
 		return nil, err
 	}
-	g.taskSubmitCounter.Add(ctx, 1, metric.WithAttributes(attribute.String("status", "success")))
+	g.taskSubmitCounter.Add(ctx, 1, metric.WithAttributes(attribute.String("status", "failure")))
 
 	err = g.taskService.UpdateTaskWorkOnFailure(ctx, parsedTaskID, req.GetNodeID(), req.GetMessage())
 	return &emptypb.Empty{}, err
@@ -141,7 +141,7 @@ func (g *GRPCHandler) ReportSuccessTask(ctx context.Context, req *proto.ReportSu
 		logrus.Errorf("parsing task id error %v", err)
 		return nil, err
 	}
-	g.taskSubmitCounter.Add(ctx, 1, metric.WithAttributes(attribute.String("status", "failure")))
+	g.taskSubmitCounter.Add(ctx, 1, metric.WithAttributes(attribute.String("status", "success")))
 
 	err = g.taskService.UpdateTaskSuccess(ctx, parsedTaskID, req.GetNodeID(), req.GetResult())
 	return &emptypb.Empty{}, err

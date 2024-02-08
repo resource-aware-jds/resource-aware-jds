@@ -17,6 +17,7 @@ type IContainer interface {
 	StartContainer(ctx context.Context, imageUrl string) (container.IContainer, error)
 	GetContainerIdShort() []string
 	GetContainerCoolDownState() datastructure.Buffer[string, time.Time]
+	GetContainerBuffer() datastructure.Buffer[string, container.IContainer]
 }
 
 type ContainerService struct {
@@ -70,4 +71,8 @@ func (c *ContainerService) GetContainerIdShort() []string {
 
 func (c *ContainerService) GetContainerCoolDownState() datastructure.Buffer[string, time.Time] {
 	return c.containerCoolDownState
+}
+
+func (c *ContainerService) GetContainerBuffer() datastructure.Buffer[string, container.IContainer] {
+	return c.containerBuffer
 }
