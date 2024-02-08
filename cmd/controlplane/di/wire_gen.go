@@ -15,6 +15,7 @@ import (
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/distribution"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/grpc"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/http"
+	"github.com/resource-aware-jds/resource-aware-jds/pkg/metrics"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/mongo"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/pool"
 	"github.com/resource-aware-jds/resource-aware-jds/repository"
@@ -56,7 +57,14 @@ func InitializeApplication() (ControlPlaneApp, func(), error) {
 	iNodeRegistry := repository.ProvideControlPlane(database)
 	distributor := distribution.ProvideRoundRobinDistributor()
 	rajdsgrpcResolver := grpc.ProvideRAJDSGRPCResolver()
-	workerNode := pool.ProvideWorkerNode(caCertificate, distributor, rajdsgrpcResolver)
+	meter, err := metrics.ProvideMeter()
+	if err != nil {
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return ControlPlaneApp{}, nil, err
+	}
+	workerNode := pool.ProvideWorkerNode(caCertificate, distributor, rajdsgrpcResolver, meter)
 	iControlPlane := service.ProvideControlPlane(iNodeRegistry, caCertificate, controlPlaneConfigModel, workerNode)
 	iJob := repository.ProvideJob(database)
 	job := service.ProvideJobService(iJob)

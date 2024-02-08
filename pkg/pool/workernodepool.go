@@ -10,6 +10,7 @@ import (
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/distribution"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/grpc"
 	"github.com/sirupsen/logrus"
+	"go.opentelemetry.io/otel/metric"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"net"
 	"strconv"
@@ -36,11 +37,12 @@ type workerNodePoolMapper struct {
 }
 
 type workerNode struct {
-	pool          map[string]workerNodePoolMapper
-	caCertificate cert.CACertificate
-	distributor   distribution.Distributor
-	poolMu        sync.Mutex
-	grpcResolver  grpc.RAJDSGRPCResolver
+	pool              map[string]workerNodePoolMapper
+	caCertificate     cert.CACertificate
+	distributor       distribution.Distributor
+	poolMu            sync.Mutex
+	grpcResolver      grpc.RAJDSGRPCResolver
+	workerNodeCounter metric.Int64UpDownCounter
 }
 
 type WorkerNode interface {
@@ -51,12 +53,14 @@ type WorkerNode interface {
 	IsAvailableWorkerNode() bool
 }
 
-func ProvideWorkerNode(caCertificate cert.CACertificate, distributor distribution.Distributor, grpcResolver grpc.RAJDSGRPCResolver) WorkerNode {
+func ProvideWorkerNode(caCertificate cert.CACertificate, distributor distribution.Distributor, grpcResolver grpc.RAJDSGRPCResolver, meter metric.Meter) WorkerNode {
+	workerNodeCounter, _ := meter.Int64UpDownCounter("worker_node_total")
 	return &workerNode{
-		caCertificate: caCertificate,
-		pool:          make(map[string]workerNodePoolMapper),
-		distributor:   distributor,
-		grpcResolver:  grpcResolver,
+		caCertificate:     caCertificate,
+		pool:              make(map[string]workerNodePoolMapper),
+		distributor:       distributor,
+		grpcResolver:      grpcResolver,
+		workerNodeCounter: workerNodeCounter,
 	}
 }
 
@@ -105,6 +109,7 @@ func (w *workerNode) AddWorkerNode(ctx context.Context, node models.NodeEntry) e
 		logger:         logger,
 	}
 
+	w.workerNodeCounter.Add(ctx, 1)
 	logger.Infof("[WorkerNode Pool] A Worker has been added to the pool")
 	return nil
 }
@@ -127,6 +132,7 @@ func (w *workerNode) WorkerNodeAvailabilityCheck(ctx context.Context) {
 			if focusedNode.unavailableCount+1 > MaximumUnavailableCount {
 				focusedNode.logger.Warnf("[ControlPlane Daemon] Worker node has been deleted from the available worker node pool due to unresponsive has been detected.")
 				delete(w.pool, key)
+				w.workerNodeCounter.Add(ctx, -1)
 				continue
 			}
 		} else {
