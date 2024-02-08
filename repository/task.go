@@ -118,10 +118,10 @@ func (t *task) WriteTaskResult(ctx context.Context, task models.Task) error {
 	})
 	operation.SetUpdate(bson.M{
 		"$set": bson.M{
-			"result":     task.Result,
-			"logs":       task.Logs,
-			"status":     task.Status,
-			"updated_at": time.Now(),
+			"result":      task.Result,
+			"logs":        task.Logs,
+			"task_status": task.Status,
+			"updated_at":  time.Now(),
 		},
 	})
 
