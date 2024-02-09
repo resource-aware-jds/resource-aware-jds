@@ -55,7 +55,7 @@ func (c *ContainerService) StartContainer(ctx context.Context, imageUrl string) 
 	}
 
 	c.containerBuffer.Store(containerID, containerInstance)
-	c.containerCoolDownState[imageUrl] = time.Now().Add(c.config.ContainerStartDelayTimeSeconds)
+	c.containerCoolDownState.Store(imageUrl, time.Now().Add(c.config.ContainerStartDelayTimeSeconds))
 	return containerInstance, err
 }
 
