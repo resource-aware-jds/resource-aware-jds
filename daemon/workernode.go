@@ -20,13 +20,14 @@ type workerNode struct {
 	dockerClient    *client.Client
 	workerService   service.IWorker
 	resourceMonitor service.IResourceMonitor
+	dynamicScaling  service.IDynamicScaling
 }
 
 type WorkerNode interface {
 	Start()
 }
 
-func ProvideWorkerNodeDaemon(dockerClient *client.Client, workerService service.IWorker, resourceMonitor service.IResourceMonitor) WorkerNode {
+func ProvideWorkerNodeDaemon(dockerClient *client.Client, workerService service.IWorker, resourceMonitor service.IResourceMonitor, dynamicScaling service.IDynamicScaling) WorkerNode {
 	ctx := context.Background()
 	ctxWithCancel, cancelFunc := context.WithCancel(ctx)
 	return &workerNode{
@@ -35,14 +36,15 @@ func ProvideWorkerNodeDaemon(dockerClient *client.Client, workerService service.
 		cancelFunc:      cancelFunc,
 		workerService:   workerService,
 		resourceMonitor: resourceMonitor,
+		dynamicScaling:  dynamicScaling,
 	}
 }
 
 func (w *workerNode) Start() {
-	err := w.workerService.CheckInWorkerNodeToControlPlane(w.ctx)
-	if err != nil {
-		panic(fmt.Sprintf("Failed to check in worker node to control plane (%s)", err.Error()))
-	}
+	//err := w.workerService.CheckInWorkerNodeToControlPlane(w.ctx)
+	//if err != nil {
+	//	panic(fmt.Sprintf("Failed to check in worker node to control plane (%s)", err.Error()))
+	//}
 
 	go func(ctx context.Context) {
 		for {
@@ -62,10 +64,16 @@ func (w *workerNode) Start() {
 			case <-ctx.Done():
 				return
 			default:
-				_, err := w.resourceMonitor.GetResourceUsage()
-				if err != nil {
-					return
-				}
+				//_, err := w.resourceMonitor.GetResourceUsage()
+				//result2, err := w.resourceMonitor.GetSystemMemUsage()
+				//if err != nil {
+				//	return
+				//}
+				//fmt.Println(result2.Total)
+				//fmt.Println(result2.Used)
+				//fmt.Println(result2.Free)
+				report := w.dynamicScaling.CheckResourceUsageLimit(ctx)
+				fmt.Println(report)
 				timeutil.SleepWithContext(ctx, ResourceMonitorDuration)
 			}
 		}

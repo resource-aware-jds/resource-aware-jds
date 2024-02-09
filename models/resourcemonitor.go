@@ -27,3 +27,8 @@ type OSResourceUsage struct {
 	MemoryUsage MemoryUsage
 	CpuUsage    CpuUsage
 }
+
+type MemoryWithUnit struct {
+	Size float64
+	Unit string
+}

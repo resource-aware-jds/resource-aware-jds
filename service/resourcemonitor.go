@@ -19,6 +19,8 @@ type ResourceMonitor struct {
 
 type IResourceMonitor interface {
 	GetResourceUsage() ([]models.ContainerResourceUsage, error)
+	GetSystemMemUsage() (*models.MemoryUsage, error)
+	GetSystemCpuUsage(ctx context.Context) (*models.CpuUsage, error)
 }
 
 func ProvideResourcesMonitor(dockerClient *client.Client, workerService IContainer) IResourceMonitor {
@@ -49,7 +51,7 @@ func (r *ResourceMonitor) GetResourceUsage() ([]models.ContainerResourceUsage, e
 	return containerStatList, nil
 }
 
-func (r *ResourceMonitor) GetUserMemUsage() (*models.MemoryUsage, error) {
+func (r *ResourceMonitor) GetSystemMemUsage() (*models.MemoryUsage, error) {
 	memUsage, err := memory.Get()
 	if err != nil {
 		logrus.Errorf("Unable to get os memory usage: %e", err)
@@ -73,7 +75,7 @@ func sleepContext(ctx context.Context, d time.Duration) {
 	}
 }
 
-func (r *ResourceMonitor) GetUserCpuUsage(ctx context.Context) (*models.CpuUsage, error) {
+func (r *ResourceMonitor) GetSystemCpuUsage(ctx context.Context) (*models.CpuUsage, error) {
 	before, err := cpu.Get()
 	if err != nil {
 		logrus.Errorf("Unable to get os cpu usage: %e", err)
