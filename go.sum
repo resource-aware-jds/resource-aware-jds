@@ -109,6 +109,8 @@ github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZb
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/resource-aware-jds/dockerstats v0.0.0-20240203181001-a8432da98bf8 h1:otvUHyriByhEjNh9L3Z2zHwVFadU26oq0dBQtCBy7NM=
 github.com/resource-aware-jds/dockerstats v0.0.0-20240203181001-a8432da98bf8/go.mod h1:OsVQ0gPyTyNpQltoGIk5N2hhUU/Vwj4sMcnwPP0aaQ0=
+github.com/resource-aware-jds/go-osstat v0.0.0-20240203182619-ca9f3230b197 h1:EWKNNdSIqgjmVC8JOw0MU3OVwp0svIxlsE6UczTWY1E=
+github.com/resource-aware-jds/go-osstat v0.0.0-20240203182619-ca9f3230b197/go.mod h1:bO/9lCiA8dcYwLX4x3aPt7Gn3RDEAYL5AaDutZFspbg=
 github.com/rogpeppe/go-internal v1.8.0 h1:FCbCCtXNOY3UtUuHUYaghJg4y7Fd14rXifAYUAtL9R8=
 github.com/rogpeppe/go-internal v1.8.0/go.mod h1:WmiCO8CzOY8rg0OYDC4/i/2WRWAB6poM+XZ2dLUbcbE=
 github.com/sirupsen/logrus v1.9.0 h1:trlNQbNUG3OdDrDil03MCb1H2o9nJ1x4/5LYw7byDE0=
