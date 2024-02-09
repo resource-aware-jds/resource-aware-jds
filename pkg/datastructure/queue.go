@@ -31,7 +31,8 @@ func WithQueueMetrics(meter metric.Meter, meterName string) QueueOptionFunc {
 
 // Queue is a FIFO (First in Last out) queue data structure
 type Queue[Data any] struct {
-	data []Data
+	data             []Data
+	queueSizeCounter metric.Int64UpDownCounter
 }
 
 func ProvideQueue[Data any](ops ...QueueOptionFunc) Queue[Data] {
@@ -42,20 +43,18 @@ func ProvideQueue[Data any](ops ...QueueOptionFunc) Queue[Data] {
 	}
 
 	data := make([]Data, 0, option.size)
+	result := Queue[Data]{
+		data: data,
+	}
 
 	if option.meter != nil {
-		_, err := option.meter.Int64ObservableCounter(option.meterName, metric.WithInt64Callback(func(ctx context.Context, observer metric.Int64Observer) error {
-			observer.Observe(int64(len(data)))
-			return nil
-		}))
+		counter, err := option.meter.Int64UpDownCounter(option.meterName)
 		if err != nil {
 			panic(err)
 		}
+		result.queueSizeCounter = counter
 	}
-
-	return Queue[Data]{
-		data: data,
-	}
+	return result
 }
 
 func (q *Queue[Data]) Pop() (*Data, bool) {
@@ -65,11 +64,13 @@ func (q *Queue[Data]) Pop() (*Data, bool) {
 
 	result := q.data[0]
 	q.data = q.data[1:]
+	q.queueSizeCounter.Add(context.Background(), -1)
 	return &result, true
 }
 
 func (q *Queue[Data]) Push(d Data) {
 	q.data = append(q.data, d)
+	q.queueSizeCounter.Add(context.Background(), 1)
 }
 
 func (q *Queue[Data]) PopWithFilter(filter func(Data) bool) (*Data, bool) {
@@ -82,6 +83,7 @@ func (q *Queue[Data]) PopWithFilter(filter func(Data) bool) (*Data, bool) {
 	}
 	result := q.data[idx]
 	q.data = append(q.data[:idx], q.data[idx+1:]...)
+	q.queueSizeCounter.Add(context.Background(), -1)
 	return &result, true
 }
 
@@ -90,7 +92,10 @@ func (q *Queue[Data]) ReadQueue() []Data {
 }
 
 func (q *Queue[Data]) RemoveWithCondition(removeCondition func(data Data) bool) {
+	sizeBeforeRemove := len(q.data)
 	q.data = Filter(q.data, removeCondition)
+	sizeAfterRemove := len(q.data)
+	q.queueSizeCounter.Add(context.Background(), int64(sizeBeforeRemove-sizeAfterRemove))
 }
 
 func (q *Queue[Data]) Empty() bool {
