@@ -76,7 +76,8 @@ func InitializeApplication() (WorkerApp, func(), error) {
 	}
 	workerNodeReceiverGRPCHandler := handler.ProvideWorkerGRPCSocketHandler(workerNodeReceiverGRPCServer, iWorker, meter)
 	iResourceMonitor := service.ProvideResourcesMonitor(client, iContainer)
-	workerNode := daemon.ProvideWorkerNodeDaemon(client, iWorker, iResourceMonitor)
+	iDynamicScaling := service.ProvideDynamicScaling(iContainer, iResourceMonitor, workerConfigModel)
+	workerNode := daemon.ProvideWorkerNodeDaemon(client, iWorker, iResourceMonitor, iDynamicScaling)
 	serverConfig := config.ProvideWorkerHTTPServerConfig(workerConfigModel)
 	server, cleanup4 := http.ProvideHttpServer(serverConfig)
 	routerResult := http2.ProvideHTTPRouter(server)
