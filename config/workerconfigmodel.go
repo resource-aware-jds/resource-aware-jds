@@ -21,7 +21,7 @@ type WorkerConfigModel struct {
 	MemoryBufferSize                          string        `envconfig:"MEMORY_BUFFER_SIZE" default:"2GiB"`
 	MaxCpuUsagePercentage                     int           `envconfig:"MAX_CPU_USAGE_PERCENTAGE" default:"100"`
 	CpuBufferSize                             int           `envconfig:"CPU_BUFFER_SIZE" default:"20"`
-	DockerCoreLimit                           int           `envconfig:"DOCKER_CORE_LIMIT"`
+	DockerCoreLimit                           int           `envconfig:"DOCKER_CORE_LIMIT" required:"true"`
 	TotalContainerLimit                       int           `envconfig:"TOTAL_CONTAINER_CONFIG" default:"3"`
 }
 
