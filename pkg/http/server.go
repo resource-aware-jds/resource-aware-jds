@@ -27,7 +27,7 @@ type ServerConfig struct {
 }
 
 func ProvideHttpServer(config ServerConfig) (Server, func()) {
-	router := gin.Default()
+	router := gin.New()
 
 	server := http.Server{
 		Addr:    fmt.Sprintf(":%d", config.Port),
@@ -59,6 +59,11 @@ func ProvideHttpServer(config ServerConfig) (Server, func()) {
 }
 
 func (h *httpServer) Serve() {
+	h.engine.Use(gin.LoggerWithConfig(gin.LoggerConfig{
+		SkipPaths: []string{"/metrics"},
+	}))
+	// Recovery middleware recovers from any panics and writes a 500 if there was one.
+	h.engine.Use(gin.Recovery())
 	go func() {
 		h.server.ListenAndServe() //nolint:errcheck
 	}()

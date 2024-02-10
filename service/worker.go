@@ -13,6 +13,7 @@ import (
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/workerlogic"
 	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 	"time"
 )
@@ -33,6 +34,8 @@ type Worker struct {
 
 	taskQueue  taskqueue.Queue
 	taskBuffer datastructure.Buffer[string, models.TaskWithContext]
+
+	containerSubmitTask metric.Int64Counter
 }
 
 type IWorker interface {
@@ -58,7 +61,9 @@ func ProvideWorker(
 	workerNodeDistribution workerlogic.WorkerDistributor,
 	containerService IContainer,
 	meter metric.Meter,
-) IWorker {
+) (IWorker, error) {
+	containerSubmitTask, err := meter.Int64Counter("container_submit_task")
+
 	return &Worker{
 		controlPlaneGRPCClient: controlPlaneGRPCClient,
 		dockerClient:           dockerClient,
@@ -70,7 +75,8 @@ func ProvideWorker(
 		),
 		workerNodeDistribution: workerNodeDistribution,
 		containerService:       containerService,
-	}
+		containerSubmitTask:    containerSubmitTask,
+	}, err
 }
 
 func (w *Worker) CheckInWorkerNodeToControlPlane(ctx context.Context) error {
@@ -126,6 +132,7 @@ func (w *Worker) SubmitSuccessTask(ctx context.Context, id string, results []byt
 		return errors.New("task not found in task buffer, maybe it already timeout and get sent back to cp")
 	}
 	logrus.Info("Task succeed with id: " + id)
+	w.containerSubmitTask.Add(ctx, 1, metric.WithAttributes(attribute.String("status", "success")))
 	_, err := w.controlPlaneGRPCClient.ReportSuccessTask(ctx, &proto.ReportSuccessTaskRequest{
 		Id:     id,
 		NodeID: w.workerNodeCertificate.GetNodeID(),
@@ -142,6 +149,7 @@ func (w *Worker) ReportFailTask(ctx context.Context, id string, errorMessage str
 	}
 
 	logrus.Error("Task failed with id: " + id)
+	w.containerSubmitTask.Add(ctx, 1, metric.WithAttributes(attribute.String("status", "failure")))
 	_, err := w.controlPlaneGRPCClient.ReportFailureTask(ctx, &proto.ReportFailureTaskRequest{
 		Id:      id,
 		NodeID:  w.workerNodeCertificate.GetNodeID(),
