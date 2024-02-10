@@ -9,7 +9,6 @@ package di
 import (
 	"github.com/resource-aware-jds/resource-aware-jds/cmd/worker/handler"
 	http2 "github.com/resource-aware-jds/resource-aware-jds/cmd/worker/http"
-	"github.com/resource-aware-jds/resource-aware-jds/cmd/workerlogic"
 	"github.com/resource-aware-jds/resource-aware-jds/config"
 	"github.com/resource-aware-jds/resource-aware-jds/daemon"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/cert"
@@ -18,6 +17,7 @@ import (
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/http"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/metrics"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/taskqueue"
+	"github.com/resource-aware-jds/resource-aware-jds/pkg/workerlogic"
 	"github.com/resource-aware-jds/resource-aware-jds/service"
 )
 

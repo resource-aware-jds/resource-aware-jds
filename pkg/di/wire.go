@@ -2,7 +2,6 @@ package di
 
 import (
 	"github.com/google/wire"
-	"github.com/resource-aware-jds/resource-aware-jds/cmd/workerlogic"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/distribution"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/dockerclient"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/grpc"
@@ -11,6 +10,7 @@ import (
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/mongo"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/pool"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/taskqueue"
+	"github.com/resource-aware-jds/resource-aware-jds/pkg/workerlogic"
 )
 
 var PKGWireSet = wire.NewSet(
