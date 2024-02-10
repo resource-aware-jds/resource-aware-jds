@@ -11,7 +11,7 @@ require (
 	github.com/joho/godotenv v1.5.1
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/prometheus/client_golang v1.18.0
-	github.com/resource-aware-jds/dockerstats v0.0.0-20240203181001-a8432da98bf8
+	github.com/resource-aware-jds/dockerstats v0.0.0-20240210165913-1ce06f0a2242
 	github.com/resource-aware-jds/go-osstat v0.0.0-20240203182619-ca9f3230b197
 	github.com/sirupsen/logrus v1.9.0
 	github.com/stretchr/testify v1.8.4

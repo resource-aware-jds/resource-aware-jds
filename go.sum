@@ -127,6 +127,8 @@ github.com/prometheus/procfs v0.12.0 h1:jluTpSng7V9hY0O2R9DzzJHYb2xULk9VTR1V1R/k
 github.com/prometheus/procfs v0.12.0/go.mod h1:pcuDEFsWDnvcgNzo4EEweacyhjeA9Zk3cnaOZAZEfOo=
 github.com/resource-aware-jds/dockerstats v0.0.0-20240203181001-a8432da98bf8 h1:otvUHyriByhEjNh9L3Z2zHwVFadU26oq0dBQtCBy7NM=
 github.com/resource-aware-jds/dockerstats v0.0.0-20240203181001-a8432da98bf8/go.mod h1:OsVQ0gPyTyNpQltoGIk5N2hhUU/Vwj4sMcnwPP0aaQ0=
+github.com/resource-aware-jds/dockerstats v0.0.0-20240210165913-1ce06f0a2242 h1:DFG9Sj0U9FaBvs+6cC5ArzZsl439bchqMwBdodouCeg=
+github.com/resource-aware-jds/dockerstats v0.0.0-20240210165913-1ce06f0a2242/go.mod h1:OsVQ0gPyTyNpQltoGIk5N2hhUU/Vwj4sMcnwPP0aaQ0=
 github.com/resource-aware-jds/go-osstat v0.0.0-20240203182619-ca9f3230b197 h1:EWKNNdSIqgjmVC8JOw0MU3OVwp0svIxlsE6UczTWY1E=
 github.com/resource-aware-jds/go-osstat v0.0.0-20240203182619-ca9f3230b197/go.mod h1:bO/9lCiA8dcYwLX4x3aPt7Gn3RDEAYL5AaDutZFspbg=
 github.com/rogpeppe/go-internal v1.10.0 h1:TMyTOH3F/DB16zRVcYyreMH6GnZZrwQVAoYjRBZyWFQ=
