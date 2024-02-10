@@ -41,10 +41,10 @@ func ProvideWorkerNodeDaemon(dockerClient *client.Client, workerService service.
 }
 
 func (w *workerNode) Start() {
-	//err := w.workerService.CheckInWorkerNodeToControlPlane(w.ctx)
-	//if err != nil {
-	//	panic(fmt.Sprintf("Failed to check in worker node to control plane (%s)", err.Error()))
-	//}
+	err := w.workerService.CheckInWorkerNodeToControlPlane(w.ctx)
+	if err != nil {
+		panic(fmt.Sprintf("Failed to check in worker node to control plane (%s)", err.Error()))
+	}
 
 	go func(ctx context.Context) {
 		for {
@@ -64,15 +64,10 @@ func (w *workerNode) Start() {
 			case <-ctx.Done():
 				return
 			default:
-				//_, err := w.resourceMonitor.GetResourceUsage()
-				//result2, err := w.resourceMonitor.GetSystemMemUsage()
-				//if err != nil {
-				//	return
-				//}
-				//fmt.Println(result2.Total)
-				//fmt.Println(result2.Used)
-				//fmt.Println(result2.Free)
-				report := w.dynamicScaling.CheckResourceUsageLimit(ctx)
+				report, err := w.dynamicScaling.CheckResourceUsageLimit(ctx)
+				if err != nil {
+					return
+				}
 				fmt.Println(report)
 				timeutil.SleepWithContext(ctx, ResourceMonitorDuration)
 			}
