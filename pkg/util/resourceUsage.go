@@ -20,7 +20,12 @@ func ExtractCpuUsage(containerUsage models.ContainerResourceUsage) (float64, err
 	return percentageFloat, nil
 }
 
-func ExtractMemoryUsage(input string) models.MemorySize {
+func ExtractMemoryUsageFromModel(containerUsage models.ContainerResourceUsage) models.MemorySize {
+	input := containerUsage.MemoryUsage.Raw
+	return ExtractMemoryUsageString(input)
+}
+
+func ExtractMemoryUsageString(input string) models.MemorySize {
 	regex := regexp.MustCompile(`(\d+(\.\d+)?)([a-zA-Z]+)`)
 	match := regex.FindStringSubmatch(input)
 

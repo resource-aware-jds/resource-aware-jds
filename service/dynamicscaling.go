@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"github.com/resource-aware-jds/resource-aware-jds/config"
 	"github.com/resource-aware-jds/resource-aware-jds/models"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/datastructure"
@@ -63,7 +64,7 @@ func (d *DynamicScalingService) CheckResourceUsageLimit(ctx context.Context) (*m
 	//Calculate all container usage
 	memoryUsageSlice := datastructure.Map(containerResourceUsage,
 		func(containerUsage models.ContainerResourceUsage) models.MemorySize {
-			return util.ExtractMemoryUsage(containerUsage.MemoryUsage.Raw)
+			return util.ExtractMemoryUsageFromModel(containerUsage)
 		})
 
 	memoryUsage := datastructure.SumAny(memoryUsageSlice, util.SumInGb, models.MemorySize{Size: 0, Unit: "GiB"})
@@ -81,16 +82,16 @@ func (d *DynamicScalingService) CheckResourceUsageLimit(ctx context.Context) (*m
 		CpuUsageExceed:    0,
 		MemoryUsageExceed: models.MemorySize{Size: 0, Unit: "GiB"},
 	}
-	d.checkCpuUpperBound(cpuUsage, dockerCoreLimit, cpuLimit, upperBoundReport)
-	d.checkMemoryUpperBound(memoryUsage, memoryLimit, upperBoundReport)
+	d.checkCpuUpperBound(cpuUsage, dockerCoreLimit, cpuLimit, &upperBoundReport)
+	d.checkMemoryUpperBound(memoryUsage, memoryLimit, &upperBoundReport)
 
 	// Check buffer size
 	bufferReport := models.CheckResourceReport{
 		CpuUsageExceed:    0,
 		MemoryUsageExceed: models.MemorySize{Size: 0, Unit: "GiB"},
 	}
-	d.checkCpuBuffer(systemCpuUsage, cpuBuffer, bufferReport)
-	d.checkMemoryBuffer(systemMemoryUsage, memoryBuffer, bufferReport)
+	d.checkCpuBuffer(systemCpuUsage, cpuBuffer, &bufferReport)
+	d.checkMemoryBuffer(systemMemoryUsage, memoryBuffer, &bufferReport)
 
 	return &models.CheckResourceReport{
 		CpuUsageExceed: max(upperBoundReport.CpuUsageExceed, bufferReport.CpuUsageExceed),
@@ -102,9 +103,9 @@ func (d *DynamicScalingService) CheckResourceUsageLimit(ctx context.Context) (*m
 	}, nil
 }
 
-func (d *DynamicScalingService) checkMemoryBuffer(systemMemoryUsage *models.MemoryUsage, memoryBuffer string, report models.CheckResourceReport) {
+func (d *DynamicScalingService) checkMemoryBuffer(systemMemoryUsage *models.MemoryUsage, memoryBuffer string, report *models.CheckResourceReport) {
 	freeMemory := systemMemoryUsage.Total - systemMemoryUsage.Used
-	memoryBufferGb := util.ConvertToGb(util.ExtractMemoryUsage(memoryBuffer)).Size
+	memoryBufferGb := util.ConvertToGb(util.ExtractMemoryUsageString(memoryBuffer)).Size
 	freeMemoryGb := float64(freeMemory) / (1024 * 1024 * 1024)
 	if freeMemoryGb < memoryBufferGb {
 		report.MemoryUsageExceed = util.SumInGb(
@@ -116,13 +117,13 @@ func (d *DynamicScalingService) checkMemoryBuffer(systemMemoryUsage *models.Memo
 	}
 }
 
-func (d *DynamicScalingService) checkCpuBuffer(systemCpuUsage *models.CpuUsage, cpuBuffer int, report models.CheckResourceReport) {
+func (d *DynamicScalingService) checkCpuBuffer(systemCpuUsage *models.CpuUsage, cpuBuffer int, report *models.CheckResourceReport) {
 	if systemCpuUsage.Idle < float64(cpuBuffer) {
 		report.CpuUsageExceed += float64(cpuBuffer) - systemCpuUsage.Idle
 	}
 }
 
-func (d *DynamicScalingService) checkCpuUpperBound(cpuUsage float64, dockerCoreLimit int, cpuLimit int, report models.CheckResourceReport) {
+func (d *DynamicScalingService) checkCpuUpperBound(cpuUsage float64, dockerCoreLimit int, cpuLimit int, report *models.CheckResourceReport) {
 	currentCpuPercentage := cpuUsage / float64(dockerCoreLimit)
 	if currentCpuPercentage > float64(cpuLimit) {
 		cpuDelta := currentCpuPercentage - float64(cpuLimit)
@@ -132,9 +133,9 @@ func (d *DynamicScalingService) checkCpuUpperBound(cpuUsage float64, dockerCoreL
 	}
 }
 
-func (d *DynamicScalingService) checkMemoryUpperBound(memoryUsage models.MemorySize, memoryLimit string, report models.CheckResourceReport) {
+func (d *DynamicScalingService) checkMemoryUpperBound(memoryUsage models.MemorySize, memoryLimit string, report *models.CheckResourceReport) {
 	currentMemoryUsageGb := util.ConvertToGb(memoryUsage).Size
-	memoryLimitGb := util.ConvertToGb(util.ExtractMemoryUsage(memoryLimit)).Size
+	memoryLimitGb := util.ConvertToGb(util.ExtractMemoryUsageString(memoryLimit)).Size
 	if currentMemoryUsageGb > memoryLimitGb {
 		memoryDelta := currentMemoryUsageGb - memoryLimitGb
 		if memoryDelta > 0 {
@@ -144,4 +145,6 @@ func (d *DynamicScalingService) checkMemoryUpperBound(memoryUsage models.MemoryS
 			)
 		}
 	}
+	fmt.Printf("Current memory usage: %f \n", currentMemoryUsageGb)
+	fmt.Printf("Memory limit: %f \n", memoryLimitGb)
 }

@@ -54,10 +54,10 @@ func ProvideWorkerNodeDaemon(
 }
 
 func (w *workerNode) Start() {
-	err := w.workerService.CheckInWorkerNodeToControlPlane(w.ctx)
-	if err != nil {
-		panic(fmt.Sprintf("Failed to check in worker node to control plane (%s)", err.Error()))
-	}
+	//err := w.workerService.CheckInWorkerNodeToControlPlane(w.ctx)
+	//if err != nil {
+	//	panic(fmt.Sprintf("Failed to check in worker node to control plane (%s)", err.Error()))
+	//}
 
 	go func(ctx context.Context) {
 		for {
@@ -78,6 +78,8 @@ func (w *workerNode) Start() {
 				return
 			default:
 				report, err := w.dynamicScaling.CheckResourceUsageLimit(ctx)
+				fmt.Printf("report:")
+				fmt.Println(report)
 				if err != nil {
 					logrus.Error(err)
 					continue
@@ -87,10 +89,11 @@ func (w *workerNode) Start() {
 					continue
 				}
 				logrus.Warn("CPU Usage or Memory Usage exceeded the limit, taking down the container")
-				w.containerTakeDownLogic.Calculate(workerlogic.ContainerTakeDownState{
+				downContainer := w.containerTakeDownLogic.Calculate(workerlogic.ContainerTakeDownState{
 					ContainerBuffer: w.containerService.GetContainerBuffer(),
 					Report:          report,
 				})
+				logrus.Info(downContainer)
 				timeutil.SleepWithContext(ctx, ResourceMonitorDuration)
 			}
 		}

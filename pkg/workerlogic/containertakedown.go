@@ -30,7 +30,7 @@ type OverResourceUsageContainerTakeDown struct{}
 // Instead, Just return it and let the caller handle it instead
 func (o OverResourceUsageContainerTakeDown) Calculate(state ContainerTakeDownState) (removeContainer []container.IContainer) {
 	containerResourceUsage := state.Report.ContainerResourceUsages
-	containerIdRemoveList := make([]string, len(containerResourceUsage))
+	containerIdRemoveList := make([]string, 0, len(containerResourceUsage))
 	cpuExceed := state.Report.CpuUsageExceed
 	memoryExceed := state.Report.MemoryUsageExceed
 
@@ -40,24 +40,26 @@ func (o OverResourceUsageContainerTakeDown) Calculate(state ContainerTakeDownSta
 	})
 
 	for i := 0; i < len(containerResourceUsage); i++ {
-		containerUsage := containerResourceUsage[i]
+		containerInstance := containerResourceUsage[i]
 		if cpuExceed <= 0 {
 			break
 		}
-		memoryUsage := util.ConvertToGb(util.ExtractMemoryUsage(containerUsage.CpuUsage))
-		cpuUsage, err := util.ExtractCpuUsage(containerUsage)
+		memoryUsage := util.ConvertToGb(util.ExtractMemoryUsageFromModel(containerInstance))
+		cpuUsage, err := util.ExtractCpuUsage(containerInstance)
 		if err != nil {
 			return nil
 		}
 		cpuExceed -= cpuUsage
 		memoryExceed = util.SubtractInGb(memoryExceed, memoryUsage)
-		containerIdRemoveList = append(containerIdRemoveList, containerUsage.ContainerIdShort)
+		containerIdRemoveList = append(containerIdRemoveList, containerInstance.ContainerIdShort)
 	}
 
 	// Sort by Memory
 	sort.Slice(containerResourceUsage, func(i, j int) bool {
-		first := util.ConvertToGb(util.ExtractMemoryUsage(containerResourceUsage[i].MemoryUsage.Raw))
-		second := util.ConvertToGb(util.ExtractMemoryUsage(containerResourceUsage[j].MemoryUsage.Raw))
+		firstContainerInstance := containerResourceUsage[i]
+		secondContainerInstance := containerResourceUsage[j]
+		first := util.ConvertToGb(util.ExtractMemoryUsageFromModel(firstContainerInstance))
+		second := util.ConvertToGb(util.ExtractMemoryUsageFromModel(secondContainerInstance))
 		return first.Size < second.Size
 	})
 
@@ -69,7 +71,7 @@ func (o OverResourceUsageContainerTakeDown) Calculate(state ContainerTakeDownSta
 		if slices.Contains(containerIdRemoveList, containerUsage.ContainerIdShort) {
 			continue
 		}
-		memoryUsage := util.ConvertToGb(util.ExtractMemoryUsage(containerUsage.CpuUsage))
+		memoryUsage := util.ConvertToGb(util.ExtractMemoryUsageFromModel(containerUsage))
 		cpuUsage, err := util.ExtractCpuUsage(containerUsage)
 		if err != nil {
 			return nil
