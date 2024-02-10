@@ -7,9 +7,6 @@ import (
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/datastructure"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/util"
 	"github.com/sirupsen/logrus"
-	"regexp"
-	"strconv"
-	"strings"
 )
 
 type DynamicScalingService struct {
@@ -66,19 +63,15 @@ func (d *DynamicScalingService) CheckResourceUsageLimit(ctx context.Context) (*m
 	//Calculate all container usage
 	memoryUsageSlice := datastructure.Map(containerResourceUsage,
 		func(containerUsage models.ContainerResourceUsage) models.MemorySize {
-			return d.extractMemoryUsage(containerUsage.MemoryUsage.Raw)
+			return util.ExtractMemoryUsage(containerUsage.MemoryUsage.Raw)
 		})
 
 	memoryUsage := datastructure.SumAny(memoryUsageSlice, util.SumInGb, models.MemorySize{Size: 0, Unit: "GiB"})
 
 	cpuUsage := datastructure.SumFloat(containerResourceUsage, func(containerUsage models.ContainerResourceUsage) float64 {
-		trimmedStr := strings.TrimSuffix(containerUsage.CpuUsage, "%")
-		percentageFloat, err := strconv.ParseFloat(trimmedStr, 64)
-
+		percentageFloat, err := util.ExtractCpuUsage(containerUsage)
 		if err != nil {
-			logrus.Errorf("There was an error converting the string to a float:  %v\n", err)
-			// TODO add error handler
-			return 0
+			logrus.Errorf("Unabel to extract percentage: %e", err)
 		}
 		return percentageFloat
 	})
@@ -111,7 +104,7 @@ func (d *DynamicScalingService) CheckResourceUsageLimit(ctx context.Context) (*m
 
 func (d *DynamicScalingService) checkMemoryBuffer(systemMemoryUsage *models.MemoryUsage, memoryBuffer string, report models.CheckResourceReport) {
 	freeMemory := systemMemoryUsage.Total - systemMemoryUsage.Used
-	memoryBufferGb := util.ConvertToGb(d.extractMemoryUsage(memoryBuffer)).Size
+	memoryBufferGb := util.ConvertToGb(util.ExtractMemoryUsage(memoryBuffer)).Size
 	freeMemoryGb := float64(freeMemory) / (1024 * 1024 * 1024)
 	if freeMemoryGb < memoryBufferGb {
 		report.MemoryUsageExceed = util.SumInGb(
@@ -141,7 +134,7 @@ func (d *DynamicScalingService) checkCpuUpperBound(cpuUsage float64, dockerCoreL
 
 func (d *DynamicScalingService) checkMemoryUpperBound(memoryUsage models.MemorySize, memoryLimit string, report models.CheckResourceReport) {
 	currentMemoryUsageGb := util.ConvertToGb(memoryUsage).Size
-	memoryLimitGb := util.ConvertToGb(d.extractMemoryUsage(memoryLimit)).Size
+	memoryLimitGb := util.ConvertToGb(util.ExtractMemoryUsage(memoryLimit)).Size
 	if currentMemoryUsageGb > memoryLimitGb {
 		memoryDelta := currentMemoryUsageGb - memoryLimitGb
 		if memoryDelta > 0 {
@@ -151,23 +144,4 @@ func (d *DynamicScalingService) checkMemoryUpperBound(memoryUsage models.MemoryS
 			)
 		}
 	}
-}
-
-func (d *DynamicScalingService) extractMemoryUsage(input string) models.MemorySize {
-	regex := regexp.MustCompile(`(\d+(\.\d+)?)([a-zA-Z]+)`)
-	match := regex.FindStringSubmatch(input)
-
-	if match != nil {
-		number, _ := strconv.ParseFloat(match[1], 64)
-		unit := match[3]
-
-		result := models.MemorySize{
-			Size: number,
-			Unit: unit,
-		}
-
-		return result
-	}
-
-	return models.MemorySize{}
 }

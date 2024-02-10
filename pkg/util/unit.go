@@ -1,7 +1,6 @@
 package util
 
 import (
-	"fmt"
 	"github.com/resource-aware-jds/resource-aware-jds/models"
 	"strings"
 )
@@ -21,10 +20,17 @@ func ConvertToGb(memory models.MemorySize) models.MemorySize {
 func SumInGb(first models.MemorySize, second models.MemorySize) models.MemorySize {
 	firstGb := ConvertToGb(first)
 	secondGb := ConvertToGb(second)
-	fmt.Println(firstGb)
-	fmt.Println(secondGb)
 	return models.MemorySize{
 		Size: firstGb.Size + secondGb.Size,
+		Unit: "GiB",
+	}
+}
+
+func SubtractInGb(first models.MemorySize, second models.MemorySize) models.MemorySize {
+	firstGb := ConvertToGb(first)
+	secondGb := ConvertToGb(second)
+	return models.MemorySize{
+		Size: firstGb.Size - secondGb.Size,
 		Unit: "GiB",
 	}
 }
