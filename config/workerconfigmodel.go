@@ -23,6 +23,7 @@ type WorkerConfigModel struct {
 	CpuBufferSize                             int           `envconfig:"CPU_BUFFER_SIZE" default:"20"`
 	DockerCoreLimit                           int           `envconfig:"DOCKER_CORE_LIMIT" required:"true"`
 	TotalContainerLimit                       int           `envconfig:"TOTAL_CONTAINER_CONFIG" default:"3"`
+	TaskBufferTimeout                         time.Duration `envconfig:"TASK_BUFFER_TIMEOUT" default:"30s"`
 }
 
 func ProvideWorkerNodeReceiverConfig(config WorkerConfigModel) grpc.WorkerNodeReceiverConfig {

@@ -2,7 +2,7 @@ package service
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"github.com/docker/docker/client"
 	"github.com/resource-aware-jds/resource-aware-jds/config"
 	"github.com/resource-aware-jds/resource-aware-jds/generated/proto/github.com/resource-aware-jds/resource-aware-jds/generated/proto"
@@ -14,6 +14,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.opentelemetry.io/otel/metric"
+	"time"
 )
 
 const (
@@ -31,7 +32,7 @@ type Worker struct {
 	containerService       IContainer
 
 	taskQueue  taskqueue.Queue
-	taskBuffer datastructure.Buffer[string, models.Task]
+	taskBuffer datastructure.Buffer[string, models.TaskWithContext]
 }
 
 type IWorker interface {
@@ -64,7 +65,7 @@ func ProvideWorker(
 		config:                 config,
 		taskQueue:              taskQueue,
 		workerNodeCertificate:  workerNodeCertificate,
-		taskBuffer: datastructure.ProvideBuffer[string, models.Task](
+		taskBuffer: datastructure.ProvideBuffer[string, models.TaskWithContext](
 			datastructure.WithBufferMetrics(meter, "task_buffer_size"),
 		),
 		workerNodeDistribution: workerNodeDistribution,
@@ -92,7 +93,26 @@ func (w *Worker) GetTask(containerImage string) (*proto.Task, error) {
 		return nil, err
 	}
 
-	w.taskBuffer.Store(task.ID.Hex(), *task)
+	ctx, cancelFunc := context.WithDeadline(context.Background(), time.Now().Add(w.config.TaskBufferTimeout))
+
+	// Start a new goroutine to check if context is timeout before calling cancel.
+	// If yes, call report task failure.
+	go func(innerCtx context.Context, innerW *Worker, innerTask models.Task) {
+		<-ctx.Done()
+		if errors.Is(ctx.Err(), context.Canceled) {
+			return
+		}
+		err := innerW.ReportFailTask(context.Background(), innerTask.ID.Hex(), "Timeout")
+		if err != nil {
+			logrus.Error("report task failure fail: ", err)
+		}
+	}(ctx, w, *task)
+
+	w.taskBuffer.Store(task.ID.Hex(), models.TaskWithContext{
+		Task:       *task,
+		Ctx:        ctx,
+		CancelFunc: cancelFunc,
+	})
 	return &proto.Task{
 		ID:             task.ID.Hex(),
 		TaskAttributes: task.TaskAttributes,
@@ -103,6 +123,7 @@ func (w *Worker) SubmitSuccessTask(ctx context.Context, id string, results []byt
 	task := w.taskBuffer.Pop(id)
 	if task == nil {
 		logrus.Error("Task is not running")
+		return errors.New("task not found in task buffer, maybe it already timeout and get sent back to cp")
 	}
 	logrus.Info("Task succeed with id: " + id)
 	_, err := w.controlPlaneGRPCClient.ReportSuccessTask(ctx, &proto.ReportSuccessTaskRequest{
@@ -116,7 +137,8 @@ func (w *Worker) SubmitSuccessTask(ctx context.Context, id string, results []byt
 func (w *Worker) ReportFailTask(ctx context.Context, id string, errorMessage string) error {
 	task := w.taskBuffer.Pop(id)
 	if task == nil {
-		return fmt.Errorf("Task with id:" + id + "not existed in buffer")
+		logrus.Error("Task is not running")
+		return errors.New("task not found in task buffer, maybe it already timeout and get sent back to cp")
 	}
 
 	logrus.Error("Task failed with id: " + id)
