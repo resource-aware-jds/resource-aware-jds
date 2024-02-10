@@ -1,10 +1,16 @@
 package workerlogic
 
+import (
+	"github.com/resource-aware-jds/resource-aware-jds/pkg/container"
+	"github.com/resource-aware-jds/resource-aware-jds/pkg/datastructure"
+)
+
 type ContainerTakeDownState struct {
+	ContainerBuffer datastructure.Buffer[string, container.IContainer]
 }
 
 type ContainerTakeDown interface {
-	Calculate(state ContainerTakeDownState) []string
+	Calculate(state ContainerTakeDownState) []container.IContainer
 }
 
 func ProvideOverResourceUsageContainerTakeDown() ContainerTakeDown {
@@ -13,7 +19,9 @@ func ProvideOverResourceUsageContainerTakeDown() ContainerTakeDown {
 
 type OverResourceUsageContainerTakeDown struct{}
 
-func (o OverResourceUsageContainerTakeDown) Calculate(state ContainerTakeDownState) []string {
+// Calculate check the container which one should be shutdown. Don't call stop container in this function,
+// Instead, Just return it and let the caller handle it instead
+func (o OverResourceUsageContainerTakeDown) Calculate(state ContainerTakeDownState) []container.IContainer {
 	//TODO implement me
 	panic("implement me")
 }
