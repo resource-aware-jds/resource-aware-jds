@@ -1,5 +1,5 @@
 # Stage 1 - Builder: Import the golang container.
-FROM golang:1.20-alpine as builder
+FROM golang:1.21-alpine as builder
 
 # Install ssh client and git
 RUN apk add --no-cache openssh-client git
