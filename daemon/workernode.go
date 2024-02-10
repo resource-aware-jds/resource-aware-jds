@@ -6,6 +6,7 @@ import (
 	"github.com/docker/docker/client"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/timeutil"
 	"github.com/resource-aware-jds/resource-aware-jds/service"
+	"github.com/sirupsen/logrus"
 	"time"
 )
 
@@ -68,7 +69,7 @@ func (w *workerNode) Start() {
 				if err != nil {
 					return
 				}
-				fmt.Println(report)
+				logrus.Info(report)
 				timeutil.SleepWithContext(ctx, ResourceMonitorDuration)
 			}
 		}

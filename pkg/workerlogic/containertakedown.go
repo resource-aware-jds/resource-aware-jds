@@ -1,12 +1,15 @@
 package workerlogic
 
 import (
+	"github.com/resource-aware-jds/resource-aware-jds/models"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/container"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/datastructure"
 )
 
 type ContainerTakeDownState struct {
-	ContainerBuffer datastructure.Buffer[string, container.IContainer]
+	ContainerBuffer      datastructure.Buffer[string, container.IContainer]
+	report               *models.CheckResourceReport     // nolint:unused
+	getContainerResource []models.ContainerResourceUsage // nolint:unused
 }
 
 type ContainerTakeDown interface {

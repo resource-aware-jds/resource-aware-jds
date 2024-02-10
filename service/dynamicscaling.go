@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"fmt"
 	"github.com/resource-aware-jds/resource-aware-jds/config"
 	"github.com/resource-aware-jds/resource-aware-jds/models"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/datastructure"
@@ -77,7 +76,7 @@ func (d *DynamicScalingService) CheckResourceUsageLimit(ctx context.Context) (*m
 		percentageFloat, err := strconv.ParseFloat(trimmedStr, 64)
 
 		if err != nil {
-			fmt.Printf("There was an error converting the string to a float:  %v\n", err)
+			logrus.Errorf("There was an error converting the string to a float:  %v\n", err)
 			// TODO add error handler
 			return 0
 		}
