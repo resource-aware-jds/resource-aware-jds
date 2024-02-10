@@ -6,11 +6,11 @@ import (
 	"strings"
 )
 
-func ConvertToGb(memory models.MemoryWithUnit) models.MemoryWithUnit {
+func ConvertToGb(memory models.MemorySize) models.MemorySize {
 	// TODO change unit to enum
 	lowerCaseUnit := strings.ToLower(memory.Unit)
 	if lowerCaseUnit == "mb" || lowerCaseUnit == "mib" {
-		return models.MemoryWithUnit{
+		return models.MemorySize{
 			Size: memory.Size / 1024,
 			Unit: "GiB",
 		}
@@ -18,12 +18,12 @@ func ConvertToGb(memory models.MemoryWithUnit) models.MemoryWithUnit {
 	return memory
 }
 
-func SumInGb(first models.MemoryWithUnit, second models.MemoryWithUnit) models.MemoryWithUnit {
+func SumInGb(first models.MemorySize, second models.MemorySize) models.MemorySize {
 	firstGb := ConvertToGb(first)
 	secondGb := ConvertToGb(second)
 	fmt.Println(firstGb)
 	fmt.Println(secondGb)
-	return models.MemoryWithUnit{
+	return models.MemorySize{
 		Size: firstGb.Size + secondGb.Size,
 		Unit: "GiB",
 	}

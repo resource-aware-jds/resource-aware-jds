@@ -20,7 +20,7 @@ type DynamicScalingService struct {
 }
 
 type IDynamicScaling interface {
-	CheckResourceUsageLimit(ctx context.Context) models.CheckResourceReport
+	CheckResourceUsageLimit(ctx context.Context) (*models.CheckResourceReport, error)
 }
 
 func ProvideDynamicScaling(containerService IContainer, resourceMonitoringService IResourceMonitor, config config.WorkerConfigModel) IDynamicScaling {
@@ -31,7 +31,16 @@ func ProvideDynamicScaling(containerService IContainer, resourceMonitoringServic
 	}
 }
 
-func (d *DynamicScalingService) CheckResourceUsageLimit(ctx context.Context) models.CheckResourceReport {
+func (d *DynamicScalingService) CheckResourceUsageLimitWithTimeBuffer(ctx context.Context) (*models.CheckResourceReport, error) {
+	result, err := d.CheckResourceUsageLimit(ctx)
+	if result != nil {
+		return nil, err
+	}
+	fmt.Println(result)
+	return result, nil
+}
+
+func (d *DynamicScalingService) CheckResourceUsageLimit(ctx context.Context) (*models.CheckResourceReport, error) {
 	//Read require configuration
 	fmt.Println("Get config")
 	memoryLimit := d.config.MaxMemoryUsage
@@ -45,25 +54,28 @@ func (d *DynamicScalingService) CheckResourceUsageLimit(ctx context.Context) mod
 	containerResourceUsage, err := d.resourceMonitoringService.GetResourceUsage()
 	if err != nil {
 		logrus.Errorf("Unable to retrieve container resource usage: %e", err)
+		return nil, err
 	}
 	systemMemoryUsage, err := d.resourceMonitoringService.GetSystemMemUsage()
 	if err != nil {
 		logrus.Errorf("Unable to retrieve system memory usage: %e", err)
+		return nil, err
 	}
 	systemCpuUsage, err := d.resourceMonitoringService.GetSystemCpuUsage(ctx)
 	if err != nil {
 		logrus.Errorf("Unable to retrieve system cpu usage: %e", err)
+		return nil, err
 	}
 
 	//Calculate all container usage
 	fmt.Println("Get container usage")
 	memoryUsageSlice := datastructure.Map(containerResourceUsage,
-		func(containerUsage models.ContainerResourceUsage) models.MemoryWithUnit {
+		func(containerUsage models.ContainerResourceUsage) models.MemorySize {
 			fmt.Println(d.extractMemoryUsage(containerUsage.MemoryUsage.Raw))
 			return d.extractMemoryUsage(containerUsage.MemoryUsage.Raw)
 		})
 
-	memoryUsage := datastructure.SumAny(memoryUsageSlice, util.SumInGb, models.MemoryWithUnit{Size: 0, Unit: "GiB"})
+	memoryUsage := datastructure.SumAny(memoryUsageSlice, util.SumInGb, models.MemorySize{Size: 0, Unit: "GiB"})
 
 	cpuUsage := datastructure.SumFloat(containerResourceUsage, func(containerUsage models.ContainerResourceUsage) float64 {
 		trimmedStr := strings.TrimSuffix(containerUsage.CpuUsage, "%")
@@ -77,15 +89,10 @@ func (d *DynamicScalingService) CheckResourceUsageLimit(ctx context.Context) mod
 		return percentageFloat
 	})
 
-	fmt.Printf("Docker usage: ")
-	fmt.Println(containerResourceUsage)
-	fmt.Printf("Docker memory: ")
-	fmt.Println(memoryUsage)
-
 	// Check resource upper bound
 	upperBoundReport := models.CheckResourceReport{
 		CpuUsageExceed:    0,
-		MemoryUsageExceed: models.MemoryWithUnit{Size: 0, Unit: "GiB"},
+		MemoryUsageExceed: models.MemorySize{Size: 0, Unit: "GiB"},
 	}
 	d.checkCpuUpperBound(cpuUsage, dockerCoreLimit, cpuLimit, upperBoundReport)
 	d.checkMemoryUpperBound(memoryUsage, memoryLimit, upperBoundReport)
@@ -93,18 +100,18 @@ func (d *DynamicScalingService) CheckResourceUsageLimit(ctx context.Context) mod
 	// Check buffer size
 	bufferReport := models.CheckResourceReport{
 		CpuUsageExceed:    0,
-		MemoryUsageExceed: models.MemoryWithUnit{Size: 0, Unit: "GiB"},
+		MemoryUsageExceed: models.MemorySize{Size: 0, Unit: "GiB"},
 	}
 	d.checkCpuBuffer(systemCpuUsage, cpuBuffer, bufferReport)
 	d.checkMemoryBuffer(systemMemoryUsage, memoryBuffer, bufferReport)
 
-	return models.CheckResourceReport{
+	return &models.CheckResourceReport{
 		CpuUsageExceed: max(upperBoundReport.CpuUsageExceed, bufferReport.CpuUsageExceed),
-		MemoryUsageExceed: models.MemoryWithUnit{
+		MemoryUsageExceed: models.MemorySize{
 			Size: max(upperBoundReport.MemoryUsageExceed.Size, bufferReport.MemoryUsageExceed.Size),
 			Unit: "GiB",
 		},
-	}
+	}, nil
 }
 
 func (d *DynamicScalingService) checkMemoryBuffer(systemMemoryUsage *models.MemoryUsage, memoryBuffer string, report models.CheckResourceReport) {
@@ -114,7 +121,7 @@ func (d *DynamicScalingService) checkMemoryBuffer(systemMemoryUsage *models.Memo
 	if freeMemoryGb < memoryBufferGb {
 		report.MemoryUsageExceed = util.SumInGb(
 			report.MemoryUsageExceed,
-			models.MemoryWithUnit{
+			models.MemorySize{
 				Size: report.MemoryUsageExceed.Size + float64(memoryBufferGb-freeMemoryGb),
 				Unit: "GiB",
 			})
@@ -129,7 +136,7 @@ func (d *DynamicScalingService) checkCpuBuffer(systemCpuUsage *models.CpuUsage, 
 
 func (d *DynamicScalingService) checkCpuUpperBound(cpuUsage float64, dockerCoreLimit int, cpuLimit int, report models.CheckResourceReport) {
 	currentCpuPercentage := cpuUsage / float64(dockerCoreLimit)
-	if cpuUsage/float64(dockerCoreLimit) > float64(cpuLimit) {
+	if currentCpuPercentage > float64(cpuLimit) {
 		cpuDelta := currentCpuPercentage - float64(cpuLimit)
 		if cpuDelta > 0 {
 			report.CpuUsageExceed += cpuDelta
@@ -137,7 +144,7 @@ func (d *DynamicScalingService) checkCpuUpperBound(cpuUsage float64, dockerCoreL
 	}
 }
 
-func (d *DynamicScalingService) checkMemoryUpperBound(memoryUsage models.MemoryWithUnit, memoryLimit string, report models.CheckResourceReport) {
+func (d *DynamicScalingService) checkMemoryUpperBound(memoryUsage models.MemorySize, memoryLimit string, report models.CheckResourceReport) {
 	currentMemoryUsageGb := util.ConvertToGb(memoryUsage).Size
 	memoryLimitGb := util.ConvertToGb(d.extractMemoryUsage(memoryLimit)).Size
 	if currentMemoryUsageGb > memoryLimitGb {
@@ -145,13 +152,13 @@ func (d *DynamicScalingService) checkMemoryUpperBound(memoryUsage models.MemoryW
 		if memoryDelta > 0 {
 			report.MemoryUsageExceed = util.SumInGb(
 				report.MemoryUsageExceed,
-				models.MemoryWithUnit{Size: report.MemoryUsageExceed.Size + memoryDelta, Unit: "GiB"},
+				models.MemorySize{Size: report.MemoryUsageExceed.Size + memoryDelta, Unit: "GiB"},
 			)
 		}
 	}
 }
 
-func (d *DynamicScalingService) extractMemoryUsage(input string) models.MemoryWithUnit {
+func (d *DynamicScalingService) extractMemoryUsage(input string) models.MemorySize {
 	regex := regexp.MustCompile(`(\d+(\.\d+)?)([a-zA-Z]+)`)
 	match := regex.FindStringSubmatch(input)
 
@@ -159,7 +166,7 @@ func (d *DynamicScalingService) extractMemoryUsage(input string) models.MemoryWi
 		number, _ := strconv.ParseFloat(match[1], 64)
 		unit := match[3]
 
-		result := models.MemoryWithUnit{
+		result := models.MemorySize{
 			Size: number,
 			Unit: unit,
 		}
@@ -167,5 +174,5 @@ func (d *DynamicScalingService) extractMemoryUsage(input string) models.MemoryWi
 		return result
 	}
 
-	return models.MemoryWithUnit{}
+	return models.MemorySize{}
 }
