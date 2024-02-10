@@ -24,7 +24,6 @@ func ProvideConfig() (*Config, error) {
 	err := godotenv.Load(EnvConfigLocation)
 	if err != nil {
 		logrus.Warn("Can't load env file")
-		return nil, err
 	}
 
 	var config Config
