@@ -105,6 +105,7 @@ func (d *DynamicScalingService) CheckResourceUsageLimit(ctx context.Context) (*m
 			Size: max(upperBoundReport.MemoryUsageExceed.Size, bufferReport.MemoryUsageExceed.Size),
 			Unit: "GiB",
 		},
+		ContainerResourceUsages: containerResourceUsage,
 	}, nil
 }
 

@@ -1,6 +1,7 @@
 package models
 
 type CheckResourceReport struct {
-	CpuUsageExceed    float64
-	MemoryUsageExceed MemorySize
+	CpuUsageExceed          float64
+	MemoryUsageExceed       MemorySize
+	ContainerResourceUsages []ContainerResourceUsage
 }

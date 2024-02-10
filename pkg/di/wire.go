@@ -26,4 +26,5 @@ var PKGWireSet = wire.NewSet(
 	http.ProvideHttpServer,
 	grpc.ProvideRAJDSGRPCResolver,
 	metrics.ProvideMeter,
+	workerlogic.ProvideOverResourceUsageContainerTakeDown,
 )
