@@ -89,6 +89,7 @@ func (w *workerNode) Start() {
 				logrus.Warn("CPU Usage or Memory Usage exceeded the limit, taking down the container")
 				w.containerTakeDownLogic.Calculate(workerlogic.ContainerTakeDownState{
 					ContainerBuffer: w.containerService.GetContainerBuffer(),
+					Report:          report,
 				})
 				timeutil.SleepWithContext(ctx, ResourceMonitorDuration)
 			}
