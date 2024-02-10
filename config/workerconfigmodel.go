@@ -22,6 +22,7 @@ type WorkerConfigModel struct {
 	MaxCpuUsagePercentage                     int           `envconfig:"MAX_CPU_USAGE_PERCENTAGE" default:"100"`
 	CpuBufferSize                             int           `envconfig:"CPU_BUFFER_SIZE" default:"20"`
 	DockerCoreLimit                           int           `envconfig:"DOCKER_CORE_LIMIT"`
+	TotalContainerLimit                       int           `envconfig:"TOTAL_CONTAINER_CONFIG" default:"3"`
 }
 
 func ProvideWorkerNodeReceiverConfig(config WorkerConfigModel) grpc.WorkerNodeReceiverConfig {

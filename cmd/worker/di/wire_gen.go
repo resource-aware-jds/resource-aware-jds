@@ -63,7 +63,7 @@ func InitializeApplication() (WorkerApp, func(), error) {
 		return WorkerApp{}, nil, err
 	}
 	queue := taskqueue.ProvideTaskQueue(meter)
-	workerDistributor := workerlogic.ProvideDelayWorkerDistributor()
+	workerDistributor := workerlogic.ProvideDelayWorkerDistributor(workerConfigModel)
 	iContainer := service.ProvideContainer(client, workerConfigModel, meter)
 	iWorker := service.ProvideWorker(controlPlaneClient, client, transportCertificate, workerConfigModel, queue, workerDistributor, iContainer, meter)
 	grpcHandler := handler.ProvideWorkerGRPCHandler(rajdsGrpcServer, iWorker, meter)
