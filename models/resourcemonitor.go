@@ -9,3 +9,26 @@ type ContainerResourceUsage struct {
 	CpuUsage         string
 	MemoryUsage      dockerstats.MemoryStats
 }
+
+type MemoryUsage struct {
+	Total  uint64
+	Used   uint64
+	Cached uint64
+	Free   uint64
+}
+
+type CpuUsage struct {
+	User   float64
+	System float64
+	Idle   float64
+}
+
+type OSResourceUsage struct {
+	MemoryUsage MemoryUsage
+	CpuUsage    CpuUsage
+}
+
+type MemorySize struct {
+	Size float64
+	Unit string
+}

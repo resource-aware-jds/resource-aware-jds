@@ -17,6 +17,11 @@ type WorkerConfigModel struct {
 	CertificatePrivateKeyPath                 string        `envconfig:"CERTIFICATE_PRIVATE_KEY_PATH"`
 	ContainerStartDelayTimeSeconds            time.Duration `envconfig:"CONTAINER_START_DELAY_TIME_SECONDS" default:"5m"`
 	HTTPServerPort                            int           `envconfig:"HTTP_SERVER_PORT" default:"30001"`
+	MaxMemoryUsage                            string        `envconfig:"MAX_MEMORY_USAGE" default:"16GiB"`
+	MemoryBufferSize                          string        `envconfig:"MEMORY_BUFFER_SIZE" default:"2GiB"`
+	MaxCpuUsagePercentage                     int           `envconfig:"MAX_CPU_USAGE_PERCENTAGE" default:"100"`
+	CpuBufferSize                             int           `envconfig:"CPU_BUFFER_SIZE" default:"20"`
+	DockerCoreLimit                           int           `envconfig:"DOCKER_CORE_LIMIT"`
 }
 
 func ProvideWorkerNodeReceiverConfig(config WorkerConfigModel) grpc.WorkerNodeReceiverConfig {

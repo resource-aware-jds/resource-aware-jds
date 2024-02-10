@@ -26,3 +26,20 @@ func Contains[T comparable](s []T, e T) bool {
 	}
 	return false
 }
+
+func SumFloat[T any](s []T, f func(T) float64) float64 {
+	var result float64
+	result = 0
+	for _, item := range s {
+		result += f(item)
+	}
+	return result
+}
+
+func SumAny[T any, V any](s []T, f func(T, V) V, initialVal V) V {
+	result := initialVal
+	for _, item := range s {
+		result = f(item, result)
+	}
+	return result
+}

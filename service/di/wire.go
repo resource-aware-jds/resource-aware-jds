@@ -12,4 +12,5 @@ var ServiceWireSet = wire.NewSet(
 	service.ProvideJobService,
 	service.ProvideTaskService,
 	service.ProvideContainer,
+	service.ProvideDynamicScaling,
 )
