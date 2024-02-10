@@ -4,13 +4,13 @@ import (
 	"context"
 	"fmt"
 	"github.com/docker/docker/client"
+	"github.com/resource-aware-jds/resource-aware-jds/cmd/workerlogic"
 	"github.com/resource-aware-jds/resource-aware-jds/config"
 	"github.com/resource-aware-jds/resource-aware-jds/generated/proto/github.com/resource-aware-jds/resource-aware-jds/generated/proto"
 	"github.com/resource-aware-jds/resource-aware-jds/models"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/cert"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/datastructure"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/taskqueue"
-	"github.com/resource-aware-jds/resource-aware-jds/pkg/workerdistribution"
 	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.opentelemetry.io/otel/metric"
@@ -27,7 +27,7 @@ type Worker struct {
 	workerNodeCertificate cert.TransportCertificate
 	config                config.WorkerConfigModel
 
-	workerNodeDistribution workerdistribution.WorkerDistributor
+	workerNodeDistribution workerlogic.WorkerDistributor
 	containerService       IContainer
 
 	taskQueue  taskqueue.Queue
@@ -54,7 +54,7 @@ func ProvideWorker(
 	workerNodeCertificate cert.TransportCertificate,
 	config config.WorkerConfigModel,
 	taskQueue taskqueue.Queue,
-	workerNodeDistribution workerdistribution.WorkerDistributor,
+	workerNodeDistribution workerlogic.WorkerDistributor,
 	containerService IContainer,
 	meter metric.Meter,
 ) IWorker {
@@ -151,7 +151,7 @@ func (w *Worker) TaskDistributionDaemonLoop(ctx context.Context) {
 	taskDepointer := *task
 
 	// Store the ContainerCoolDownState
-	distributionResult := w.workerNodeDistribution.Distribute(ctx, taskDepointer, workerdistribution.WorkerState{
+	distributionResult := w.workerNodeDistribution.Distribute(ctx, taskDepointer, workerlogic.WorkerState{
 		ContainerCoolDownState: w.containerService.GetContainerCoolDownState(),
 		WorkerNodeConfig:       w.config,
 		ContainerBuffer:        w.containerService.GetContainerBuffer(),

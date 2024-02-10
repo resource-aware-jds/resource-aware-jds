@@ -1,4 +1,4 @@
-package workerdistribution
+package workerlogic
 
 import (
 	"context"
