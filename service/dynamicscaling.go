@@ -36,13 +36,11 @@ func (d *DynamicScalingService) CheckResourceUsageLimitWithTimeBuffer(ctx contex
 	if result != nil {
 		return nil, err
 	}
-	fmt.Println(result)
 	return result, nil
 }
 
 func (d *DynamicScalingService) CheckResourceUsageLimit(ctx context.Context) (*models.CheckResourceReport, error) {
 	//Read require configuration
-	fmt.Println("Get config")
 	memoryLimit := d.config.MaxMemoryUsage
 	memoryBuffer := d.config.MemoryBufferSize
 	cpuLimit := d.config.MaxCpuUsagePercentage
@@ -50,7 +48,6 @@ func (d *DynamicScalingService) CheckResourceUsageLimit(ctx context.Context) (*m
 	dockerCoreLimit := d.config.DockerCoreLimit
 
 	//Read current resource usage
-	fmt.Println("Get resource usage")
 	containerResourceUsage, err := d.resourceMonitoringService.GetResourceUsage()
 	if err != nil {
 		logrus.Errorf("Unable to retrieve container resource usage: %e", err)
@@ -68,10 +65,8 @@ func (d *DynamicScalingService) CheckResourceUsageLimit(ctx context.Context) (*m
 	}
 
 	//Calculate all container usage
-	fmt.Println("Get container usage")
 	memoryUsageSlice := datastructure.Map(containerResourceUsage,
 		func(containerUsage models.ContainerResourceUsage) models.MemorySize {
-			fmt.Println(d.extractMemoryUsage(containerUsage.MemoryUsage.Raw))
 			return d.extractMemoryUsage(containerUsage.MemoryUsage.Raw)
 		})
 
