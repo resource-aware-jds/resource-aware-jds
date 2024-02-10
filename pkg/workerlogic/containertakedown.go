@@ -7,9 +7,9 @@ import (
 )
 
 type ContainerTakeDownState struct {
-	ContainerBuffer      datastructure.Buffer[string, container.IContainer]
-	report               *models.CheckResourceReport     // nolint:unused
-	getContainerResource []models.ContainerResourceUsage // nolint:unused
+	ContainerBuffer   datastructure.Buffer[string, container.IContainer]
+	Report            *models.CheckResourceReport     // nolint:unused
+	ContainerResource []models.ContainerResourceUsage // nolint:unused
 }
 
 type ContainerTakeDown interface {
