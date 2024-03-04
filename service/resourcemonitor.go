@@ -6,8 +6,10 @@ import (
 	"github.com/resource-aware-jds/dockerstats"
 	"github.com/resource-aware-jds/go-osstat/cpu"
 	"github.com/resource-aware-jds/go-osstat/memory"
+	"github.com/resource-aware-jds/resource-aware-jds/config"
 	"github.com/resource-aware-jds/resource-aware-jds/models"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/datastructure"
+	"github.com/resource-aware-jds/resource-aware-jds/pkg/util"
 	"github.com/sirupsen/logrus"
 	"time"
 )
@@ -15,18 +17,21 @@ import (
 type ResourceMonitor struct {
 	dockerClient     *client.Client
 	containerService IContainer
+	config           config.WorkerConfigModel
 }
 
 type IResourceMonitor interface {
 	GetResourceUsage() ([]models.ContainerResourceUsage, error)
 	GetSystemMemUsage() (*models.MemoryUsage, error)
 	GetSystemCpuUsage(ctx context.Context) (*models.CpuUsage, error)
+	CalculateAvailableResource(ctx context.Context) (*models.AvailableResource, error)
 }
 
-func ProvideResourcesMonitor(dockerClient *client.Client, workerService IContainer) IResourceMonitor {
+func ProvideResourcesMonitor(dockerClient *client.Client, workerService IContainer, config config.WorkerConfigModel) IResourceMonitor {
 	return &ResourceMonitor{
 		dockerClient:     dockerClient,
 		containerService: workerService,
+		config:           config,
 	}
 }
 
@@ -96,4 +101,106 @@ func (r *ResourceMonitor) GetSystemCpuUsage(ctx context.Context) (*models.CpuUsa
 		System: system,
 		Idle:   idle,
 	}, nil
+}
+
+func (r *ResourceMonitor) CalculateAvailableResource(ctx context.Context) (*models.AvailableResource, error) {
+	//Read require configuration
+	memoryLimit := r.config.MaxMemoryUsage
+	memoryBuffer := r.config.MemoryBufferSize
+	cpuLimit := r.config.MaxCpuUsagePercentage
+	cpuBuffer := r.config.CpuBufferSize
+	dockerCoreLimit := r.config.DockerCoreLimit
+
+	//Read current resource usage
+	systemMemoryUsage, err := r.GetSystemMemUsage()
+	if err != nil {
+		logrus.Errorf("Unable to retrieve system memory usage: %e", err)
+		return nil, err
+	}
+	systemCpuUsage, err := r.GetSystemCpuUsage(ctx)
+	if err != nil {
+		logrus.Errorf("Unable to retrieve system cpu usage: %e", err)
+		return nil, err
+	}
+	containerResourceUsage, err := r.GetResourceUsage()
+	if err != nil {
+		logrus.Errorf("Unable to retrieve container resource usage: %e", err)
+		return nil, err
+	}
+
+	memoryUsage, cpuUsage, err := calculateContainerResourceUsage(containerResourceUsage)
+	if err != nil {
+		return nil, err
+	}
+
+	upperBoundAvailableResourceReport := models.AvailableResource{}
+
+	r.checkCpuUpperBound(cpuUsage, dockerCoreLimit, cpuLimit, &upperBoundAvailableResourceReport)
+	r.checkMemoryUpperBound(memoryUsage, memoryLimit, &upperBoundAvailableResourceReport)
+
+	// Check buffer size
+	bufferAvailableResourceReport := models.AvailableResource{}
+
+	r.checkCpuBuffer(systemCpuUsage, cpuBuffer, &bufferAvailableResourceReport)
+	r.checkMemoryBuffer(systemMemoryUsage, memoryBuffer, &bufferAvailableResourceReport)
+
+	return &models.AvailableResource{
+		CpuCores:               int64(dockerCoreLimit),
+		AvailableCpuPercentage: min(upperBoundAvailableResourceReport.AvailableCpuPercentage, bufferAvailableResourceReport.AvailableCpuPercentage),
+		AvailableMemory: models.MemorySize{
+			Size: min(upperBoundAvailableResourceReport.AvailableMemory.Size, bufferAvailableResourceReport.AvailableMemory.Size),
+			Unit: "Gib",
+		},
+	}, nil
+}
+
+func (d *ResourceMonitor) checkMemoryBuffer(systemMemoryUsage *models.MemoryUsage, memoryBuffer string, report *models.AvailableResource) {
+	freeMemory := systemMemoryUsage.Total - systemMemoryUsage.Used
+	memoryBufferGb := util.ConvertToGb(util.ExtractMemoryUsageString(memoryBuffer)).Size
+	freeMemoryGb := float64(freeMemory) / (1024 * 1024 * 1024)
+	report.AvailableMemory = util.SumInGb(
+		report.AvailableMemory,
+		models.MemorySize{
+			Size: report.AvailableMemory.Size + (freeMemoryGb - memoryBufferGb),
+			Unit: "GiB",
+		})
+}
+
+func (d *ResourceMonitor) checkCpuBuffer(systemCpuUsage *models.CpuUsage, cpuBuffer int, report *models.AvailableResource) {
+	report.AvailableCpuPercentage += float32(systemCpuUsage.Idle) - float32(cpuBuffer)
+}
+
+func (d *ResourceMonitor) checkCpuUpperBound(cpuUsage float64, dockerCoreLimit int, cpuLimit int, report *models.AvailableResource) {
+	currentCpuPercentage := cpuUsage / float64(dockerCoreLimit)
+	cpuDelta := float64(cpuLimit) - currentCpuPercentage
+	report.AvailableCpuPercentage += float32(cpuDelta)
+}
+
+func (d *ResourceMonitor) checkMemoryUpperBound(memoryUsage models.MemorySize, memoryLimit string, report *models.AvailableResource) {
+	currentMemoryUsageGb := util.ConvertToGb(memoryUsage).Size
+	memoryLimitGb := util.ConvertToGb(util.ExtractMemoryUsageString(memoryLimit)).Size
+	memoryDelta := memoryLimitGb - currentMemoryUsageGb
+	report.AvailableMemory = util.SumInGb(
+		report.AvailableMemory,
+		models.MemorySize{Size: report.AvailableMemory.Size + memoryDelta, Unit: "GiB"},
+	)
+}
+
+func calculateContainerResourceUsage(containerResourceUsage []models.ContainerResourceUsage) (models.MemorySize, float64, error) {
+	//Calculate all container usage
+	memoryUsageSlice := datastructure.Map(containerResourceUsage,
+		func(containerUsage models.ContainerResourceUsage) models.MemorySize {
+			return util.ExtractMemoryUsageFromModel(containerUsage)
+		})
+
+	memoryUsage := datastructure.SumAny(memoryUsageSlice, util.SumInGb, models.MemorySize{Size: 0, Unit: "GiB"})
+
+	cpuUsage := datastructure.SumFloat(containerResourceUsage, func(containerUsage models.ContainerResourceUsage) float64 {
+		percentageFloat, err := util.ExtractCpuUsage(containerUsage)
+		if err != nil {
+			logrus.Errorf("Unabel to extract percentage: %e", err)
+		}
+		return percentageFloat
+	})
+	return memoryUsage, cpuUsage, nil
 }

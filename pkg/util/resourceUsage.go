@@ -43,3 +43,8 @@ func ExtractMemoryUsageString(input string) models.MemorySize {
 
 	return models.MemorySize{}
 }
+
+func MemoryToString(model models.MemorySize) string {
+	sizeString := strconv.FormatFloat(model.Size, 'f', -1, 64)
+	return sizeString + model.Unit
+}

@@ -2,10 +2,8 @@ package service
 
 import (
 	"context"
-	"fmt"
 	"github.com/resource-aware-jds/resource-aware-jds/config"
 	"github.com/resource-aware-jds/resource-aware-jds/models"
-	"github.com/resource-aware-jds/resource-aware-jds/pkg/datastructure"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/util"
 	"github.com/sirupsen/logrus"
 )
@@ -45,11 +43,6 @@ func (d *DynamicScalingService) CheckResourceUsageLimit(ctx context.Context) (*m
 	dockerCoreLimit := d.config.DockerCoreLimit
 
 	//Read current resource usage
-	containerResourceUsage, err := d.resourceMonitoringService.GetResourceUsage()
-	if err != nil {
-		logrus.Errorf("Unable to retrieve container resource usage: %e", err)
-		return nil, err
-	}
 	systemMemoryUsage, err := d.resourceMonitoringService.GetSystemMemUsage()
 	if err != nil {
 		logrus.Errorf("Unable to retrieve system memory usage: %e", err)
@@ -60,22 +53,16 @@ func (d *DynamicScalingService) CheckResourceUsageLimit(ctx context.Context) (*m
 		logrus.Errorf("Unable to retrieve system cpu usage: %e", err)
 		return nil, err
 	}
+	containerResourceUsage, err := d.resourceMonitoringService.GetResourceUsage()
+	if err != nil {
+		logrus.Errorf("Unable to retrieve container resource usage: %e", err)
+		return nil, err
+	}
 
-	//Calculate all container usage
-	memoryUsageSlice := datastructure.Map(containerResourceUsage,
-		func(containerUsage models.ContainerResourceUsage) models.MemorySize {
-			return util.ExtractMemoryUsageFromModel(containerUsage)
-		})
-
-	memoryUsage := datastructure.SumAny(memoryUsageSlice, util.SumInGb, models.MemorySize{Size: 0, Unit: "GiB"})
-
-	cpuUsage := datastructure.SumFloat(containerResourceUsage, func(containerUsage models.ContainerResourceUsage) float64 {
-		percentageFloat, err := util.ExtractCpuUsage(containerUsage)
-		if err != nil {
-			logrus.Errorf("Unabel to extract percentage: %e", err)
-		}
-		return percentageFloat
-	})
+	memoryUsage, cpuUsage, err := calculateContainerResourceUsage(containerResourceUsage)
+	if err != nil {
+		return nil, err
+	}
 
 	// Check resource upper bound
 	upperBoundReport := models.CheckResourceReport{
@@ -145,6 +132,4 @@ func (d *DynamicScalingService) checkMemoryUpperBound(memoryUsage models.MemoryS
 			)
 		}
 	}
-	fmt.Printf("Current memory usage: %f \n", currentMemoryUsageGb)
-	fmt.Printf("Memory limit: %f \n", memoryLimitGb)
 }
