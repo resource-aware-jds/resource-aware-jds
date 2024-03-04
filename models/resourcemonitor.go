@@ -32,3 +32,9 @@ type MemorySize struct {
 	Size float64
 	Unit string
 }
+
+type AvailableResource struct {
+	CpuCores               int64
+	AvailableCpuPercentage float32
+	AvailableMemory        MemorySize
+}

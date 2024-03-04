@@ -7,12 +7,17 @@ option go_package = "github.com/resource-aware-jds/resource-aware-jds/generated/
 
 service WorkerNode {
   rpc SendTask(RecievedTask) returns (google.protobuf.Empty) {}
-  rpc HealthCheck(google.protobuf.Empty) returns (google.protobuf.Empty) {}
+  rpc HealthCheck(google.protobuf.Empty) returns (Resource) {}
 }
 
 message RecievedTask {
   string ID = 1;
   bytes  TaskAttributes = 2;
   string DockerImage = 3;
+}
 
+message Resource {
+  int64 CpuCores = 1;
+  float AvailableCpuPercentage = 2;
+  string AvailableMemory = 3;
 }

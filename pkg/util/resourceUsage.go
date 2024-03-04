@@ -43,3 +43,7 @@ func ExtractMemoryUsageString(input string) models.MemorySize {
 
 	return models.MemorySize{}
 }
+
+func MemoryToString(model models.MemorySize) string {
+	return strconv.Itoa(int(model.Size)) + model.Unit
+}

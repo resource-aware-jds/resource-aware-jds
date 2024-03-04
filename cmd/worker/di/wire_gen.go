@@ -71,7 +71,8 @@ func InitializeApplication() (WorkerApp, func(), error) {
 		cleanup()
 		return WorkerApp{}, nil, err
 	}
-	grpcHandler := handler.ProvideWorkerGRPCHandler(rajdsGrpcServer, iWorker, meter)
+	iResourceMonitor := service.ProvideResourcesMonitor(client, iContainer, workerConfigModel)
+	grpcHandler := handler.ProvideWorkerGRPCHandler(rajdsGrpcServer, iWorker, iResourceMonitor, meter)
 	workerNodeReceiverConfig := config.ProvideWorkerNodeReceiverConfig(workerConfigModel)
 	workerNodeReceiverGRPCServer, cleanup3, err := grpc.ProvideWorkerNodeReceiverGRPCServer(workerNodeReceiverConfig)
 	if err != nil {
@@ -80,7 +81,6 @@ func InitializeApplication() (WorkerApp, func(), error) {
 		return WorkerApp{}, nil, err
 	}
 	workerNodeReceiverGRPCHandler := handler.ProvideWorkerGRPCSocketHandler(workerNodeReceiverGRPCServer, iWorker, meter)
-	iResourceMonitor := service.ProvideResourcesMonitor(client, iContainer)
 	iDynamicScaling := service.ProvideDynamicScaling(iContainer, iResourceMonitor, workerConfigModel)
 	containerTakeDown := workerlogic.ProvideOverResourceUsageContainerTakeDown()
 	workerNode := daemon.ProvideWorkerNodeDaemon(client, iWorker, iResourceMonitor, iDynamicScaling, containerTakeDown, iContainer)
