@@ -9,6 +9,7 @@ import (
 	"github.com/resource-aware-jds/resource-aware-jds/config"
 	"github.com/resource-aware-jds/resource-aware-jds/models"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/datastructure"
+	"github.com/resource-aware-jds/resource-aware-jds/pkg/timeutil"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/util"
 	"github.com/sirupsen/logrus"
 	"time"
@@ -70,23 +71,13 @@ func (r *ResourceMonitor) GetSystemMemUsage() (*models.MemoryUsage, error) {
 	}, nil
 }
 
-func sleepContext(ctx context.Context, d time.Duration) {
-	timer := time.NewTimer(d)
-	select {
-	case <-ctx.Done():
-		timer.Stop()
-	case <-timer.C:
-
-	}
-}
-
 func (r *ResourceMonitor) GetSystemCpuUsage(ctx context.Context) (*models.CpuUsage, error) {
 	before, err := cpu.Get()
 	if err != nil {
 		logrus.Errorf("Unable to get os cpu usage: %e", err)
 		return nil, err
 	}
-	sleepContext(ctx, time.Duration(1)*time.Second)
+	timeutil.SleepWithContext(ctx, time.Duration(1)*time.Second)
 	after, err := cpu.Get()
 	if err != nil {
 		logrus.Errorf("Unable to get os cpu usage: %e", err)
@@ -154,7 +145,7 @@ func (r *ResourceMonitor) CalculateAvailableResource(ctx context.Context) (*mode
 	}, nil
 }
 
-func (d *ResourceMonitor) checkMemoryBuffer(systemMemoryUsage *models.MemoryUsage, memoryBuffer string, report *models.AvailableResource) {
+func (r *ResourceMonitor) checkMemoryBuffer(systemMemoryUsage *models.MemoryUsage, memoryBuffer string, report *models.AvailableResource) {
 	freeMemory := systemMemoryUsage.Total - systemMemoryUsage.Used
 	memoryBufferGb := util.ConvertToGb(util.ExtractMemoryUsageString(memoryBuffer)).Size
 	freeMemoryGb := float64(freeMemory) / (1024 * 1024 * 1024)
@@ -166,17 +157,17 @@ func (d *ResourceMonitor) checkMemoryBuffer(systemMemoryUsage *models.MemoryUsag
 		})
 }
 
-func (d *ResourceMonitor) checkCpuBuffer(systemCpuUsage *models.CpuUsage, cpuBuffer int, report *models.AvailableResource) {
+func (r *ResourceMonitor) checkCpuBuffer(systemCpuUsage *models.CpuUsage, cpuBuffer int, report *models.AvailableResource) {
 	report.AvailableCpuPercentage += float32(systemCpuUsage.Idle) - float32(cpuBuffer)
 }
 
-func (d *ResourceMonitor) checkCpuUpperBound(cpuUsage float64, dockerCoreLimit int, cpuLimit int, report *models.AvailableResource) {
+func (r *ResourceMonitor) checkCpuUpperBound(cpuUsage float64, dockerCoreLimit int, cpuLimit int, report *models.AvailableResource) {
 	currentCpuPercentage := cpuUsage / float64(dockerCoreLimit)
 	cpuDelta := float64(cpuLimit) - currentCpuPercentage
 	report.AvailableCpuPercentage += float32(cpuDelta)
 }
 
-func (d *ResourceMonitor) checkMemoryUpperBound(memoryUsage models.MemorySize, memoryLimit string, report *models.AvailableResource) {
+func (r *ResourceMonitor) checkMemoryUpperBound(memoryUsage models.MemorySize, memoryLimit string, report *models.AvailableResource) {
 	currentMemoryUsageGb := util.ConvertToGb(memoryUsage).Size
 	memoryLimitGb := util.ConvertToGb(util.ExtractMemoryUsageString(memoryLimit)).Size
 	memoryDelta := memoryLimitGb - currentMemoryUsageGb

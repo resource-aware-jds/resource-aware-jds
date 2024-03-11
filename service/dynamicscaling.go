@@ -4,8 +4,13 @@ import (
 	"context"
 	"github.com/resource-aware-jds/resource-aware-jds/config"
 	"github.com/resource-aware-jds/resource-aware-jds/models"
+	"github.com/resource-aware-jds/resource-aware-jds/pkg/timeutil"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/util"
 	"github.com/sirupsen/logrus"
+)
+
+const (
+	CheckResourceTimeBuffer = 3
 )
 
 type DynamicScalingService struct {
@@ -16,6 +21,7 @@ type DynamicScalingService struct {
 
 type IDynamicScaling interface {
 	CheckResourceUsageLimit(ctx context.Context) (*models.CheckResourceReport, error)
+	CheckResourceUsageLimitWithTimeBuffer(ctx context.Context) (*models.CheckResourceReport, error)
 }
 
 func ProvideDynamicScaling(containerService IContainer, resourceMonitoringService IResourceMonitor, config config.WorkerConfigModel) IDynamicScaling {
@@ -28,7 +34,15 @@ func ProvideDynamicScaling(containerService IContainer, resourceMonitoringServic
 
 func (d *DynamicScalingService) CheckResourceUsageLimitWithTimeBuffer(ctx context.Context) (*models.CheckResourceReport, error) {
 	result, err := d.CheckResourceUsageLimit(ctx)
-	if result != nil {
+	if err != nil {
+		return nil, err
+	}
+	if result.MemoryUsageExceed.Size == 0 && result.CpuUsageExceed == 0 {
+		return result, nil
+	}
+	timeutil.SleepWithContext(ctx, CheckResourceTimeBuffer)
+	result, err = d.CheckResourceUsageLimit(ctx)
+	if err != nil {
 		return nil, err
 	}
 	return result, nil

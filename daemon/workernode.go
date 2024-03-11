@@ -77,7 +77,7 @@ func (w *workerNode) Start() {
 			case <-ctx.Done():
 				return
 			default:
-				report, err := w.dynamicScaling.CheckResourceUsageLimit(ctx)
+				report, err := w.dynamicScaling.CheckResourceUsageLimitWithTimeBuffer(ctx)
 				if err != nil {
 					logrus.Error(err)
 					continue
