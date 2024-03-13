@@ -6,6 +6,7 @@ import (
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/timeutil"
 	"github.com/resource-aware-jds/resource-aware-jds/service"
 	"github.com/sirupsen/logrus"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"time"
 )
 
@@ -19,6 +20,7 @@ type controlPlane struct {
 	workerNodePool      pool.WorkerNode
 	controlPlaneService service.IControlPlane
 	taskService         service.Task
+	jobService          service.Job
 }
 
 type IControlPlane interface {
@@ -26,7 +28,7 @@ type IControlPlane interface {
 	GracefullyShutdown()
 }
 
-func ProvideControlPlaneDaemon(workerNodePool pool.WorkerNode, controlPlaneService service.IControlPlane, taskService service.Task) (IControlPlane, func()) {
+func ProvideControlPlaneDaemon(workerNodePool pool.WorkerNode, controlPlaneService service.IControlPlane, taskService service.Task, jobService service.Job) (IControlPlane, func()) {
 	ctx := context.Background()
 	ctxWithCancel, cancelFunc := context.WithCancel(ctx)
 
@@ -36,6 +38,7 @@ func ProvideControlPlaneDaemon(workerNodePool pool.WorkerNode, controlPlaneServi
 		workerNodePool:      workerNodePool,
 		controlPlaneService: controlPlaneService,
 		taskService:         taskService,
+		jobService:          jobService,
 	}
 
 	cleanup := func() {
@@ -87,7 +90,16 @@ func (c *controlPlane) taskScanLoop(ctx context.Context) {
 		return
 	}
 
-	tasks, err := c.taskService.GetAvailableTask(ctx)
+	jobList, err := c.jobService.ListJobReadyToDistribute(ctx)
+	if err != nil {
+		logrus.Errorf("[ControlPlane Daemon] Failed to get available job (%s)", err.Error())
+		return
+	}
+	jobIDs := make([]*primitive.ObjectID, 0, len(jobList))
+	for _, job := range jobList {
+		jobIDs = append(jobIDs, job.ID)
+	}
+	tasks, err := c.taskService.GetAvailableTask(ctx, jobIDs)
 	if err != nil {
 		logrus.Errorf("[ControlPlane Daemon] Failed to get available task (%s)", err.Error())
 		return

@@ -14,7 +14,7 @@ type task struct {
 }
 
 type Task interface {
-	GetAvailableTask(ctx context.Context) ([]models.Task, error)
+	GetAvailableTask(ctx context.Context, jobIDs []*primitive.ObjectID) ([]models.Task, error)
 	UpdateTaskAfterDistribution(ctx context.Context, successTasks []models.Task, errorTasks []distribution.DistributeError) error
 	UpdateTaskWorkOnFailure(ctx context.Context, taskID primitive.ObjectID, nodeID string, errMessage string) error
 	UpdateTaskSuccess(ctx context.Context, taskID primitive.ObjectID, nodeID string, result []byte) error
@@ -29,8 +29,15 @@ func ProvideTaskService(taskRepository repository.ITask) Task {
 	}
 }
 
-func (t *task) GetAvailableTask(ctx context.Context) ([]models.Task, error) {
-	return t.taskRepository.GetTaskToDistribute(ctx)
+func (t *task) GetAvailableTask(ctx context.Context, jobIDs []*primitive.ObjectID) ([]models.Task, error) {
+	// Distribute Based on Job
+	for _, jobID := range jobIDs {
+		tasks, err := t.taskRepository.GetTaskToDistributeForJob(ctx, jobID)
+		if len(tasks) != 0 || err != nil {
+			return tasks, err
+		}
+	}
+	return nil, nil
 }
 
 func (t *task) UpdateTaskAfterDistribution(ctx context.Context, successTasks []models.Task, errorTasks []distribution.DistributeError) error {

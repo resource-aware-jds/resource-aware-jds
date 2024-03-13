@@ -21,6 +21,7 @@ type IJob interface {
 	Insert(ctx context.Context, job models.Job) (insertedJobID *primitive.ObjectID, err error)
 	FindAll(ctx context.Context) ([]models.Job, error)
 	FindOneByDocumentID(ctx context.Context, id primitive.ObjectID) (*models.Job, error)
+	FindJobToDistribute(ctx context.Context) ([]models.Job, error)
 }
 
 func ProvideJob(database *mongo.Database) IJob {
@@ -66,4 +67,21 @@ func (j *job) FindOneByDocumentID(ctx context.Context, id primitive.ObjectID) (*
 	var jobResult models.Job
 	err := result.Decode(&jobResult)
 	return &jobResult, err
+}
+
+func (j *job) FindJobToDistribute(ctx context.Context) ([]models.Job, error) {
+	result, err := j.collection.Find(ctx, bson.M{
+		"status": bson.M{
+			"$in": []models.JobStatus{
+				models.DistributingJobStatus,
+			},
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	var res []models.Job
+	err = result.All(ctx, &res)
+	return res, err
 }

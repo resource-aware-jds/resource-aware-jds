@@ -22,7 +22,7 @@ type ITask interface {
 	FindOneByID(ctx context.Context, taskID primitive.ObjectID) (*models.Task, error)
 	FindManyByJobID(ctx context.Context, jobID *primitive.ObjectID) ([]models.Task, error)
 	InsertMany(ctx context.Context, tasks []models.Task) error
-	GetTaskToDistribute(ctx context.Context) ([]models.Task, error)
+	GetTaskToDistributeForJob(ctx context.Context, jobID *primitive.ObjectID) ([]models.Task, error)
 	BulkWriteStatusAndLogByID(ctx context.Context, tasks []models.Task) error
 	WriteTaskResult(ctx context.Context, task models.Task) error
 }
@@ -59,11 +59,12 @@ func (t *task) FindManyByJobID(ctx context.Context, jobID *primitive.ObjectID) (
 	return resultDecoded, err
 }
 
-func (t *task) GetTaskToDistribute(ctx context.Context) ([]models.Task, error) {
+func (t *task) GetTaskToDistributeForJob(ctx context.Context, jobID *primitive.ObjectID) ([]models.Task, error) {
 	result, err := t.collection.Find(ctx, bson.M{
 		"task_status": bson.M{
 			"$in": []models.TaskStatus{models.ReadyToDistribute},
 		},
+		"job_id": jobID,
 	})
 	if err != nil {
 		return nil, err
