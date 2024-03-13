@@ -77,12 +77,12 @@ func (g *GRPCHandler) WorkerRegistration(ctx context.Context, req *proto.Compute
 }
 
 func (g *GRPCHandler) CreateJob(ctx context.Context, req *proto.CreateJobRequest) (*proto.CreateJobResponse, error) {
-	job, err := g.jobService.CreateJob(ctx, req.GetName(), req.GetImageURL())
+	job, err := g.jobService.CreateJob(ctx, req.GetName(), req.GetImageURL(), req.GetIsExperiment())
 	if err != nil {
 		return nil, err
 	}
 
-	tasks, err := g.taskService.CreateTask(ctx, job, req.GetTaskAttributes())
+	tasks, err := g.taskService.CreateTask(ctx, job, req.GetTaskAttributes(), req.GetIsExperiment())
 	if err != nil {
 		return nil, err
 	}

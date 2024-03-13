@@ -18,7 +18,7 @@ type Task interface {
 	UpdateTaskAfterDistribution(ctx context.Context, successTasks []models.Task, errorTasks []distribution.DistributeError) error
 	UpdateTaskWorkOnFailure(ctx context.Context, taskID primitive.ObjectID, nodeID string, errMessage string) error
 	UpdateTaskSuccess(ctx context.Context, taskID primitive.ObjectID, nodeID string, result []byte) error
-	CreateTask(ctx context.Context, job *models.Job, taskAttributes [][]byte) ([]models.Task, error)
+	CreateTask(ctx context.Context, job *models.Job, taskAttributes [][]byte, isExperiment bool) ([]models.Task, error)
 	GetTaskByJob(ctx context.Context, job *models.Job) ([]models.Task, error)
 	GetTaskByID(ctx context.Context, taskID primitive.ObjectID) (*models.Task, error)
 }
@@ -45,7 +45,7 @@ func (t *task) UpdateTaskAfterDistribution(ctx context.Context, successTasks []m
 	return t.taskRepository.BulkWriteStatusAndLogByID(ctx, taskToUpdate)
 }
 
-func (t *task) CreateTask(ctx context.Context, job *models.Job, taskAttributes [][]byte) ([]models.Task, error) {
+func (t *task) CreateTask(ctx context.Context, job *models.Job, taskAttributes [][]byte, isExperiment bool) ([]models.Task, error) {
 	// Create Tasks
 	tasks := make([]models.Task, 0, len(taskAttributes))
 	for _, taskAttribute := range taskAttributes {
@@ -56,6 +56,14 @@ func (t *task) CreateTask(ctx context.Context, job *models.Job, taskAttributes [
 			TaskAttributes: taskAttribute,
 		}
 		tasks = append(tasks, newTask)
+	}
+
+	if isExperiment {
+		tasks[0].ExperimentTask()
+	} else {
+		for _, taskData := range tasks {
+			taskData.SkipExperimentTask()
+		}
 	}
 
 	err := t.taskRepository.InsertMany(ctx, tasks)

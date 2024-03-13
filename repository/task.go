@@ -62,7 +62,7 @@ func (t *task) FindManyByJobID(ctx context.Context, jobID *primitive.ObjectID) (
 func (t *task) GetTaskToDistribute(ctx context.Context) ([]models.Task, error) {
 	result, err := t.collection.Find(ctx, bson.M{
 		"task_status": bson.M{
-			"$in": []models.TaskStatus{models.CreatedTaskStatus},
+			"$in": []models.TaskStatus{models.ReadyToDistribute},
 		},
 	})
 	if err != nil {

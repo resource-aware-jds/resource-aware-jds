@@ -9,6 +9,7 @@ type TaskStatus string
 
 const (
 	CreatedTaskStatus     TaskStatus = "created"
+	ReadyToDistribute     TaskStatus = "ready-to-distribute"
 	DistributedTaskStatus TaskStatus = "distributed"
 	WorkOnTaskFailure     TaskStatus = "work-on-task-failure"
 	SuccessTaskStatus     TaskStatus = "success"
@@ -25,6 +26,7 @@ type Task struct {
 	CreatedAt               time.Time           `bson:"created_at" json:"createdAt"`
 	UpdatedAt               time.Time           `bson:"updated_at" json:"updatedAt"`
 	Result                  *[]byte             `bson:"result,omitempty" json:"-"`
+	RetryCount              int                 `bson:"retry_count" json:"retryCount"`
 }
 
 func (t *Task) DistributionSuccess(nodeID string) {
@@ -59,6 +61,16 @@ func (t *Task) SuccessTask(nodeID string, result []byte) {
 	t.AddLog(InfoLogSeverity, "Node Submit Successful Task", map[string]string{
 		"nodeID": nodeID,
 	})
+}
+
+func (t *Task) ExperimentTask() {
+	t.Status = ReadyToDistribute
+	t.AddLog(InfoLogSeverity, "This task has been selected to be the experiment task", nil)
+}
+
+func (t *Task) SkipExperimentTask() {
+	t.Status = ReadyToDistribute
+	t.AddLog(InfoLogSeverity, "This task has been skipped the experiment phrase", nil)
 }
 
 func (t *Task) AddLog(severity LogSeverity, message string, parameters map[string]string) {

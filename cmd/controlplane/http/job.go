@@ -47,7 +47,7 @@ func (j *HttpHandler) CreateJob(c *gin.Context) {
 		return
 	}
 
-	job, err := j.jobService.CreateJob(ctx, req.Name, req.ImageURL)
+	job, err := j.jobService.CreateJob(ctx, req.Name, req.ImageURL, req.IsExperiment)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("create job error: %e", err)})
 		return
@@ -65,7 +65,7 @@ func (j *HttpHandler) CreateJob(c *gin.Context) {
 
 		taskAttributesConverted = append(taskAttributesConverted, marshalredTaskAttributes)
 	}
-	_, err = j.taskService.CreateTask(ctx, job, taskAttributesConverted)
+	_, err = j.taskService.CreateTask(ctx, job, taskAttributesConverted, req.IsExperiment)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("create task error: %e", err)})
 		return

@@ -8,6 +8,7 @@ type CreateJobRequest struct {
 	Name           string                   `json:"name" binding:"required"`
 	ImageURL       string                   `json:"imageURL" binding:"required"`
 	TaskAttributes []map[string]interface{} `json:"taskAttributes" binding:"required"`
+	IsExperiment   bool                     `json:"isExperiment"`
 }
 
 func (c *CreateJobRequest) ToJobModel() models.Job {
