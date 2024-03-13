@@ -51,6 +51,7 @@ message CreateJobRequest {
   string Name = 1;
   string ImageURL = 2;
   repeated bytes TaskAttributes = 3;
+  bool IsExperiment = 4;
 }
 
 message CreateJobResponse {
