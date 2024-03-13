@@ -79,3 +79,11 @@ func (t *Buffer[T, U]) GetKeys() []T {
 	}
 	return keys
 }
+
+func (t *Buffer[T, U]) GetValues() []U {
+	values := make([]U, 0)
+	for _, v := range *t {
+		values = append(values, v)
+	}
+	return values
+}
