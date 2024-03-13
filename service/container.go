@@ -18,6 +18,7 @@ type IContainer interface {
 	GetContainerIdShort() []string
 	GetContainerCoolDownState() datastructure.Buffer[string, time.Time]
 	GetContainerBuffer() datastructure.Buffer[string, container.IContainer]
+	DownContainer(ctx context.Context, container container.IContainer) error
 }
 
 type ContainerService struct {
@@ -57,6 +58,20 @@ func (c *ContainerService) StartContainer(ctx context.Context, imageUrl string) 
 	c.containerBuffer.Store(containerID, containerInstance)
 	c.containerCoolDownState.Store(imageUrl, time.Now().Add(c.config.ContainerStartDelayTimeSeconds))
 	return containerInstance, err
+}
+
+func (c *ContainerService) DownContainer(ctx context.Context, container container.IContainer) error {
+	containerId, ok := container.GetContainerID()
+	if !ok {
+		logrus.Error("Unable to get container id")
+		return fmt.Errorf("unable to get container id")
+	}
+	err := container.Stop(ctx)
+	if err != nil {
+		return err
+	}
+	c.containerBuffer.Pop(containerId)
+	return nil
 }
 
 func (c *ContainerService) GetContainerIdShort() []string {

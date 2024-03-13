@@ -93,7 +93,7 @@ func (w *workerNode) Start() {
 				})
 
 				for _, containerToBeTakeDown := range containerToBeTakeDowns {
-					err = containerToBeTakeDown.Stop(ctx)
+					err = w.containerService.DownContainer(ctx, containerToBeTakeDown)
 					if err != nil {
 						logrus.Error("Take Down Container error: ", err)
 					}
