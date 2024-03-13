@@ -97,9 +97,14 @@ func (w *Worker) CheckInWorkerNodeToControlPlane(ctx context.Context) error {
 func (w *Worker) GetTask(containerImage string) (*proto.Task, error) {
 	task, err := w.taskQueue.GetTask(containerImage)
 	if err != nil {
+		addError := w.containerService.AddContainerTakeDownTimer(containerImage)
+		if addError != nil {
+			logrus.Error(addError)
+		}
 		logrus.Warn(err)
 		return nil, err
 	}
+	w.containerService.RemoveContainerTakeDownTimer(containerImage)
 
 	ctx, cancelFunc := context.WithDeadline(context.Background(), time.Now().Add(w.config.TaskBufferTimeout))
 
