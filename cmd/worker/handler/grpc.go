@@ -33,6 +33,14 @@ func ProvideWorkerGRPCHandler(grpcServer grpc.RAJDSGrpcServer, workerService ser
 }
 
 func (j *GRPCHandler) HealthCheck(ctx context.Context, req *emptypb.Empty) (*proto.Resource, error) {
+	availableTaskSlot := j.workerService.GetAvailableTaskSlot()
+	if availableTaskSlot <= 0 {
+		return &proto.Resource{
+			CpuCores:               0,
+			AvailableCpuPercentage: 0,
+			AvailableMemory:        "0Mib",
+		}, nil
+	}
 	resource, err := j.resourceMonitoringService.CalculateAvailableResource(ctx)
 	if err != nil {
 		return nil, err

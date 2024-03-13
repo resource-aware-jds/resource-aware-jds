@@ -47,6 +47,8 @@ type IWorker interface {
 	GetTask(containerImage string) (*proto.Task, error)
 	SubmitSuccessTask(ctx context.Context, id string, results []byte) error
 	ReportFailTask(ctx context.Context, id string, errorMessage string) error
+	GetRunningTask() []string
+	GetAvailableTaskSlot() int
 
 	// TaskDistributionDaemonLoop is a method allowing the daemon to call to accomplish its routine.
 	TaskDistributionDaemonLoop(ctx context.Context)
@@ -123,6 +125,14 @@ func (w *Worker) GetTask(containerImage string) (*proto.Task, error) {
 		ID:             task.ID.Hex(),
 		TaskAttributes: task.TaskAttributes,
 	}, nil
+}
+
+func (w *Worker) GetRunningTask() []string {
+	return w.taskBuffer.GetKeys()
+}
+
+func (w *Worker) GetAvailableTaskSlot() int {
+	return w.config.TotalContainerLimit - len(w.taskBuffer)
 }
 
 func (w *Worker) SubmitSuccessTask(ctx context.Context, id string, results []byte) error {
