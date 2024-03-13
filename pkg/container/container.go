@@ -32,6 +32,7 @@ type IContainer interface {
 	RemoveContainer(ctx context.Context) error
 	GetContainerID() (string, bool)
 	GetContainerName() string
+	GetImageUrl() string
 }
 
 func ProvideContainer(dockerClient *client.Client, imageURL string, imagePullOptions types.ImagePullOptions) IContainer {
@@ -150,3 +151,5 @@ func (c *containerSvc) GetContainerID() (string, bool) {
 func (c *containerSvc) GetContainerName() string {
 	return c.containerName
 }
+
+func (c *containerSvc) GetImageUrl() string { return c.imageURL }
