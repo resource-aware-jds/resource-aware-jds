@@ -34,4 +34,8 @@ WORKDIR /app
 COPY --from=builder /app/out/cp cp
 COPY --from=builder /app/out/worker worker
 
+RUN apk add openrc
+RUN ln -s /usr/local/bin/dockerd /etc/init.d/dockerd
+RUN rc-update add dockerd boot
+
 CMD [ "/app/." ]
