@@ -62,9 +62,9 @@ func InitializeApplication() (ControlPlaneApp, func(), error) {
 		cleanup()
 		return ControlPlaneApp{}, nil, err
 	}
-	distributor := distribution.ProvideRoundRobinDistributor(meter)
+	distributorMapper := distribution.ProvideDistributorMapper(meter)
 	rajdsgrpcResolver := grpc.ProvideRAJDSGRPCResolver()
-	workerNode := pool.ProvideWorkerNode(caCertificate, distributor, rajdsgrpcResolver, meter)
+	workerNode := pool.ProvideWorkerNode(caCertificate, distributorMapper, rajdsgrpcResolver, meter)
 	iControlPlane := service.ProvideControlPlane(iNodeRegistry, caCertificate, controlPlaneConfigModel, workerNode)
 	iJob := repository.ProvideJob(database)
 	job := service.ProvideJobService(iJob)

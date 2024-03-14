@@ -17,6 +17,18 @@ func ConvertToGb(memory models.MemorySize) models.MemorySize {
 	return memory
 }
 
+func ConvertToMib(memory models.MemorySize) models.MemorySize {
+	// TODO change unit to enum
+	lowerCaseUnit := strings.ToLower(memory.Unit)
+	if lowerCaseUnit == "gb" || lowerCaseUnit == "gib" {
+		return models.MemorySize{
+			Size: memory.Size * 1024,
+			Unit: "MiB",
+		}
+	}
+	return memory
+}
+
 func SumInGb(first models.MemorySize, second models.MemorySize) models.MemorySize {
 	firstGb := ConvertToGb(first)
 	secondGb := ConvertToGb(second)

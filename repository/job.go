@@ -74,6 +74,7 @@ func (j *job) FindJobToDistribute(ctx context.Context) ([]models.Job, error) {
 		"status": bson.M{
 			"$in": []models.JobStatus{
 				models.DistributingJobStatus,
+				models.ExperimentingJobStatus,
 			},
 		},
 	})

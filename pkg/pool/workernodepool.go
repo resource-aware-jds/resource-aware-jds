@@ -9,6 +9,7 @@ import (
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/cert"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/distribution"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/grpc"
+	"github.com/resource-aware-jds/resource-aware-jds/pkg/util"
 	"github.com/sirupsen/logrus"
 	"go.opentelemetry.io/otel/metric"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -24,22 +25,24 @@ const (
 )
 
 var (
-	ErrNoAvailableWorkerNode = errors.New("no available worker node in the pool")
+	ErrNoAvailableWorkerNode  = errors.New("no available worker node in the pool")
+	ErrNoAvailableDistributor = errors.New("no distributor available")
 )
 
 type InitialWorkerNodeSet []models.NodeEntry
 
 type workerNodePoolMapper struct {
-	nodeEntry        models.NodeEntry
-	grpcConnection   proto.WorkerNodeClient
-	unavailableCount uint
-	logger           *logrus.Entry
+	nodeEntry         models.NodeEntry
+	availableResource models.AvailableResource
+	grpcConnection    proto.WorkerNodeClient
+	unavailableCount  uint
+	logger            *logrus.Entry
 }
 
 type workerNode struct {
 	pool              map[string]workerNodePoolMapper
 	caCertificate     cert.CACertificate
-	distributor       distribution.Distributor
+	distributorMapper distribution.DistributorMapper
 	poolMu            sync.Mutex
 	grpcResolver      grpc.RAJDSGRPCResolver
 	workerNodeCounter metric.Int64UpDownCounter
@@ -49,16 +52,16 @@ type WorkerNode interface {
 	InitializePool(ctx context.Context, nodeEntries []models.NodeEntry)
 	AddWorkerNode(ctx context.Context, node models.NodeEntry) error
 	WorkerNodeAvailabilityCheck(ctx context.Context)
-	DistributeWork(ctx context.Context, tasks []models.Task) ([]models.Task, []distribution.DistributeError, error)
+	DistributeWork(ctx context.Context, jobID models.Job, tasks []models.Task) ([]models.Task, []distribution.DistributeError, error)
 	IsAvailableWorkerNode() bool
 }
 
-func ProvideWorkerNode(caCertificate cert.CACertificate, distributor distribution.Distributor, grpcResolver grpc.RAJDSGRPCResolver, meter metric.Meter) WorkerNode {
+func ProvideWorkerNode(caCertificate cert.CACertificate, distributorMapper distribution.DistributorMapper, grpcResolver grpc.RAJDSGRPCResolver, meter metric.Meter) WorkerNode {
 	workerNodeCounter, _ := meter.Int64UpDownCounter("cp_total_connected_worker_node")
 	return &workerNode{
 		caCertificate:     caCertificate,
 		pool:              make(map[string]workerNodePoolMapper),
-		distributor:       distributor,
+		distributorMapper: distributorMapper,
 		grpcResolver:      grpcResolver,
 		workerNodeCounter: workerNodeCounter,
 	}
@@ -124,7 +127,7 @@ func (w *workerNode) WorkerNodeAvailabilityCheck(ctx context.Context) {
 	// Check for all available worker node.
 	for key, focusedNode := range w.pool {
 		ctxWithTimeout, cancel := context.WithTimeout(ctx, AvailabilityCheckTimeout)
-		_, err := focusedNode.grpcConnection.HealthCheck(ctxWithTimeout, &emptypb.Empty{})
+		resource, err := focusedNode.grpcConnection.HealthCheck(ctxWithTimeout, &emptypb.Empty{})
 		cancel()
 		if err != nil {
 			focusedNode.unavailableCount++
@@ -139,11 +142,16 @@ func (w *workerNode) WorkerNodeAvailabilityCheck(ctx context.Context) {
 			// If the node become available again, reset it unavailable stat.
 			focusedNode.unavailableCount = 0
 		}
+		focusedNode.availableResource = models.AvailableResource{
+			CpuCores:               resource.GetCpuCores(),
+			AvailableCpuPercentage: resource.GetAvailableCpuPercentage(),
+			AvailableMemory:        util.ExtractMemoryUsageString(resource.GetAvailableMemory()),
+		}
 		w.pool[key] = focusedNode
 	}
 }
 
-func (w *workerNode) DistributeWork(ctx context.Context, tasks []models.Task) ([]models.Task, []distribution.DistributeError, error) {
+func (w *workerNode) DistributeWork(ctx context.Context, job models.Job, tasks []models.Task) ([]models.Task, []distribution.DistributeError, error) {
 	w.poolMu.Lock()
 	defer w.poolMu.Unlock()
 
@@ -154,13 +162,18 @@ func (w *workerNode) DistributeWork(ctx context.Context, tasks []models.Task) ([
 	nodeMapper := make([]distribution.NodeMapper, 0, len(w.pool))
 	for _, node := range w.pool {
 		nodeMapper = append(nodeMapper, distribution.NodeMapper{
-			NodeEntry:      node.nodeEntry,
-			GRPCConnection: node.grpcConnection,
-			Logger:         node.logger,
+			NodeEntry:         node.nodeEntry,
+			AvailableResource: node.availableResource,
+			GRPCConnection:    node.grpcConnection,
+			Logger:            node.logger,
 		})
 	}
 
-	return w.distributor.Distribute(ctx, nodeMapper, tasks)
+	dist, ok := w.distributorMapper.GetDistributor(distribution.DistributorName(job.DistributorLogic))
+	if !ok {
+		return nil, nil, ErrNoAvailableDistributor
+	}
+	return dist.Distribute(ctx, nodeMapper, tasks)
 }
 
 func (w *workerNode) IsAvailableWorkerNode() bool {

@@ -8,9 +8,10 @@ import (
 )
 
 type NodeMapper struct {
-	NodeEntry      models.NodeEntry
-	GRPCConnection proto.WorkerNodeClient
-	Logger         *logrus.Entry
+	NodeEntry         models.NodeEntry
+	GRPCConnection    proto.WorkerNodeClient
+	AvailableResource models.AvailableResource
+	Logger            *logrus.Entry
 }
 
 type DistributeError struct {

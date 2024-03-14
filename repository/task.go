@@ -25,6 +25,7 @@ type ITask interface {
 	GetTaskToDistributeForJob(ctx context.Context, jobID *primitive.ObjectID) ([]models.Task, error)
 	BulkWriteStatusAndLogByID(ctx context.Context, tasks []models.Task) error
 	WriteTaskResult(ctx context.Context, task models.Task) error
+	FindFinishedTask(ctx context.Context, jobID *primitive.ObjectID) ([]models.Task, error)
 }
 
 func ProvideTask(database *mongo.Database) ITask {
@@ -128,4 +129,18 @@ func (t *task) WriteTaskResult(ctx context.Context, task models.Task) error {
 
 	_, err := t.collection.BulkWrite(ctx, []mongo.WriteModel{operation})
 	return err
+}
+
+func (t *task) FindFinishedTask(ctx context.Context, jobID *primitive.ObjectID) ([]models.Task, error) {
+	result, err := t.collection.Find(ctx, bson.M{
+		"job_id":      jobID,
+		"task_status": models.SuccessTaskStatus,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	var resultDecoded []models.Task
+	err = result.All(ctx, &resultDecoded)
+	return resultDecoded, err
 }

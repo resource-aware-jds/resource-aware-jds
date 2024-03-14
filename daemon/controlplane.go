@@ -6,7 +6,6 @@ import (
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/timeutil"
 	"github.com/resource-aware-jds/resource-aware-jds/service"
 	"github.com/sirupsen/logrus"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"time"
 )
 
@@ -95,11 +94,7 @@ func (c *controlPlane) taskScanLoop(ctx context.Context) {
 		logrus.Errorf("[ControlPlane Daemon] Failed to get available job (%s)", err.Error())
 		return
 	}
-	jobIDs := make([]*primitive.ObjectID, 0, len(jobList))
-	for _, job := range jobList {
-		jobIDs = append(jobIDs, job.ID)
-	}
-	tasks, err := c.taskService.GetAvailableTask(ctx, jobIDs)
+	job, tasks, err := c.taskService.GetAvailableTask(ctx, jobList)
 	if err != nil {
 		logrus.Errorf("[ControlPlane Daemon] Failed to get available task (%s)", err.Error())
 		return
@@ -111,7 +106,7 @@ func (c *controlPlane) taskScanLoop(ctx context.Context) {
 	}
 
 	// Call Distribute function
-	successTask, failureTask, err := c.workerNodePool.DistributeWork(ctx, tasks)
+	successTask, failureTask, err := c.workerNodePool.DistributeWork(ctx, *job, tasks)
 	if err != nil {
 		logrus.Warnf("[ControlPlane Daemon] Failed to distribute work to any worker nodes in the pool (%s)", err.Error())
 		return

@@ -21,7 +21,7 @@ var PKGWireSet = wire.NewSet(
 	dockerclient.ProvideDockerClient,
 	taskqueue.ProvideTaskQueue,
 	pool.ProvideWorkerNode,
-	distribution.ProvideRoundRobinDistributor,
+	distribution.ProvideDistributorMapper,
 	workerlogic.ProvideDelayWorkerDistributor,
 	http.ProvideHttpServer,
 	grpc.ProvideRAJDSGRPCResolver,

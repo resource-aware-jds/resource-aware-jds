@@ -27,6 +27,17 @@ type Task struct {
 	UpdatedAt               time.Time           `bson:"updated_at" json:"updatedAt"`
 	Result                  *[]byte             `bson:"result,omitempty" json:"-"`
 	RetryCount              int                 `bson:"retry_count" json:"retryCount"`
+	ResourceUsage           TaskResourceUsage   `bson:"resource_usage,omitempty" json:"resourceUsage"`
+}
+
+type TaskResourceUsage struct {
+	Memory float32 `bson:"memory" json:"memory"`
+	CPU    float32 `bson:"cpu" json:"cpu"`
+}
+
+func (t *TaskResourceUsage) AverageWithOther(other TaskResourceUsage) {
+	t.Memory = (t.Memory + other.Memory) / 2
+	t.CPU = (t.CPU + other.CPU) / 2
 }
 
 func (t *Task) DistributionSuccess(nodeID string) {

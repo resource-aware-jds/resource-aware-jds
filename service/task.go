@@ -14,13 +14,14 @@ type task struct {
 }
 
 type Task interface {
-	GetAvailableTask(ctx context.Context, jobIDs []*primitive.ObjectID) ([]models.Task, error)
+	GetAvailableTask(ctx context.Context, jobIDs []models.Job) (*models.Job, []models.Task, error)
 	UpdateTaskAfterDistribution(ctx context.Context, successTasks []models.Task, errorTasks []distribution.DistributeError) error
 	UpdateTaskWorkOnFailure(ctx context.Context, taskID primitive.ObjectID, nodeID string, errMessage string) error
 	UpdateTaskSuccess(ctx context.Context, taskID primitive.ObjectID, nodeID string, result []byte) error
 	CreateTask(ctx context.Context, job *models.Job, taskAttributes [][]byte, isExperiment bool) ([]models.Task, error)
 	GetTaskByJob(ctx context.Context, job *models.Job) ([]models.Task, error)
 	GetTaskByID(ctx context.Context, taskID primitive.ObjectID) (*models.Task, error)
+	GetAverageResourceUsage(ctx context.Context, jobID *primitive.ObjectID) (*models.TaskResourceUsage, error)
 }
 
 func ProvideTaskService(taskRepository repository.ITask) Task {
@@ -29,15 +30,15 @@ func ProvideTaskService(taskRepository repository.ITask) Task {
 	}
 }
 
-func (t *task) GetAvailableTask(ctx context.Context, jobIDs []*primitive.ObjectID) ([]models.Task, error) {
+func (t *task) GetAvailableTask(ctx context.Context, jobs []models.Job) (*models.Job, []models.Task, error) {
 	// Distribute Based on Job
-	for _, jobID := range jobIDs {
-		tasks, err := t.taskRepository.GetTaskToDistributeForJob(ctx, jobID)
+	for _, job := range jobs {
+		tasks, err := t.taskRepository.GetTaskToDistributeForJob(ctx, job.ID)
 		if len(tasks) != 0 || err != nil {
-			return tasks, err
+			return &job, tasks, err
 		}
 	}
-	return nil, nil
+	return nil, nil, nil
 }
 
 func (t *task) UpdateTaskAfterDistribution(ctx context.Context, successTasks []models.Task, errorTasks []distribution.DistributeError) error {
@@ -109,4 +110,17 @@ func (t *task) UpdateTaskSuccess(ctx context.Context, taskID primitive.ObjectID,
 
 	taskResult.SuccessTask(nodeID, result)
 	return t.taskRepository.WriteTaskResult(ctx, *taskResult)
+}
+
+func (t *task) GetAverageResourceUsage(ctx context.Context, jobID *primitive.ObjectID) (*models.TaskResourceUsage, error) {
+	finishedTasks, err := t.taskRepository.FindFinishedTask(ctx, jobID)
+	if err != nil {
+		return nil, err
+	}
+
+	result := finishedTasks[0].ResourceUsage
+	for _, finishedTask := range finishedTasks[1:] {
+		result.AverageWithOther(finishedTask.ResourceUsage)
+	}
+	return &result, nil
 }

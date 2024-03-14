@@ -15,11 +15,12 @@ const (
 )
 
 type Job struct {
-	ID           *primitive.ObjectID `bson:"_id,omitempty" json:"id"`
-	Name         string              `bson:"name" json:"name"`
-	Status       JobStatus           `bson:"status" json:"status"`
-	IsExperiment bool                `bson:"is_experiment" json:"isExperiment"`
-	ImageURL     string              `bson:"image_url" json:"imageURL"`
-	CreatedAt    time.Time           `bson:"created_at" json:"createdAt"`
-	UpdatedAt    time.Time           `bson:"updated_at" json:"updatedAt"`
+	ID               *primitive.ObjectID `bson:"_id,omitempty" json:"id"`
+	Name             string              `bson:"name" json:"name"`
+	Status           JobStatus           `bson:"status" json:"status"`
+	IsExperiment     bool                `bson:"is_experiment" json:"isExperiment"`
+	ImageURL         string              `bson:"image_url" json:"imageURL"`
+	DistributorLogic string              `bson:"distributor_logic" json:"distributorLogic"`
+	CreatedAt        time.Time           `bson:"created_at" json:"createdAt"`
+	UpdatedAt        time.Time           `bson:"updated_at" json:"updatedAt"`
 }
