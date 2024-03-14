@@ -21,5 +21,9 @@ type DistributeError struct {
 }
 
 type Distributor interface {
-	Distribute(ctx context.Context, nodes []NodeMapper, tasks []models.Task) ([]models.Task, []DistributeError, error)
+	Distribute(ctx context.Context, nodes []NodeMapper, tasks []models.Task, dependency DistributorDependency) ([]models.Task, []DistributeError, error)
+}
+
+type DistributorDependency struct {
+	TaskResourceUsage models.TaskResourceUsage
 }

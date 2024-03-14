@@ -17,7 +17,7 @@ type ResourceAwareDistributor struct {
 }
 
 func ProvideResourceAwareDistributor(meter metric.Meter) Distributor {
-	counter, err := meter.Int64Counter("cp_distributed_task")
+	counter, err := meter.Int64Counter("resource_aware_distributor_task")
 	if err != nil {
 		panic(err)
 	}
@@ -26,10 +26,9 @@ func ProvideResourceAwareDistributor(meter metric.Meter) Distributor {
 	}
 }
 
-func (r ResourceAwareDistributor) Distribute(ctx context.Context, nodes []NodeMapper, tasks []models.Task) (successTask []models.Task, distributionError []DistributeError, err error) {
+func (r ResourceAwareDistributor) Distribute(ctx context.Context, nodes []NodeMapper, tasks []models.Task, dependency DistributorDependency) (successTask []models.Task, distributionError []DistributeError, err error) {
 	// Expect that all the task should have the same job id
 	var jobID *primitive.ObjectID
-	var resource *models.TaskResourceUsage
 	for _, task := range tasks {
 		if jobID == nil {
 			jobID = task.JobID
@@ -38,7 +37,6 @@ func (r ResourceAwareDistributor) Distribute(ctx context.Context, nodes []NodeMa
 		}
 	}
 
-	//resource, err = r.taskService.GetAverageResourceUsage(ctx, jobID)
 	if err != nil {
 		return nil, nil, errors.New("[ResourceAwareDistributor] fail to get average resource usage")
 	}
@@ -46,8 +44,8 @@ func (r ResourceAwareDistributor) Distribute(ctx context.Context, nodes []NodeMa
 	for _, task := range tasks {
 		isDistributed := false
 		for _, node := range nodes {
-			if float32(util.ConvertToMib(node.AvailableResource.AvailableMemory).Size)-resource.Memory <= 0 ||
-				node.AvailableResource.AvailableCpuPercentage-resource.CPU <= 0 {
+			if float32(util.ConvertToMib(node.AvailableResource.AvailableMemory).Size)-dependency.TaskResourceUsage.Memory <= 0 ||
+				node.AvailableResource.AvailableCpuPercentage-dependency.TaskResourceUsage.CPU <= 0 {
 				continue
 			}
 			err = r.distributeToNode(ctx, node, task)

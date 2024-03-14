@@ -105,8 +105,15 @@ func (c *controlPlane) taskScanLoop(ctx context.Context) {
 		return
 	}
 
+	// Get Task average
+	taskResourceUsage, err := c.taskService.GetAverageResourceUsage(ctx, job.ID)
+	if err != nil {
+		logrus.Warn("[ControlPlane Daemon] Fail to get resource usage")
+		return
+	}
+
 	// Call Distribute function
-	successTask, failureTask, err := c.workerNodePool.DistributeWork(ctx, *job, tasks)
+	successTask, failureTask, err := c.workerNodePool.DistributeWork(ctx, *job, tasks, *taskResourceUsage)
 	if err != nil {
 		logrus.Warnf("[ControlPlane Daemon] Failed to distribute work to any worker nodes in the pool (%s)", err.Error())
 		return
