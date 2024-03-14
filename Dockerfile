@@ -33,9 +33,13 @@ FROM docker:25.0.3-dind-alpine3.19 as runner
 WORKDIR /app
 COPY --from=builder /app/out/cp cp
 COPY --from=builder /app/out/worker worker
+COPY --from=builder /app/docker-entrypoint.sh docker-entrypoint.sh
 
 RUN apk add openrc
 RUN ln -s /usr/local/bin/dockerd /etc/init.d/dockerd
-RUN rc-update add dockerd boot
+RUN ln -s /usr/local/bin/docker /usr/bin/docker
+RUN rc-update add dockerd
 
+
+ENTRYPOINT ["/app/docker-entrypoint.sh"]
 CMD [ "/app/." ]
