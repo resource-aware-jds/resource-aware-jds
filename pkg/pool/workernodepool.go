@@ -45,7 +45,7 @@ type workerNode struct {
 	distributorMapper distribution.DistributorMapper
 	poolMu            sync.Mutex
 	grpcResolver      grpc.RAJDSGRPCResolver
-	workerNodeCounter metric.Int64UpDownCounter
+	metricCounter     metric.Int64ObservableCounter
 }
 
 type WorkerNode interface {
@@ -58,13 +58,18 @@ type WorkerNode interface {
 }
 
 func ProvideWorkerNode(caCertificate cert.CACertificate, distributorMapper distribution.DistributorMapper, grpcResolver grpc.RAJDSGRPCResolver, meter metric.Meter) WorkerNode {
-	workerNodeCounter, _ := meter.Int64UpDownCounter("cp_total_connected_worker_node")
+
+	pool := make(map[string]workerNodePoolMapper)
+	counter, _ := meter.Int64ObservableCounter("cp_total_connected_worker_node", metric.WithInt64Callback(func(ctx context.Context, observer metric.Int64Observer) error {
+		observer.Observe(int64(len(pool)))
+		return nil
+	}))
 	return &workerNode{
 		caCertificate:     caCertificate,
-		pool:              make(map[string]workerNodePoolMapper),
+		pool:              pool,
 		distributorMapper: distributorMapper,
 		grpcResolver:      grpcResolver,
-		workerNodeCounter: workerNodeCounter,
+		metricCounter:     counter,
 	}
 }
 
@@ -113,7 +118,6 @@ func (w *workerNode) AddWorkerNode(ctx context.Context, node models.NodeEntry) e
 		logger:         logger,
 	}
 
-	w.workerNodeCounter.Add(ctx, 1)
 	logger.Infof("[WorkerNode Pool] A Worker has been added to the pool")
 	return nil
 }
@@ -136,7 +140,6 @@ func (w *workerNode) WorkerNodeAvailabilityCheck(ctx context.Context) {
 			if focusedNode.unavailableCount+1 > MaximumUnavailableCount {
 				focusedNode.logger.Warnf("[ControlPlane Daemon] Worker node has been deleted from the available worker node pool due to unresponsive has been detected.")
 				delete(w.pool, key)
-				w.workerNodeCounter.Add(ctx, -1)
 				continue
 			}
 		} else {
@@ -192,5 +195,4 @@ func (w *workerNode) RemoveNodeFromPool(ctx context.Context, nodeID string) {
 	defer w.poolMu.Unlock()
 
 	delete(w.pool, nodeID)
-	w.workerNodeCounter.Add(ctx, -1)
 }
