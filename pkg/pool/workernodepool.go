@@ -54,7 +54,7 @@ type WorkerNode interface {
 	WorkerNodeAvailabilityCheck(ctx context.Context)
 	DistributeWork(ctx context.Context, jobID models.Job, tasks []models.Task, taskResourceUsage models.TaskResourceUsage) ([]models.Task, []distribution.DistributeError, error)
 	IsAvailableWorkerNode() bool
-	RemoveNodeFromPool(nodeID string)
+	RemoveNodeFromPool(ctx context.Context, nodeID string)
 }
 
 func ProvideWorkerNode(caCertificate cert.CACertificate, distributorMapper distribution.DistributorMapper, grpcResolver grpc.RAJDSGRPCResolver, meter metric.Meter) WorkerNode {
@@ -187,9 +187,10 @@ func (w *workerNode) IsAvailableWorkerNode() bool {
 	return len(w.pool) != 0
 }
 
-func (w *workerNode) RemoveNodeFromPool(nodeID string) {
+func (w *workerNode) RemoveNodeFromPool(ctx context.Context, nodeID string) {
 	w.poolMu.Lock()
 	defer w.poolMu.Unlock()
 
 	delete(w.pool, nodeID)
+	w.workerNodeCounter.Add(ctx, -1)
 }
