@@ -125,6 +125,8 @@ func (s *ControlPlane) CheckInWorkerNode(ctx context.Context, ip string, port in
 		logrus.WithField("nodeID", nodeEntry.NodeID).Warnf("Failed to update node stat (%s)", err.Error())
 	}
 
+	s.workerNodePool.RemoveNodeFromPool(nodeEntry.NodeID)
+
 	// Add Worker Node to the pool
 	return s.workerNodePool.AddWorkerNode(ctx, *nodeEntry)
 }
