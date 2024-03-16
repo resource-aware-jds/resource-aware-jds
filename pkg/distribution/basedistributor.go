@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/resource-aware-jds/resource-aware-jds/generated/proto/github.com/resource-aware-jds/resource-aware-jds/generated/proto"
 	"github.com/resource-aware-jds/resource-aware-jds/models"
+	"github.com/resource-aware-jds/resource-aware-jds/pkg/metrics"
 	"github.com/sirupsen/logrus"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
@@ -18,13 +19,13 @@ type baseDistributor struct {
 
 func newBaseDistributor(name DistributorName, meter metric.Meter) baseDistributor {
 	counter, _ := meter.Int64Counter(
-		fmt.Sprintf("rajds_cp_%s_distributor_total_distribute_task", name),
+		metrics.GenerateControlPlaneMetric(fmt.Sprintf("%s_distributor_total_distribute_task", name)),
 		metric.WithUnit("Task"),
 		metric.WithDescription(fmt.Sprintf("The total task(s) that has been distributed using %s distributor", name)),
 	)
 
 	failureCounter, _ := meter.Int64Counter(
-		fmt.Sprintf("rajds_cp_%s_distributor_total_distribute_task", name),
+		metrics.GenerateControlPlaneMetric(fmt.Sprintf("%s_distributor_total_failure_distribute_task", name)),
 		metric.WithUnit("Task"),
 		metric.WithDescription(fmt.Sprintf("The total task(s) that failed to be distributed using %s distributor", name)),
 	)

@@ -9,6 +9,7 @@ import (
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/cert"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/distribution"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/grpc"
+	"github.com/resource-aware-jds/resource-aware-jds/pkg/metrics"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/util"
 	"github.com/sirupsen/logrus"
 	"go.opentelemetry.io/otel/metric"
@@ -61,7 +62,7 @@ type WorkerNode interface {
 func ProvideWorkerNode(caCertificate cert.CACertificate, distributorMapper distribution.DistributorMapper, grpcResolver grpc.RAJDSGRPCResolver, meter metric.Meter) WorkerNode {
 	pool := make(map[string]workerNodePoolMapper)
 	counter, _ := meter.Int64ObservableCounter(
-		"rajds_cp_connected_worker_nodes",
+		metrics.GenerateControlPlaneMetric("connected_worker_nodes"),
 		metric.WithInt64Callback(func(ctx context.Context, observer metric.Int64Observer) error {
 			observer.Observe(int64(len(pool)))
 			return nil
