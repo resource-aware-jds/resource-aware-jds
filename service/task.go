@@ -17,7 +17,7 @@ type Task interface {
 	GetAvailableTask(ctx context.Context, jobIDs []models.Job) (*models.Job, []models.Task, error)
 	UpdateTaskAfterDistribution(ctx context.Context, successTasks []models.Task, errorTasks []distribution.DistributeError) error
 	UpdateTaskWorkOnFailure(ctx context.Context, taskID primitive.ObjectID, nodeID string, errMessage string) error
-	UpdateTaskSuccess(ctx context.Context, taskID primitive.ObjectID, nodeID string, result []byte) error
+	UpdateTaskSuccess(ctx context.Context, taskID primitive.ObjectID, nodeID string, result []byte, averageCPUUsage float32, averageMemoryUsage float64) error
 	CreateTask(ctx context.Context, job *models.Job, taskAttributes [][]byte, isExperiment bool) ([]models.Task, error)
 	GetTaskByJob(ctx context.Context, job *models.Job) ([]models.Task, error)
 	GetTaskByID(ctx context.Context, taskID primitive.ObjectID) (*models.Task, error)
@@ -101,7 +101,7 @@ func (t *task) UpdateTaskWorkOnFailure(ctx context.Context, taskID primitive.Obj
 	return t.taskRepository.BulkWriteStatusAndLogByID(ctx, []models.Task{*taskResult})
 }
 
-func (t *task) UpdateTaskSuccess(ctx context.Context, taskID primitive.ObjectID, nodeID string, result []byte) error {
+func (t *task) UpdateTaskSuccess(ctx context.Context, taskID primitive.ObjectID, nodeID string, result []byte, averageCPUUsage float32, averageMemoryUsage float64) error {
 	taskResult, err := t.GetTaskByID(ctx, taskID)
 	if err != nil {
 		logrus.Errorf("get task error %v", err)

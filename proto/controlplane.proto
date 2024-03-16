@@ -18,6 +18,12 @@ message ReportSuccessTaskRequest {
   string id = 1;
   string nodeID = 2;
   bytes result = 3;
+  TaskResourceUsage taskResourceUsage = 4;
+}
+
+message TaskResourceUsage {
+  float AverageCpuUsage = 2;
+  string AverageMemoryUsage = 3;
 }
 
 message ReportFailureTaskRequest {

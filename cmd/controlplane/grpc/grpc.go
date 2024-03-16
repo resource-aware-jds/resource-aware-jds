@@ -3,10 +3,13 @@ package grpc
 import (
 	"context"
 	"crypto/x509"
+	"errors"
 	"github.com/resource-aware-jds/resource-aware-jds/generated/proto/github.com/resource-aware-jds/resource-aware-jds/generated/proto"
+	"github.com/resource-aware-jds/resource-aware-jds/models"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/cert"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/grpc"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/metrics"
+	"github.com/resource-aware-jds/resource-aware-jds/pkg/util"
 	"github.com/resource-aware-jds/resource-aware-jds/service"
 	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -149,6 +152,43 @@ func (g *GRPCHandler) ReportSuccessTask(ctx context.Context, req *proto.ReportSu
 	}
 	g.taskSubmitCounter.Add(ctx, 1, metric.WithAttributes(attribute.String("status", "success")))
 
-	err = g.taskService.UpdateTaskSuccess(ctx, parsedTaskID, req.GetNodeID(), req.GetResult())
+	memoryUsage := util.ExtractMemoryUsageString(req.GetTaskResourceUsage().GetAverageMemoryUsage())
+	memoryUsage = util.ConvertToMib(memoryUsage)
+
+	err = g.taskService.UpdateTaskSuccess(
+		ctx,
+		parsedTaskID,
+		req.GetNodeID(),
+		req.GetResult(),
+		req.GetTaskResourceUsage().GetAverageCpuUsage(),
+		memoryUsage.Size,
+	)
+	if err != nil {
+		return &emptypb.Empty{}, err
+	}
+
+	// Get the task from database.
+	task, err := g.taskService.GetTaskByID(ctx, parsedTaskID)
+	if err != nil {
+		return &emptypb.Empty{}, err
+	}
+
+	if task.JobID == nil {
+		return &emptypb.Empty{}, errors.New("empty jobID")
+	}
+
+	// Check the job status should be updated or not?
+	job, err := g.jobService.GetJob(ctx, *task.JobID)
+	if err != nil {
+		return &emptypb.Empty{}, err
+	}
+
+	// If the job status is in the experiment, then every task into ready to be distributed
+	if job.Status == models.ExperimentingJobStatus {
+		return &emptypb.Empty{}, nil
+		// TODO: Update the job status to distributing
+		// TODO: Update the task to be ready to be distributed
+	}
+
 	return &emptypb.Empty{}, err
 }
