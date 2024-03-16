@@ -171,7 +171,6 @@ func (w *workerNode) WorkerNodeAvailabilityCheck(ctx context.Context) {
 func (w *workerNode) DistributeWork(ctx context.Context, job models.Job, tasks []models.Task, taskResourceUsage models.TaskResourceUsage) ([]models.Task, []distribution.DistributeError, error) {
 	w.poolMu.Lock()
 	defer w.poolMu.Unlock()
-	w.logger.Infof("Distributing the Task")
 
 	if len(w.pool) == 0 {
 		return nil, nil, ErrNoAvailableWorkerNode
@@ -189,9 +188,11 @@ func (w *workerNode) DistributeWork(ctx context.Context, job models.Job, tasks [
 
 	dist, ok := w.distributorMapper.GetDistributor(distribution.DistributorName(job.DistributorLogic))
 	if !ok {
+		w.logger.Errorf("No Distributing solution found in the distributor logics (%s)", job.DistributorLogic)
 		return nil, nil, ErrNoAvailableDistributor
 	}
 
+	w.logger.Infof("Distributing the Task using the %s distributor", job.DistributorLogic)
 	return dist.Distribute(ctx, nodeMapper, tasks, distribution.DistributorDependency{
 		TaskResourceUsage: taskResourceUsage,
 	})
