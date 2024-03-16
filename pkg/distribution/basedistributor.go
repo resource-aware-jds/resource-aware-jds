@@ -11,15 +11,22 @@ import (
 )
 
 type baseDistributor struct {
-	logger        *logrus.Entry
-	metricCounter metric.Int64Counter
+	logger               *logrus.Entry
+	metricCounter        metric.Int64Counter
+	failureMetricCounter metric.Int64Counter
 }
 
 func newBaseDistributor(name DistributorName, meter metric.Meter) baseDistributor {
 	counter, _ := meter.Int64Counter(
-		fmt.Sprintf("rajds_%s_distributor_total_distribute_task", name),
+		fmt.Sprintf("rajds_cp_%s_distributor_total_distribute_task", name),
 		metric.WithUnit("Task"),
 		metric.WithDescription(fmt.Sprintf("The total task(s) that has been distributed using %s distributor", name)),
+	)
+
+	failureCounter, _ := meter.Int64Counter(
+		fmt.Sprintf("rajds_cp_%s_distributor_total_distribute_task", name),
+		metric.WithUnit("Task"),
+		metric.WithDescription(fmt.Sprintf("The total task(s) that failed to be distributed using %s distributor", name)),
 	)
 	logger := logrus.WithFields(logrus.Fields{
 		"role":             "Control Plane",
@@ -28,8 +35,9 @@ func newBaseDistributor(name DistributorName, meter metric.Meter) baseDistributo
 	})
 
 	return baseDistributor{
-		metricCounter: counter,
-		logger:        logger,
+		metricCounter:        counter,
+		logger:               logger,
+		failureMetricCounter: failureCounter,
 	}
 }
 
@@ -50,6 +58,11 @@ func (b *baseDistributor) distributeToNode(ctx context.Context, node NodeMapper,
 			Task:      task,
 			Error:     err,
 		})
+		b.failureMetricCounter.Add(
+			ctx,
+			1,
+			metric.WithAttributes(attribute.String("nodeID", node.NodeEntry.NodeID)),
+		)
 		return
 	}
 	// Add log to success task
