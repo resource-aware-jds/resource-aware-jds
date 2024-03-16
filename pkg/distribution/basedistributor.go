@@ -2,7 +2,6 @@ package distribution
 
 import (
 	"context"
-	"fmt"
 	"github.com/resource-aware-jds/resource-aware-jds/generated/proto/github.com/resource-aware-jds/resource-aware-jds/generated/proto"
 	"github.com/resource-aware-jds/resource-aware-jds/models"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/metrics"
@@ -12,6 +11,7 @@ import (
 )
 
 type baseDistributor struct {
+	name                 DistributorName
 	logger               *logrus.Entry
 	metricCounter        metric.Int64Counter
 	failureMetricCounter metric.Int64Counter
@@ -19,15 +19,15 @@ type baseDistributor struct {
 
 func newBaseDistributor(name DistributorName, meter metric.Meter) baseDistributor {
 	counter, _ := meter.Int64Counter(
-		metrics.GenerateControlPlaneMetric(fmt.Sprintf("%s_distributor_total_distribute_task", name)),
+		metrics.GenerateControlPlaneMetric("distributor_total_success_task"),
 		metric.WithUnit("Task"),
-		metric.WithDescription(fmt.Sprintf("The total task(s) that has been distributed using %s distributor", name)),
+		metric.WithDescription("The total task(s) that has been distributed"),
 	)
 
 	failureCounter, _ := meter.Int64Counter(
-		metrics.GenerateControlPlaneMetric(fmt.Sprintf("%s_distributor_total_failure_distribute_task", name)),
+		metrics.GenerateControlPlaneMetric("distributor_total_failure_task"),
 		metric.WithUnit("Task"),
-		metric.WithDescription(fmt.Sprintf("The total task(s) that failed to be distributed using %s distributor", name)),
+		metric.WithDescription("The total task(s) that failed to be distributed"),
 	)
 	logger := logrus.WithFields(logrus.Fields{
 		"role":             "Control Plane",
@@ -36,6 +36,7 @@ func newBaseDistributor(name DistributorName, meter metric.Meter) baseDistributo
 	})
 
 	return baseDistributor{
+		name:                 name,
 		metricCounter:        counter,
 		logger:               logger,
 		failureMetricCounter: failureCounter,
@@ -51,6 +52,11 @@ func (b *baseDistributor) distributeToNode(ctx context.Context, node NodeMapper,
 		DockerImage:    task.ImageUrl,
 	})
 
+	metricAttributes := metric.WithAttributes(
+		attribute.String("nodeID", node.NodeEntry.NodeID),
+		attribute.String("distributor", string(b.name)),
+	)
+
 	if err != nil {
 		logger.Warnf("Fail to distribute task to worker node (%s)", err.Error())
 		task.DistributionFailure(node.NodeEntry.NodeID, err)
@@ -62,7 +68,7 @@ func (b *baseDistributor) distributeToNode(ctx context.Context, node NodeMapper,
 		b.failureMetricCounter.Add(
 			ctx,
 			1,
-			metric.WithAttributes(attribute.String("nodeID", node.NodeEntry.NodeID)),
+			metricAttributes,
 		)
 		return
 	}
@@ -71,7 +77,7 @@ func (b *baseDistributor) distributeToNode(ctx context.Context, node NodeMapper,
 	b.metricCounter.Add(
 		ctx,
 		1,
-		metric.WithAttributes(attribute.String("nodeID", node.NodeEntry.NodeID)),
+		metricAttributes,
 	)
 	*successTask = append(*successTask, task)
 	logger.Info("Worker Node accepted the task")
