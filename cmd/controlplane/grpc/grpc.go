@@ -6,6 +6,7 @@ import (
 	"github.com/resource-aware-jds/resource-aware-jds/generated/proto/github.com/resource-aware-jds/resource-aware-jds/generated/proto"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/cert"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/grpc"
+	"github.com/resource-aware-jds/resource-aware-jds/pkg/metrics"
 	"github.com/resource-aware-jds/resource-aware-jds/service"
 	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -30,7 +31,12 @@ func ProvideControlPlaneGRPCHandler(grpcServer grpc.RAJDSGrpcServer, controlPlan
 		jobService:          jobService,
 		taskService:         taskService,
 	}
-	taskSubmitCounter, err := meter.Int64Counter("cp_submit_task")
+	taskSubmitCounter, err := meter.Int64Counter(
+		metrics.GenerateControlPlaneMetric("submit_task"),
+		metric.WithUnit("Task"),
+		metric.WithDescription("Total Submitted task form Worker Node"),
+	)
+
 	if err != nil {
 		panic(err)
 	}
