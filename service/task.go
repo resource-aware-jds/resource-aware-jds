@@ -109,6 +109,10 @@ func (t *task) UpdateTaskSuccess(ctx context.Context, taskID primitive.ObjectID,
 	}
 
 	taskResult.SuccessTask(nodeID, result)
+	taskResult.ResourceUsage = models.TaskResourceUsage{
+		Memory: averageMemoryUsage,
+		CPU:    averageCPUUsage,
+	}
 	return t.taskRepository.WriteTaskResult(ctx, *taskResult)
 }
 
