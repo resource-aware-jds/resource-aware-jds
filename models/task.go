@@ -84,6 +84,11 @@ func (t *Task) SkipExperimentTask() {
 	t.AddLog(InfoLogSeverity, "This task has been skipped the experiment phrase", nil)
 }
 
+func (t *Task) DoneExperimentTask() {
+	t.Status = ReadyToDistribute
+	t.AddLog(InfoLogSeverity, "The experimenting has been completed and the rest of the task has been marked as ready to distribute", nil)
+}
+
 func (t *Task) AddLog(severity LogSeverity, message string, parameters map[string]string) {
 	if t.Logs == nil {
 		t.Logs = make([]TaskLog, 0)

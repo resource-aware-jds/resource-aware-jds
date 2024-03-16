@@ -21,11 +21,13 @@ type task struct {
 type ITask interface {
 	FindOneByID(ctx context.Context, taskID primitive.ObjectID) (*models.Task, error)
 	FindManyByJobID(ctx context.Context, jobID *primitive.ObjectID) ([]models.Task, error)
+	CountUnfinishedTaskByJobID(ctx context.Context, jobID *primitive.ObjectID) (int64, error)
 	InsertMany(ctx context.Context, tasks []models.Task) error
 	GetTaskToDistributeForJob(ctx context.Context, jobID *primitive.ObjectID) ([]models.Task, error)
 	BulkWriteStatusAndLogByID(ctx context.Context, tasks []models.Task) error
 	WriteTaskResult(ctx context.Context, task models.Task) error
 	FindFinishedTask(ctx context.Context, jobID *primitive.ObjectID) ([]models.Task, error)
+	UpdateTaskStatusByJobID(ctx context.Context, jobID *primitive.ObjectID, status models.Task) error
 }
 
 func ProvideTask(database *mongo.Database) ITask {
@@ -143,4 +145,32 @@ func (t *task) FindFinishedTask(ctx context.Context, jobID *primitive.ObjectID) 
 	var resultDecoded []models.Task
 	err = result.All(ctx, &resultDecoded)
 	return resultDecoded, err
+}
+
+func (t *task) UpdateTaskStatusByJobID(ctx context.Context, jobID *primitive.ObjectID, status models.Task) error {
+	_, err := t.collection.UpdateMany(
+		ctx,
+		bson.M{
+			"job_id": jobID,
+			"status": bson.M{
+				"$ne": models.SuccessTaskStatus,
+			},
+		},
+		bson.M{
+			"$set": bson.M{
+				"status": models.ReadyToDistribute,
+			},
+		},
+	)
+
+	return err
+}
+
+func (t *task) CountUnfinishedTaskByJobID(ctx context.Context, jobID *primitive.ObjectID) (int64, error) {
+	return t.collection.CountDocuments(ctx, bson.M{
+		"job_id": jobID,
+		"status": bson.M{
+			"$ne": models.SuccessTaskStatus,
+		},
+	})
 }

@@ -184,10 +184,19 @@ func (g *GRPCHandler) ReportSuccessTask(ctx context.Context, req *proto.ReportSu
 	}
 
 	// If the job status is in the experiment, then every task into ready to be distributed
-	if job.Status == models.ExperimentingJobStatus {
-		return &emptypb.Empty{}, nil
-		// TODO: Update the job status to distributing
-		// TODO: Update the task to be ready to be distributed
+	switch job.Status {
+	case models.ExperimentingJobStatus:
+		err = g.taskService.UpdateTaskToBeReadyToBeDistributed(ctx, job.ID)
+	case models.DistributingJobStatus:
+		var unfinishedTask int64
+		unfinishedTask, err = g.taskService.CountUnfinishedTaskByJobID(ctx, job.ID)
+		if err != nil {
+			return &emptypb.Empty{}, err
+		}
+
+		if unfinishedTask == 0 {
+			err = g.jobService.UpdateJobStatusToFinish(ctx, job.ID)
+		}
 	}
 
 	return &emptypb.Empty{}, err

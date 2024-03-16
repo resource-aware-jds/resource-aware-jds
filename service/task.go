@@ -22,6 +22,8 @@ type Task interface {
 	GetTaskByJob(ctx context.Context, job *models.Job) ([]models.Task, error)
 	GetTaskByID(ctx context.Context, taskID primitive.ObjectID) (*models.Task, error)
 	GetAverageResourceUsage(ctx context.Context, jobID *primitive.ObjectID) (*models.TaskResourceUsage, error)
+	UpdateTaskToBeReadyToBeDistributed(ctx context.Context, jobID *primitive.ObjectID) error
+	CountUnfinishedTaskByJobID(ctx context.Context, jobID *primitive.ObjectID) (int64, error)
 }
 
 func ProvideTaskService(taskRepository repository.ITask) Task {
@@ -127,4 +129,23 @@ func (t *task) GetAverageResourceUsage(ctx context.Context, jobID *primitive.Obj
 		result.AverageWithOther(finishedTask.ResourceUsage)
 	}
 	return &result, nil
+}
+
+func (t *task) UpdateTaskToBeReadyToBeDistributed(ctx context.Context, jobID *primitive.ObjectID) error {
+	tasks, err := t.taskRepository.FindManyByJobID(ctx, jobID)
+	if err != nil {
+		return err
+	}
+
+	for _, task := range tasks {
+		if task.Status == models.CreatedTaskStatus {
+			task.DoneExperimentTask()
+		}
+	}
+
+	return t.taskRepository.BulkWriteStatusAndLogByID(ctx, tasks)
+}
+
+func (t *task) CountUnfinishedTaskByJobID(ctx context.Context, jobID *primitive.ObjectID) (int64, error) {
+	return t.taskRepository.CountUnfinishedTaskByJobID(ctx, jobID)
 }

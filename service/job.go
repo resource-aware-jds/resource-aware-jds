@@ -17,6 +17,7 @@ type Job interface {
 	CreateJob(ctx context.Context, name, imageURL string, isExperiment bool) (*models.Job, error)
 	ListJob(ctx context.Context) ([]models.Job, error)
 	ListJobReadyToDistribute(ctx context.Context) ([]models.Job, error)
+	UpdateJobStatusToFinish(ctx context.Context, id *primitive.ObjectID) error
 }
 
 func ProvideJobService(jobRepository repository.IJob) Job {
@@ -54,4 +55,8 @@ func (j *job) GetJob(ctx context.Context, id primitive.ObjectID) (*models.Job, e
 
 func (j *job) ListJobReadyToDistribute(ctx context.Context) ([]models.Job, error) {
 	return j.jobRepository.FindJobToDistribute(ctx)
+}
+
+func (j *job) UpdateJobStatusToFinish(ctx context.Context, id *primitive.ObjectID) error {
+	return j.jobRepository.UpdateJobStatus(ctx, id, models.SuccessJobStatus)
 }
