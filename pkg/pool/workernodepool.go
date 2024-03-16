@@ -46,6 +46,7 @@ type workerNode struct {
 	poolMu            sync.Mutex
 	grpcResolver      grpc.RAJDSGRPCResolver
 	metricCounter     metric.Int64ObservableCounter
+	logger            *logrus.Entry
 }
 
 type WorkerNode interface {
@@ -59,16 +60,27 @@ type WorkerNode interface {
 
 func ProvideWorkerNode(caCertificate cert.CACertificate, distributorMapper distribution.DistributorMapper, grpcResolver grpc.RAJDSGRPCResolver, meter metric.Meter) WorkerNode {
 	pool := make(map[string]workerNodePoolMapper)
-	counter, _ := meter.Int64ObservableCounter("cp_total_connected_worker_node", metric.WithInt64Callback(func(ctx context.Context, observer metric.Int64Observer) error {
-		observer.Observe(int64(len(pool)))
-		return nil
-	}))
+	counter, _ := meter.Int64ObservableCounter(
+		"rajds_cp_connected_worker_nodes",
+		metric.WithInt64Callback(func(ctx context.Context, observer metric.Int64Observer) error {
+			observer.Observe(int64(len(pool)))
+			return nil
+		}),
+		metric.WithUnit("Node"),
+		metric.WithDescription("The total alive Worker Node connected to this Control Plane"),
+	)
+
+	logger := logrus.WithFields(logrus.Fields{
+		"role":      "Control Plane",
+		"component": "node_pool",
+	})
 	return &workerNode{
 		caCertificate:     caCertificate,
 		pool:              pool,
 		distributorMapper: distributorMapper,
 		grpcResolver:      grpcResolver,
 		metricCounter:     counter,
+		logger:            logger,
 	}
 }
 
@@ -100,14 +112,14 @@ func (w *workerNode) AddWorkerNode(ctx context.Context, node models.NodeEntry) e
 		ServerName:    focusedHost,
 	})
 	if err != nil {
-		logger.Warnf("[WorkerNode Pool] Failed add worker node to the pool with error (%s)", err.Error())
+		logger.Warnf("Failed add worker node to the pool with error (%s)", err.Error())
 		return err
 	}
 
 	clientProto := proto.NewWorkerNodeClient(client.GetConnection())
 	_, err = clientProto.HealthCheck(ctx, &emptypb.Empty{})
 	if err != nil {
-		logger.Warnf("[WorkerNode Pool] Failed add worker node to the pool with error (%s)", err.Error())
+		logger.Warnf("Failed add worker node to the pool with error (%s)", err.Error())
 		return err
 	}
 
@@ -117,14 +129,14 @@ func (w *workerNode) AddWorkerNode(ctx context.Context, node models.NodeEntry) e
 		logger:         logger,
 	}
 
-	logger.Infof("[WorkerNode Pool] A Worker has been added to the pool")
+	logger.Infof("A Worker has been added to the pool")
 	return nil
 }
 
 func (w *workerNode) WorkerNodeAvailabilityCheck(ctx context.Context) {
 	ok := w.poolMu.TryLock()
 	if !ok {
-		logrus.Warn("[WorkerNode Pool] Skipping the worker node availability check due to distribution is performing")
+		w.logger.Warn("Skipping the worker node availability check due to distribution is performing")
 		return
 	}
 	defer w.poolMu.Unlock()
@@ -133,11 +145,13 @@ func (w *workerNode) WorkerNodeAvailabilityCheck(ctx context.Context) {
 		ctxWithTimeout, cancel := context.WithTimeout(ctx, AvailabilityCheckTimeout)
 		resource, err := focusedNode.grpcConnection.HealthCheck(ctxWithTimeout, &emptypb.Empty{})
 		cancel()
+
+		focusedNodeLogger := focusedNode.logger.WithFields(w.logger.Data)
 		if err != nil {
 			focusedNode.unavailableCount++
-			focusedNode.logger.Warnf("[ControlPlane Daemon] Worker node didn't response to the ping command (%d/%d)", focusedNode.unavailableCount, MaximumUnavailableCount)
+			focusedNodeLogger.Warnf("Worker node didn't response to the ping command (%d/%d)", focusedNode.unavailableCount, MaximumUnavailableCount)
 			if focusedNode.unavailableCount+1 > MaximumUnavailableCount {
-				focusedNode.logger.Warnf("[ControlPlane Daemon] Worker node has been deleted from the available worker node pool due to unresponsive has been detected.")
+				focusedNodeLogger.Warnf("Worker node has been deleted from the available worker node pool due to unresponsive has been detected.")
 				delete(w.pool, key)
 				continue
 			}
@@ -157,6 +171,7 @@ func (w *workerNode) WorkerNodeAvailabilityCheck(ctx context.Context) {
 func (w *workerNode) DistributeWork(ctx context.Context, job models.Job, tasks []models.Task, taskResourceUsage models.TaskResourceUsage) ([]models.Task, []distribution.DistributeError, error) {
 	w.poolMu.Lock()
 	defer w.poolMu.Unlock()
+	w.logger.Infof("Distributing the Task")
 
 	if len(w.pool) == 0 {
 		return nil, nil, ErrNoAvailableWorkerNode
@@ -189,9 +204,10 @@ func (w *workerNode) IsAvailableWorkerNode() bool {
 	return len(w.pool) != 0
 }
 
-func (w *workerNode) RemoveNodeFromPool(ctx context.Context, nodeID string) {
+func (w *workerNode) RemoveNodeFromPool(_ context.Context, nodeID string) {
 	w.poolMu.Lock()
 	defer w.poolMu.Unlock()
+	w.logger.Infof("Remove Node %s from the pool", nodeID)
 
 	delete(w.pool, nodeID)
 }
