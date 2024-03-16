@@ -1,6 +1,9 @@
 package distribution
 
-import "go.opentelemetry.io/otel/metric"
+import (
+	"github.com/resource-aware-jds/resource-aware-jds/config"
+	"go.opentelemetry.io/otel/metric"
+)
 
 type DistributorName string
 
@@ -17,11 +20,11 @@ type DistributorMapper interface {
 	GetDistributor(name DistributorName) (Distributor, bool)
 }
 
-func ProvideDistributorMapper(metric metric.Meter) DistributorMapper {
+func ProvideDistributorMapper(resourceAwareDistributorConfig config.ResourceAwareDistributorConfigModel, metric metric.Meter) DistributorMapper {
 	return &distributorMapper{
 		distributorList: map[DistributorName]Distributor{
 			RoundRobinDistributorName:    ProvideRoundRobinDistributor(metric),
-			ResourceAwareDistributorName: ProvideResourceAwareDistributor(metric),
+			ResourceAwareDistributorName: ProvideResourceAwareDistributor(resourceAwareDistributorConfig, metric),
 		},
 	}
 }

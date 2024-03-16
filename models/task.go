@@ -31,7 +31,7 @@ type Task struct {
 }
 
 type TaskResourceUsage struct {
-	Memory float32 `bson:"memory" json:"memory"`
+	Memory float64 `bson:"memory" json:"memory"`
 	CPU    float32 `bson:"cpu" json:"cpu"`
 }
 

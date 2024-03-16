@@ -3,27 +3,35 @@ package distribution
 import (
 	"context"
 	"errors"
+	"github.com/resource-aware-jds/resource-aware-jds/config"
 	"github.com/resource-aware-jds/resource-aware-jds/generated/proto/github.com/resource-aware-jds/resource-aware-jds/generated/proto"
 	"github.com/resource-aware-jds/resource-aware-jds/models"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/util"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
-	"math/rand"
+	"sort"
 )
 
 type ResourceAwareDistributor struct {
 	distributedTaskCounter metric.Int64Counter
+	config                 config.ResourceAwareDistributorConfigModel
 }
 
-func ProvideResourceAwareDistributor(meter metric.Meter) Distributor {
+func ProvideResourceAwareDistributor(config config.ResourceAwareDistributorConfigModel, meter metric.Meter) Distributor {
 	counter, err := meter.Int64Counter("resource_aware_distributor_task")
 	if err != nil {
 		panic(err)
 	}
 	return &ResourceAwareDistributor{
 		distributedTaskCounter: counter,
+		config:                 config,
 	}
+}
+
+type maximumTaskForNode struct {
+	node      NodeMapper
+	totalTask int
 }
 
 func (r ResourceAwareDistributor) Distribute(ctx context.Context, nodes []NodeMapper, tasks []models.Task, dependency DistributorDependency) (successTask []models.Task, distributionError []DistributeError, err error) {
@@ -41,31 +49,37 @@ func (r ResourceAwareDistributor) Distribute(ctx context.Context, nodes []NodeMa
 		return nil, nil, errors.New("[ResourceAwareDistributor] fail to get average resource usage")
 	}
 
-	for _, task := range tasks {
-		isDistributed := false
-		for _, node := range nodes {
-			if float32(util.ConvertToMib(node.AvailableResource.AvailableMemory).Size)-dependency.TaskResourceUsage.Memory <= 0 ||
-				node.AvailableResource.AvailableCpuPercentage-dependency.TaskResourceUsage.CPU <= 0 {
+	// Calculate maximum resource for each node that can take
+	nodeWithMaximumTasks := make([]maximumTaskForNode, 0, len(nodes))
+	taskToDistribute := len(tasks)
+	for _, node := range nodes {
+		maximumTask := r.calculateTheMaximumTaskOnNode(dependency, node.AvailableResource, taskToDistribute)
+		nodeWithMaximumTasks = append(nodeWithMaximumTasks, maximumTaskForNode{
+			node:      node,
+			totalTask: maximumTask,
+		})
+	}
+
+	// Sort by the totalTask desc
+	sort.Slice(nodeWithMaximumTasks, func(i, j int) bool {
+		return nodeWithMaximumTasks[i].totalTask > nodeWithMaximumTasks[j].totalTask
+	})
+
+	for _, nodeWithMaximumTask := range nodeWithMaximumTasks {
+		toBeDistributedTasks := tasks[0:nodeWithMaximumTask.totalTask]
+		tasks = tasks[nodeWithMaximumTask.totalTask:]
+
+		for _, toBeDistributedTask := range toBeDistributedTasks {
+			err := r.distributeToNode(ctx, nodeWithMaximumTask.node, toBeDistributedTask)
+			if err != nil {
+				distributionError = append(distributionError, DistributeError{
+					Task:  toBeDistributedTask,
+					Error: err,
+				})
 				continue
 			}
-			err = r.distributeToNode(ctx, node, task)
-			isDistributed = err == nil
+			successTask = append(successTask, toBeDistributedTask)
 		}
-		if !isDistributed {
-			if err == nil {
-				err = errors.New("no available node")
-			}
-			distributionError = append(distributionError, DistributeError{
-				Task:  task,
-				Error: err,
-			})
-			continue
-		}
-
-		successTask = append(successTask, task)
-		rand.Shuffle(len(nodes), func(i, j int) {
-			nodes[i], nodes[j] = nodes[j], nodes[i]
-		})
 	}
 	return
 }
@@ -88,4 +102,23 @@ func (r ResourceAwareDistributor) distributeToNode(ctx context.Context, node Nod
 	r.distributedTaskCounter.Add(ctx, 1, metric.WithAttributes(attribute.String("nodeID", node.NodeEntry.NodeID)))
 	logger.Info("[Distributor] Worker Node accepted the task")
 	return nil
+}
+
+func (r ResourceAwareDistributor) calculateTheMaximumTaskOnNode(dependency DistributorDependency, nodeResource models.AvailableResource, toBeDistributedTask int) int {
+	memory := dependency.TaskResourceUsage.Memory
+	cpu := dependency.TaskResourceUsage.CPU
+
+	maximumMemory := util.ConvertToMib(nodeResource.AvailableMemory).Size * float64(r.config.AvailableResourceClearanceThreshold/100)
+	maximumCPU := nodeResource.AvailableCpuPercentage * (r.config.AvailableResourceClearanceThreshold / 100)
+
+	totalTask := 1
+	for {
+		desiredMemory := memory * float64(totalTask)
+		desiredCPU := cpu * float32(totalTask)
+
+		if desiredMemory > maximumMemory || desiredCPU > maximumCPU || totalTask > toBeDistributedTask {
+			return totalTask - 1
+		}
+		totalTask++
+	}
 }

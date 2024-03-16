@@ -58,7 +58,6 @@ type WorkerNode interface {
 }
 
 func ProvideWorkerNode(caCertificate cert.CACertificate, distributorMapper distribution.DistributorMapper, grpcResolver grpc.RAJDSGRPCResolver, meter metric.Meter) WorkerNode {
-
 	pool := make(map[string]workerNodePoolMapper)
 	counter, _ := meter.Int64ObservableCounter("cp_total_connected_worker_node", metric.WithInt64Callback(func(ctx context.Context, observer metric.Int64Observer) error {
 		observer.Observe(int64(len(pool)))

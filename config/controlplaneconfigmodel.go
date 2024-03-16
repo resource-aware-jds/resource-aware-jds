@@ -15,6 +15,12 @@ type ControlPlaneConfigModel struct {
 	CAPrivateKeyPath          string       `envconfig:"CA_PRIVATE_KEY_PATH"`
 	CertificatePath           string       `envconfig:"CERTIFICATE_PATH"`
 	CertificatePrivateKeyPath string       `envconfig:"CERTIFICATE_PRIVATE_KEY_PATH"`
+
+	ResourceAwareDistributorConfig ResourceAwareDistributorConfigModel `envconfig:"RESOURCE_AWARE_DISTRIBUTOR"`
+}
+
+type ResourceAwareDistributorConfigModel struct {
+	AvailableResourceClearanceThreshold float32 `envconfig:"AVAILABLE_RESOURCE_CLEARANCE_THRESHOLD" default:"80"`
 }
 
 func ProvideMongoConfig(config ControlPlaneConfigModel) mongo.Config {
@@ -41,4 +47,8 @@ func ProvideHTTPServerConfig(config ControlPlaneConfigModel) http.ServerConfig {
 	return http.ServerConfig{
 		Port: config.HTTPServerPort,
 	}
+}
+
+func ProvideResourceAwareDistributorConfigMode(config ControlPlaneConfigModel) ResourceAwareDistributorConfigModel {
+	return config.ResourceAwareDistributorConfig
 }

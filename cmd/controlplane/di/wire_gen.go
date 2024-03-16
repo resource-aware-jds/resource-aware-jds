@@ -55,6 +55,7 @@ func InitializeApplication() (ControlPlaneApp, func(), error) {
 		return ControlPlaneApp{}, nil, err
 	}
 	iNodeRegistry := repository.ProvideControlPlane(database)
+	resourceAwareDistributorConfigModel := config.ProvideResourceAwareDistributorConfigMode(controlPlaneConfigModel)
 	meter, err := metrics.ProvideMeter()
 	if err != nil {
 		cleanup3()
@@ -62,7 +63,7 @@ func InitializeApplication() (ControlPlaneApp, func(), error) {
 		cleanup()
 		return ControlPlaneApp{}, nil, err
 	}
-	distributorMapper := distribution.ProvideDistributorMapper(meter)
+	distributorMapper := distribution.ProvideDistributorMapper(resourceAwareDistributorConfigModel, meter)
 	rajdsgrpcResolver := grpc.ProvideRAJDSGRPCResolver()
 	workerNode := pool.ProvideWorkerNode(caCertificate, distributorMapper, rajdsgrpcResolver, meter)
 	iControlPlane := service.ProvideControlPlane(iNodeRegistry, caCertificate, controlPlaneConfigModel, workerNode)
