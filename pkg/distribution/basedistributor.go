@@ -15,7 +15,7 @@ type baseDistributor struct {
 	metricCounter metric.Int64Counter
 }
 
-func newBaseDistributor(name string, meter metric.Meter) baseDistributor {
+func newBaseDistributor(name DistributorName, meter metric.Meter) baseDistributor {
 	counter, _ := meter.Int64Counter(
 		fmt.Sprintf("rajds_%s_distributor_total_distribute_task", name),
 		metric.WithUnit("Task"),

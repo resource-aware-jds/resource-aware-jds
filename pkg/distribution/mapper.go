@@ -8,8 +8,8 @@ import (
 type DistributorName string
 
 const (
-	RoundRobinDistributorName    DistributorName = "round-robin-distributor"
-	ResourceAwareDistributorName DistributorName = "resource-aware-distributor"
+	RoundRobinDistributorName    DistributorName = "round_robin"
+	ResourceAwareDistributorName DistributorName = "resource_aware"
 )
 
 type distributorMapper struct {
