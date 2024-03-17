@@ -17,7 +17,7 @@ func ProvideRoundRobinDistributor(meter metric.Meter) Distributor {
 	}
 }
 
-func (r RoundRobinDistributor) Distribute(ctx context.Context, nodes []NodeMapper, tasks []models.Task, _ DistributorDependency) (successTask []models.Task, distributionError []DistributeError, err error) {
+func (r RoundRobinDistributor) Distribute(ctx context.Context, nodes []NodeMapper, tasks []models.Task) (successTask []models.Task, distributionError []models.DistributeError, err error) {
 	nodeRoundRobin, err := datastructure.ProvideRoundRobin[NodeMapper](nodes...)
 	if err != nil {
 		return nil, nil, err

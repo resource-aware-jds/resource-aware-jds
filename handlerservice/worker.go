@@ -1,4 +1,4 @@
-package service
+package handlerservice
 
 import (
 	"context"
@@ -12,15 +12,12 @@ import (
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/metrics"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/taskqueue"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/workerlogic"
+	"github.com/resource-aware-jds/resource-aware-jds/service"
 	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 	"time"
-)
-
-const (
-	ContainerIdShortSize = 12
 )
 
 type Worker struct {
@@ -31,7 +28,7 @@ type Worker struct {
 	config                config.WorkerConfigModel
 
 	workerNodeDistribution workerlogic.WorkerDistributor
-	containerService       IContainer
+	containerService       service.IContainer
 
 	taskQueue  taskqueue.Queue
 	taskBuffer datastructure.Buffer[string, models.TaskWithContext]
@@ -62,7 +59,7 @@ func ProvideWorker(
 	config config.WorkerConfigModel,
 	taskQueue taskqueue.Queue,
 	workerNodeDistribution workerlogic.WorkerDistributor,
-	containerService IContainer,
+	containerService service.IContainer,
 	meter metric.Meter,
 ) (IWorker, error) {
 	containerSubmitTask, err := meter.Int64Counter("container_submit_task")

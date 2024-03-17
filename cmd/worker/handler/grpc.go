@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"github.com/resource-aware-jds/resource-aware-jds/generated/proto/github.com/resource-aware-jds/resource-aware-jds/generated/proto"
+	"github.com/resource-aware-jds/resource-aware-jds/handlerservice"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/cert"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/grpc"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/metrics"
@@ -15,13 +16,13 @@ import (
 
 type GRPCHandler struct {
 	proto.UnimplementedWorkerNodeServer
-	workerService             service.IWorker
+	workerService             handlerservice.IWorker
 	taskCounter               metric.Int64Counter
 	resourceMonitoringService service.IResourceMonitor
 	workerNodeCertificate     cert.TransportCertificate
 }
 
-func ProvideWorkerGRPCHandler(grpcServer grpc.RAJDSGrpcServer, workerService service.IWorker, resourceMonitoringService service.IResourceMonitor, meter metric.Meter, workerNodeCertificate cert.TransportCertificate) GRPCHandler {
+func ProvideWorkerGRPCHandler(grpcServer grpc.RAJDSGrpcServer, workerService handlerservice.IWorker, resourceMonitoringService service.IResourceMonitor, meter metric.Meter, workerNodeCertificate cert.TransportCertificate) GRPCHandler {
 	taskCounter, err := meter.Int64Counter(
 		metrics.GenerateWorkerNodeMetric("total_received_task"),
 		metric.WithUnit("Task"),

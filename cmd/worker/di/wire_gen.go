@@ -11,6 +11,7 @@ import (
 	http2 "github.com/resource-aware-jds/resource-aware-jds/cmd/worker/http"
 	"github.com/resource-aware-jds/resource-aware-jds/config"
 	"github.com/resource-aware-jds/resource-aware-jds/daemon"
+	"github.com/resource-aware-jds/resource-aware-jds/handlerservice"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/cert"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/dockerclient"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/grpc"
@@ -65,7 +66,7 @@ func InitializeApplication() (WorkerApp, func(), error) {
 	queue := taskqueue.ProvideTaskQueue(meter)
 	workerDistributor := workerlogic.ProvideDelayWorkerDistributor(workerConfigModel)
 	iContainer := service.ProvideContainer(client, workerConfigModel, meter)
-	iWorker, err := service.ProvideWorker(controlPlaneClient, client, transportCertificate, workerConfigModel, queue, workerDistributor, iContainer, meter)
+	iWorker, err := handlerservice.ProvideWorker(controlPlaneClient, client, transportCertificate, workerConfigModel, queue, workerDistributor, iContainer, meter)
 	if err != nil {
 		cleanup2()
 		cleanup()

@@ -2,6 +2,7 @@ package daemon
 
 import (
 	"context"
+	"github.com/resource-aware-jds/resource-aware-jds/handlerservice"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/pool"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/timeutil"
 	"github.com/resource-aware-jds/resource-aware-jds/service"
@@ -17,7 +18,7 @@ type controlPlane struct {
 	ctx                 context.Context
 	cancelFunc          func()
 	workerNodePool      pool.WorkerNode
-	controlPlaneService service.IControlPlane
+	controlPlaneService handlerservice.IControlPlane
 	taskService         service.Task
 	jobService          service.Job
 }
@@ -27,7 +28,7 @@ type IControlPlane interface {
 	GracefullyShutdown()
 }
 
-func ProvideControlPlaneDaemon(workerNodePool pool.WorkerNode, controlPlaneService service.IControlPlane, taskService service.Task, jobService service.Job) (IControlPlane, func()) {
+func ProvideControlPlaneDaemon(workerNodePool pool.WorkerNode, controlPlaneService handlerservice.IControlPlane, taskService service.Task, jobService service.Job) (IControlPlane, func()) {
 	ctx := context.Background()
 	ctxWithCancel, cancelFunc := context.WithCancel(ctx)
 
@@ -110,15 +111,8 @@ func (c *controlPlane) taskScanLoop(ctx context.Context) {
 		return
 	}
 
-	// Get Task average
-	taskResourceUsage, err := c.taskService.GetAverageResourceUsage(ctx, job.ID)
-	if err != nil {
-		logrus.Warn("[ControlPlane Daemon] Fail to get resource usage")
-		return
-	}
-
 	// Call Distribute function
-	successTask, failureTask, err := c.workerNodePool.DistributeWork(ctx, *job, tasks, *taskResourceUsage)
+	successTask, failureTask, err := c.workerNodePool.DistributeWork(ctx, *job, tasks)
 	if err != nil {
 		logrus.Warnf("[ControlPlane Daemon] Failed to distribute work to any worker nodes in the pool (%s)", err.Error())
 		return

@@ -6,8 +6,6 @@ import (
 )
 
 var ServiceWireSet = wire.NewSet(
-	service.ProvideControlPlane,
-	service.ProvideWorker,
 	service.ProvideResourcesMonitor,
 	service.ProvideJobService,
 	service.ProvideTaskService,

@@ -15,6 +15,10 @@ import (
 	"time"
 )
 
+const (
+	ContainerIdShortSize = 12
+)
+
 type IContainer interface {
 	StartContainer(ctx context.Context, imageUrl string) (container.IContainer, error)
 	GetContainerIdShort() []string

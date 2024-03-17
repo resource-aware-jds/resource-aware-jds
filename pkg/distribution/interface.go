@@ -14,16 +14,6 @@ type NodeMapper struct {
 	Logger            *logrus.Entry
 }
 
-type DistributeError struct {
-	NodeEntry models.NodeEntry
-	Task      models.Task
-	Error     error
-}
-
 type Distributor interface {
-	Distribute(ctx context.Context, nodes []NodeMapper, tasks []models.Task, dependency DistributorDependency) ([]models.Task, []DistributeError, error)
-}
-
-type DistributorDependency struct {
-	TaskResourceUsage models.TaskResourceUsage
+	Distribute(ctx context.Context, nodes []NodeMapper, tasks []models.Task) ([]models.Task, []models.DistributeError, error)
 }

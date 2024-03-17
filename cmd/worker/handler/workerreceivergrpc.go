@@ -3,18 +3,18 @@ package handler
 import (
 	"context"
 	"github.com/resource-aware-jds/resource-aware-jds/generated/proto/github.com/resource-aware-jds/resource-aware-jds/generated/proto"
+	"github.com/resource-aware-jds/resource-aware-jds/handlerservice"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/grpc"
-	"github.com/resource-aware-jds/resource-aware-jds/service"
 	"go.opentelemetry.io/otel/metric"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 type WorkerNodeReceiverGRPCHandler struct {
 	proto.UnimplementedWorkerNodeContainerReceiverServer
-	workerService service.IWorker
+	workerService handlerservice.IWorker
 }
 
-func ProvideWorkerGRPCSocketHandler(grpcSocketServer grpc.WorkerNodeReceiverGRPCServer, workerService service.IWorker, meter metric.Meter) WorkerNodeReceiverGRPCHandler {
+func ProvideWorkerGRPCSocketHandler(grpcSocketServer grpc.WorkerNodeReceiverGRPCServer, workerService handlerservice.IWorker, meter metric.Meter) WorkerNodeReceiverGRPCHandler {
 	handler := WorkerNodeReceiverGRPCHandler{
 		workerService: workerService,
 	}

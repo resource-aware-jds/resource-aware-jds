@@ -43,7 +43,7 @@ func newBaseDistributor(name DistributorName, meter metric.Meter) baseDistributo
 	}
 }
 
-func (b *baseDistributor) distributeToNode(ctx context.Context, node NodeMapper, task models.Task, successTask *[]models.Task, errorTask *[]DistributeError) {
+func (b *baseDistributor) distributeToNode(ctx context.Context, node NodeMapper, task models.Task, successTask *[]models.Task, errorTask *[]models.DistributeError) {
 	logger := b.logger.WithFields(node.Logger.Data).WithField("taskID", task.ID.Hex())
 	logger.Info("Sending task to the worker node")
 	_, err := node.GRPCConnection.SendTask(ctx, &proto.RecievedTask{
@@ -60,7 +60,7 @@ func (b *baseDistributor) distributeToNode(ctx context.Context, node NodeMapper,
 	if err != nil {
 		logger.Warnf("Fail to distribute task to worker node (%s)", err.Error())
 		task.DistributionFailure(node.NodeEntry.NodeID, err)
-		*errorTask = append(*errorTask, DistributeError{
+		*errorTask = append(*errorTask, models.DistributeError{
 			NodeEntry: node.NodeEntry,
 			Task:      task,
 			Error:     err,

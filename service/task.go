@@ -2,8 +2,8 @@ package service
 
 import (
 	"context"
+	"errors"
 	"github.com/resource-aware-jds/resource-aware-jds/models"
-	"github.com/resource-aware-jds/resource-aware-jds/pkg/distribution"
 	"github.com/resource-aware-jds/resource-aware-jds/repository"
 	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -15,7 +15,7 @@ type task struct {
 
 type Task interface {
 	GetAvailableTask(ctx context.Context, jobIDs []models.Job) (*models.Job, []models.Task, error)
-	UpdateTaskAfterDistribution(ctx context.Context, successTasks []models.Task, errorTasks []distribution.DistributeError) error
+	UpdateTaskAfterDistribution(ctx context.Context, successTasks []models.Task, errorTasks []models.DistributeError) error
 	UpdateTaskWorkOnFailure(ctx context.Context, taskID primitive.ObjectID, nodeID string, errMessage string) error
 	UpdateTaskSuccess(ctx context.Context, taskID primitive.ObjectID, nodeID string, result []byte, averageCPUUsage float32, averageMemoryUsage float64) error
 	CreateTask(ctx context.Context, job *models.Job, taskAttributes [][]byte, isExperiment bool) ([]models.Task, error)
@@ -43,7 +43,7 @@ func (t *task) GetAvailableTask(ctx context.Context, jobs []models.Job) (*models
 	return nil, nil, nil
 }
 
-func (t *task) UpdateTaskAfterDistribution(ctx context.Context, successTasks []models.Task, errorTasks []distribution.DistributeError) error {
+func (t *task) UpdateTaskAfterDistribution(ctx context.Context, successTasks []models.Task, errorTasks []models.DistributeError) error {
 	taskToUpdate := make([]models.Task, 0, len(successTasks)+len(errorTasks))
 	taskToUpdate = append(taskToUpdate, successTasks...)
 
@@ -126,10 +126,7 @@ func (t *task) GetAverageResourceUsage(ctx context.Context, jobID *primitive.Obj
 	}
 
 	if len(finishedTasks) == 0 {
-		return &models.TaskResourceUsage{
-			Memory: 0,
-			CPU:    0,
-		}, nil
+		return nil, errors.New("no finished task hence no resource usage data")
 	}
 
 	if len(finishedTasks) == 1 {

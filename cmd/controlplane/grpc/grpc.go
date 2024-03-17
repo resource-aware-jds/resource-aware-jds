@@ -5,6 +5,7 @@ import (
 	"crypto/x509"
 	"errors"
 	"github.com/resource-aware-jds/resource-aware-jds/generated/proto/github.com/resource-aware-jds/resource-aware-jds/generated/proto"
+	"github.com/resource-aware-jds/resource-aware-jds/handlerservice"
 	"github.com/resource-aware-jds/resource-aware-jds/models"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/cert"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/grpc"
@@ -22,13 +23,13 @@ import (
 
 type GRPCHandler struct {
 	proto.UnimplementedControlPlaneServer
-	controlPlaneService service.IControlPlane
+	controlPlaneService handlerservice.IControlPlane
 	jobService          service.Job
 	taskService         service.Task
 	taskSubmitCounter   metric.Int64Counter
 }
 
-func ProvideControlPlaneGRPCHandler(grpcServer grpc.RAJDSGrpcServer, controlPlaneService service.IControlPlane, jobService service.Job, taskService service.Task, meter metric.Meter) GRPCHandler {
+func ProvideControlPlaneGRPCHandler(grpcServer grpc.RAJDSGrpcServer, controlPlaneService handlerservice.IControlPlane, jobService service.Job, taskService service.Task, meter metric.Meter) GRPCHandler {
 	handler := GRPCHandler{
 		controlPlaneService: controlPlaneService,
 		jobService:          jobService,

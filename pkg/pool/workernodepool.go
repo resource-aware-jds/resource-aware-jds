@@ -54,7 +54,7 @@ type WorkerNode interface {
 	InitializePool(ctx context.Context, nodeEntries []models.NodeEntry)
 	AddWorkerNode(ctx context.Context, node models.NodeEntry) error
 	WorkerNodeAvailabilityCheck(ctx context.Context)
-	DistributeWork(ctx context.Context, jobID models.Job, tasks []models.Task, taskResourceUsage models.TaskResourceUsage) ([]models.Task, []distribution.DistributeError, error)
+	DistributeWork(ctx context.Context, jobID models.Job, tasks []models.Task) ([]models.Task, []models.DistributeError, error)
 	IsAvailableWorkerNode() bool
 	RemoveNodeFromPool(ctx context.Context, nodeID string)
 }
@@ -169,7 +169,7 @@ func (w *workerNode) WorkerNodeAvailabilityCheck(ctx context.Context) {
 	}
 }
 
-func (w *workerNode) DistributeWork(ctx context.Context, job models.Job, tasks []models.Task, taskResourceUsage models.TaskResourceUsage) ([]models.Task, []distribution.DistributeError, error) {
+func (w *workerNode) DistributeWork(ctx context.Context, job models.Job, tasks []models.Task) ([]models.Task, []models.DistributeError, error) {
 	w.poolMu.Lock()
 	defer w.poolMu.Unlock()
 
@@ -194,9 +194,7 @@ func (w *workerNode) DistributeWork(ctx context.Context, job models.Job, tasks [
 	}
 
 	w.logger.Infof("Distributing the Task using the %s distributor", job.DistributorLogic)
-	return dist.Distribute(ctx, nodeMapper, tasks, distribution.DistributorDependency{
-		TaskResourceUsage: taskResourceUsage,
-	})
+	return dist.Distribute(ctx, nodeMapper, tasks)
 }
 
 func (w *workerNode) IsAvailableWorkerNode() bool {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/docker/docker/client"
+	"github.com/resource-aware-jds/resource-aware-jds/handlerservice"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/timeutil"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/workerlogic"
 	"github.com/resource-aware-jds/resource-aware-jds/service"
@@ -20,7 +21,7 @@ type workerNode struct {
 	ctx                    context.Context
 	cancelFunc             func()
 	dockerClient           *client.Client
-	workerService          service.IWorker
+	workerService          handlerservice.IWorker
 	resourceMonitor        service.IResourceMonitor
 	dynamicScaling         service.IDynamicScaling
 	containerTakeDownLogic workerlogic.ContainerTakeDown
@@ -33,7 +34,7 @@ type WorkerNode interface {
 
 func ProvideWorkerNodeDaemon(
 	dockerClient *client.Client,
-	workerService service.IWorker,
+	workerService handlerservice.IWorker,
 	resourceMonitor service.IResourceMonitor,
 	dynamicScaling service.IDynamicScaling,
 	containerTakeDownLogic workerlogic.ContainerTakeDown,

@@ -6,6 +6,7 @@ import (
 	"github.com/resource-aware-jds/resource-aware-jds/config"
 	"github.com/resource-aware-jds/resource-aware-jds/models"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/util"
+	"github.com/resource-aware-jds/resource-aware-jds/service"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.opentelemetry.io/otel/metric"
 	"sort"
@@ -18,13 +19,15 @@ var (
 type ResourceAwareDistributor struct {
 	baseDistributor
 
-	config config.ResourceAwareDistributorConfigModel
+	config      config.ResourceAwareDistributorConfigModel
+	taskService service.Task
 }
 
-func ProvideResourceAwareDistributor(config config.ResourceAwareDistributorConfigModel, meter metric.Meter) Distributor {
+func ProvideResourceAwareDistributor(config config.ResourceAwareDistributorConfigModel, meter metric.Meter, taskService service.Task) Distributor {
 	return &ResourceAwareDistributor{
 		baseDistributor: newBaseDistributor(ResourceAwareDistributorName, meter),
 		config:          config,
+		taskService:     taskService,
 	}
 }
 
@@ -33,9 +36,16 @@ type maximumTaskForNode struct {
 	totalTask int
 }
 
-func (r ResourceAwareDistributor) Distribute(ctx context.Context, nodes []NodeMapper, tasks []models.Task, dependency DistributorDependency) (successTask []models.Task, distributionError []DistributeError, err error) {
+func (r ResourceAwareDistributor) Distribute(ctx context.Context, nodes []NodeMapper, tasks []models.Task) (successTask []models.Task, distributionError []models.DistributeError, err error) {
 	err = r.checkTaskWithSameJobID(tasks)
 	if err != nil {
+		return nil, nil, err
+	}
+
+	// Get the average resource usage.
+	averageResourceUsage, err := r.taskService.GetAverageResourceUsage(ctx, tasks[0].JobID)
+	if err != nil {
+		r.logger.Error("Fail to ResourceAware distribute task since no average resource usage info available.")
 		return nil, nil, err
 	}
 
@@ -43,7 +53,7 @@ func (r ResourceAwareDistributor) Distribute(ctx context.Context, nodes []NodeMa
 	nodeWithMaximumTasks := make([]maximumTaskForNode, 0, len(nodes))
 	taskToDistribute := len(tasks)
 	for _, node := range nodes {
-		maximumTask := r.calculateTheMaximumTaskOnNode(dependency, node.AvailableResource, taskToDistribute)
+		maximumTask := r.calculateTheMaximumTaskOnNode(*averageResourceUsage, node.AvailableResource, taskToDistribute)
 		nodeWithMaximumTasks = append(nodeWithMaximumTasks, maximumTaskForNode{
 			node:      node,
 			totalTask: maximumTask,
@@ -78,9 +88,9 @@ func (r ResourceAwareDistributor) checkTaskWithSameJobID(tasks []models.Task) er
 	return nil
 }
 
-func (r ResourceAwareDistributor) calculateTheMaximumTaskOnNode(dependency DistributorDependency, nodeResource models.AvailableResource, toBeDistributedTask int) int {
-	memory := dependency.TaskResourceUsage.Memory
-	cpu := dependency.TaskResourceUsage.CPU
+func (r ResourceAwareDistributor) calculateTheMaximumTaskOnNode(averageResourceUsage models.TaskResourceUsage, nodeResource models.AvailableResource, toBeDistributedTask int) int {
+	memory := averageResourceUsage.Memory
+	cpu := averageResourceUsage.CPU
 
 	maximumMemory := util.ConvertToMib(nodeResource.AvailableMemory).Size * float64(r.config.AvailableResourceClearanceThreshold/100)
 	maximumCPU := nodeResource.AvailableCpuPercentage * (r.config.AvailableResourceClearanceThreshold / 100)

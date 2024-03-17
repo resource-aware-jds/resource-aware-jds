@@ -11,6 +11,7 @@ import (
 	http2 "github.com/resource-aware-jds/resource-aware-jds/cmd/controlplane/http"
 	"github.com/resource-aware-jds/resource-aware-jds/config"
 	"github.com/resource-aware-jds/resource-aware-jds/daemon"
+	"github.com/resource-aware-jds/resource-aware-jds/handlerservice"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/cert"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/distribution"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/grpc"
@@ -63,14 +64,14 @@ func InitializeApplication() (ControlPlaneApp, func(), error) {
 		cleanup()
 		return ControlPlaneApp{}, nil, err
 	}
-	distributorMapper := distribution.ProvideDistributorMapper(resourceAwareDistributorConfigModel, meter)
-	rajdsgrpcResolver := grpc.ProvideRAJDSGRPCResolver()
-	workerNode := pool.ProvideWorkerNode(caCertificate, distributorMapper, rajdsgrpcResolver, meter)
-	iControlPlane := service.ProvideControlPlane(iNodeRegistry, caCertificate, controlPlaneConfigModel, workerNode)
-	iJob := repository.ProvideJob(database)
-	job := service.ProvideJobService(iJob)
 	iTask := repository.ProvideTask(database)
 	task := service.ProvideTaskService(iTask)
+	distributorMapper := distribution.ProvideDistributorMapper(resourceAwareDistributorConfigModel, meter, task)
+	rajdsgrpcResolver := grpc.ProvideRAJDSGRPCResolver()
+	workerNode := pool.ProvideWorkerNode(caCertificate, distributorMapper, rajdsgrpcResolver, meter)
+	iControlPlane := handlerservice.ProvideControlPlane(iNodeRegistry, caCertificate, controlPlaneConfigModel, workerNode)
+	iJob := repository.ProvideJob(database)
+	job := service.ProvideJobService(iJob)
 	grpcHandler := grpc2.ProvideControlPlaneGRPCHandler(rajdsGrpcServer, iControlPlane, job, task, meter)
 	daemonIControlPlane, cleanup4 := daemon.ProvideControlPlaneDaemon(workerNode, iControlPlane, task, job)
 	httpHandler := http2.ProvideHTTPHandler(job, task)
