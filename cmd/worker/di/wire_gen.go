@@ -72,7 +72,7 @@ func InitializeApplication() (WorkerApp, func(), error) {
 		return WorkerApp{}, nil, err
 	}
 	iResourceMonitor := service.ProvideResourcesMonitor(client, iContainer, workerConfigModel)
-	grpcHandler := handler.ProvideWorkerGRPCHandler(rajdsGrpcServer, iWorker, iResourceMonitor, meter)
+	grpcHandler := handler.ProvideWorkerGRPCHandler(rajdsGrpcServer, iWorker, iResourceMonitor, meter, transportCertificate)
 	workerNodeReceiverConfig := config.ProvideWorkerNodeReceiverConfig(workerConfigModel)
 	workerNodeReceiverGRPCServer, cleanup3, err := grpc.ProvideWorkerNodeReceiverGRPCServer(workerNodeReceiverConfig)
 	if err != nil {

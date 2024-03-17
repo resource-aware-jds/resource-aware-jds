@@ -7,5 +7,5 @@ func GenerateControlPlaneMetric(metricName string) string {
 }
 
 func GenerateWorkerNodeMetric(metricName string) string {
-	return fmt.Sprintf("rajds_cp_%s", metricName)
+	return fmt.Sprintf("rajds_worker_%s", metricName)
 }

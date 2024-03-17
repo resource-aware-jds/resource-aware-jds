@@ -3,9 +3,12 @@ package handler
 import (
 	"context"
 	"github.com/resource-aware-jds/resource-aware-jds/generated/proto/github.com/resource-aware-jds/resource-aware-jds/generated/proto"
+	"github.com/resource-aware-jds/resource-aware-jds/pkg/cert"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/grpc"
+	"github.com/resource-aware-jds/resource-aware-jds/pkg/metrics"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/util"
 	"github.com/resource-aware-jds/resource-aware-jds/service"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
@@ -15,10 +18,15 @@ type GRPCHandler struct {
 	workerService             service.IWorker
 	taskCounter               metric.Int64Counter
 	resourceMonitoringService service.IResourceMonitor
+	workerNodeCertificate     cert.TransportCertificate
 }
 
-func ProvideWorkerGRPCHandler(grpcServer grpc.RAJDSGrpcServer, workerService service.IWorker, resourceMonitoringService service.IResourceMonitor, meter metric.Meter) GRPCHandler {
-	taskCounter, err := meter.Int64Counter("total_received_task")
+func ProvideWorkerGRPCHandler(grpcServer grpc.RAJDSGrpcServer, workerService service.IWorker, resourceMonitoringService service.IResourceMonitor, meter metric.Meter, workerNodeCertificate cert.TransportCertificate) GRPCHandler {
+	taskCounter, err := meter.Int64Counter(
+		metrics.GenerateWorkerNodeMetric("total_received_task"),
+		metric.WithUnit("Task"),
+		metric.WithDescription("The total received task in this Worker Node"),
+	)
 	if err != nil {
 		return GRPCHandler{}
 	}
@@ -27,6 +35,7 @@ func ProvideWorkerGRPCHandler(grpcServer grpc.RAJDSGrpcServer, workerService ser
 		workerService:             workerService,
 		taskCounter:               taskCounter,
 		resourceMonitoringService: resourceMonitoringService,
+		workerNodeCertificate:     workerNodeCertificate,
 	}
 	proto.RegisterWorkerNodeServer(grpcServer.GetGRPCServer(), &handler)
 	return handler
@@ -53,7 +62,11 @@ func (j *GRPCHandler) HealthCheck(ctx context.Context, req *emptypb.Empty) (*pro
 }
 
 func (j *GRPCHandler) SendTask(ctx context.Context, task *proto.RecievedTask) (*emptypb.Empty, error) {
-	j.taskCounter.Add(ctx, 1)
+	j.taskCounter.Add(
+		ctx,
+		1,
+		metric.WithAttributes(attribute.String("nodeID", j.workerNodeCertificate.GetNodeID())),
+	)
 	err := j.workerService.StoreTaskInQueue(task.DockerImage, task.ID, task.TaskAttributes)
 	return &emptypb.Empty{}, err
 }
