@@ -9,6 +9,7 @@ import (
 	"github.com/resource-aware-jds/resource-aware-jds/models"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/cert"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/datastructure"
+	"github.com/resource-aware-jds/resource-aware-jds/pkg/metrics"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/taskqueue"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/workerlogic"
 	"github.com/sirupsen/logrus"
@@ -73,7 +74,12 @@ func ProvideWorker(
 		taskQueue:              taskQueue,
 		workerNodeCertificate:  workerNodeCertificate,
 		taskBuffer: datastructure.ProvideBuffer[string, models.TaskWithContext](
-			datastructure.WithBufferMetrics(meter, "task_buffer_size"),
+			datastructure.WithBufferMetrics(
+				meter,
+				metrics.GenerateWorkerNodeMetric("task_buffer"),
+				metric.WithUnit("Task"),
+				metric.WithDescription("The total task that currently running in the container"),
+			),
 		),
 		workerNodeDistribution: workerNodeDistribution,
 		containerService:       containerService,

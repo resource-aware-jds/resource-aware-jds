@@ -9,6 +9,7 @@ import (
 	"github.com/resource-aware-jds/resource-aware-jds/config"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/container"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/datastructure"
+	"github.com/resource-aware-jds/resource-aware-jds/pkg/metrics"
 	"github.com/sirupsen/logrus"
 	"go.opentelemetry.io/otel/metric"
 	"time"
@@ -37,7 +38,12 @@ func ProvideContainer(dockerClient *client.Client, config config.WorkerConfigMod
 		dockerClient: dockerClient,
 		config:       config,
 		containerBuffer: datastructure.ProvideBuffer[string, container.IContainer](
-			datastructure.WithBufferMetrics(meter, "container_buffer_size"),
+			datastructure.WithBufferMetrics(
+				meter,
+				metrics.GenerateWorkerNodeMetric("container_buffer"),
+				metric.WithUnit("Container"),
+				metric.WithDescription("The total container under this worker node agent supervise"),
+			),
 		),
 		containerImageWithContext: make(datastructure.Buffer[string, func()]),
 		containerCoolDownState:    make(datastructure.Buffer[string, time.Time]),

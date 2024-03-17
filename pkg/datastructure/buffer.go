@@ -11,16 +11,18 @@ type Buffer[T comparable, U any] map[T]U
 
 type bufferOption struct {
 	// Metrics
-	meter     metric.Meter
-	meterName string
+	meter      metric.Meter
+	metricName string
+	metricOpts []metric.Int64ObservableCounterOption
 }
 
 type BufferOptionFunc func(option *bufferOption)
 
-func WithBufferMetrics(meter metric.Meter, meterName string) BufferOptionFunc {
+func WithBufferMetrics(meter metric.Meter, metricName string, opts ...metric.Int64ObservableCounterOption) BufferOptionFunc {
 	return func(q *bufferOption) {
 		q.meter = meter
-		q.meterName = meterName
+		q.metricName = metricName
+		q.metricOpts = opts
 	}
 }
 
@@ -33,10 +35,18 @@ func ProvideBuffer[T comparable, U any](ops ...BufferOptionFunc) Buffer[T, U] {
 		eachOps(&option)
 	}
 	if option.meter != nil {
-		_, err := option.meter.Int64ObservableCounter(option.meterName, metric.WithInt64Callback(func(ctx context.Context, observer metric.Int64Observer) error {
-			observer.Observe(int64(len(data)))
-			return nil
-		}))
+		option.metricOpts = append(
+			option.metricOpts,
+			metric.WithInt64Callback(func(ctx context.Context, observer metric.Int64Observer) error {
+				observer.Observe(int64(len(data)))
+				return nil
+			}),
+		)
+
+		_, err := option.meter.Int64ObservableCounter(
+			option.metricName,
+			option.metricOpts...,
+		)
 		if err != nil {
 			panic(err)
 		}
