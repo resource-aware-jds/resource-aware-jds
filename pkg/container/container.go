@@ -63,6 +63,7 @@ func (c *containerSvc) Start(ctx context.Context) error {
 		logrus.Debug("Using the cached docker image")
 	}
 
+	time.Sleep(1 * time.Second)
 	// Create container
 	resp, err := c.dockerClient.ContainerCreate(
 		ctx,
