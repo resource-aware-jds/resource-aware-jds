@@ -218,6 +218,12 @@ func (w *Worker) TaskDistributionDaemonLoop(ctx context.Context) {
 		})
 		logrus.Warn("Removing these task due to unable to start container", errorTaskList)
 		w.taskQueue.BulkRemove(errorTaskList)
+		for _, removedTask := range errorTaskList {
+			err := w.ReportFailTask(ctx, removedTask.ID.Hex(), "Fail to start the container with the provided image")
+			if err != nil {
+				logrus.Error("Submit the Fail Task fail: ", err)
+			}
+		}
 		return
 	}
 }
