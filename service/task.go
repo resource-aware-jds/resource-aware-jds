@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"errors"
 	"github.com/resource-aware-jds/resource-aware-jds/models"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/distribution"
 	"github.com/resource-aware-jds/resource-aware-jds/repository"
@@ -127,7 +126,10 @@ func (t *task) GetAverageResourceUsage(ctx context.Context, jobID *primitive.Obj
 	}
 
 	if len(finishedTasks) == 0 {
-		return nil, errors.New("no finished task")
+		return &models.TaskResourceUsage{
+			Memory: 0,
+			CPU:    0,
+		}, nil
 	}
 
 	if len(finishedTasks) == 1 {
