@@ -10,8 +10,9 @@ type queueOption struct {
 	size int
 
 	// Metrics
-	meter     metric.Meter
-	meterName string
+	meter         metric.Meter
+	metricName    string
+	metricOptions []metric.Int64ObservableCounterOption
 }
 
 type QueueOptionFunc func(option *queueOption)
@@ -22,17 +23,18 @@ func WithQueueSize(size int) QueueOptionFunc {
 	}
 }
 
-func WithQueueMetrics(meter metric.Meter, meterName string) QueueOptionFunc {
+func WithQueueMetrics(meter metric.Meter, metricName string, opts ...metric.Int64ObservableCounterOption) QueueOptionFunc {
 	return func(q *queueOption) {
 		q.meter = meter
-		q.meterName = meterName
+		q.metricName = metricName
+		q.metricOptions = opts
 	}
 }
 
 // Queue is a FIFO (First in Last out) queue data structure
 type Queue[Data any] struct {
 	data             []Data
-	queueSizeCounter metric.Int64UpDownCounter
+	queueSizeCounter metric.Int64ObservableCounter
 }
 
 func ProvideQueue[Data any](ops ...QueueOptionFunc) Queue[Data] {
@@ -48,7 +50,18 @@ func ProvideQueue[Data any](ops ...QueueOptionFunc) Queue[Data] {
 	}
 
 	if option.meter != nil {
-		counter, err := option.meter.Int64UpDownCounter(option.meterName)
+		option.metricOptions = append(
+			option.metricOptions,
+			metric.WithInt64Callback(func(ctx context.Context, observer metric.Int64Observer) error {
+				observer.Observe(int64(len(data)))
+				return nil
+			}),
+		)
+
+		counter, err := option.meter.Int64ObservableCounter(
+			option.metricName,
+			option.metricOptions...,
+		)
 		if err != nil {
 			panic(err)
 		}
@@ -64,13 +77,11 @@ func (q *Queue[Data]) Pop() (*Data, bool) {
 
 	result := q.data[0]
 	q.data = q.data[1:]
-	q.queueSizeCounter.Add(context.Background(), -1)
 	return &result, true
 }
 
 func (q *Queue[Data]) Push(d Data) {
 	q.data = append(q.data, d)
-	q.queueSizeCounter.Add(context.Background(), 1)
 }
 
 func (q *Queue[Data]) PopWithFilter(filter func(Data) bool) (*Data, bool) {
@@ -83,7 +94,6 @@ func (q *Queue[Data]) PopWithFilter(filter func(Data) bool) (*Data, bool) {
 	}
 	result := q.data[idx]
 	q.data = append(q.data[:idx], q.data[idx+1:]...)
-	q.queueSizeCounter.Add(context.Background(), -1)
 	return &result, true
 }
 
@@ -92,10 +102,7 @@ func (q *Queue[Data]) ReadQueue() []Data {
 }
 
 func (q *Queue[Data]) RemoveWithCondition(removeCondition func(data Data) bool) {
-	sizeBeforeRemove := len(q.data)
 	q.data = Filter(q.data, removeCondition)
-	sizeAfterRemove := len(q.data)
-	q.queueSizeCounter.Add(context.Background(), int64(sizeBeforeRemove-sizeAfterRemove))
 }
 
 func (q *Queue[Data]) Empty() bool {

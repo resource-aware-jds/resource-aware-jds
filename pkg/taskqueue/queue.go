@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/resource-aware-jds/resource-aware-jds/models"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/datastructure"
+	"github.com/resource-aware-jds/resource-aware-jds/pkg/metrics"
 	"github.com/sirupsen/logrus"
 	"go.opentelemetry.io/otel/metric"
 )
@@ -28,7 +29,12 @@ type Queue interface {
 func ProvideTaskQueue(meter metric.Meter) Queue {
 	return &queue{
 		queue: datastructure.ProvideQueue[*models.Task](
-			datastructure.WithQueueMetrics(meter, "task_queue_size"),
+			datastructure.WithQueueMetrics(
+				meter,
+				metrics.GenerateWorkerNodeMetric("task_queue_size"),
+				metric.WithUnit("Task"),
+				metric.WithDescription("The total task in queue"),
+			),
 		),
 	}
 }
