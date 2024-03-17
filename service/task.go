@@ -71,8 +71,9 @@ func (t *task) CreateTask(ctx context.Context, job *models.Job, taskAttributes [
 	if isExperiment {
 		tasks[0].ExperimentTask()
 	} else {
-		for _, taskData := range tasks {
+		for index, taskData := range tasks {
 			taskData.SkipExperimentTask()
+			tasks[index] = taskData
 		}
 	}
 
