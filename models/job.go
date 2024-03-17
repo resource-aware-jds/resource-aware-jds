@@ -20,7 +20,7 @@ type Job struct {
 	Status           JobStatus           `bson:"status" json:"status"`
 	IsExperiment     bool                `bson:"is_experiment" json:"isExperiment"`
 	ImageURL         string              `bson:"image_url" json:"imageURL"`
-	DistributorLogic string              `bson:"distributor_logic" json:"distributorLogic"`
+	DistributorLogic DistributorName     `bson:"distributor_logic" json:"distributorLogic"`
 	CreatedAt        time.Time           `bson:"created_at" json:"createdAt"`
 	UpdatedAt        time.Time           `bson:"updated_at" json:"updatedAt"`
 }

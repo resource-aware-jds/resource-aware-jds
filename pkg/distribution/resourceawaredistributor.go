@@ -25,7 +25,7 @@ type ResourceAwareDistributor struct {
 
 func ProvideResourceAwareDistributor(config config.ResourceAwareDistributorConfigModel, meter metric.Meter, taskService service.Task) Distributor {
 	return &ResourceAwareDistributor{
-		baseDistributor: newBaseDistributor(ResourceAwareDistributorName, meter),
+		baseDistributor: newBaseDistributor(models.ResourceAwareDistributorName, meter),
 		config:          config,
 		taskService:     taskService,
 	}

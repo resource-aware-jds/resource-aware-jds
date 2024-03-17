@@ -11,13 +11,13 @@ import (
 )
 
 type baseDistributor struct {
-	name                 DistributorName
+	name                 models.DistributorName
 	logger               *logrus.Entry
 	metricCounter        metric.Int64Counter
 	failureMetricCounter metric.Int64Counter
 }
 
-func newBaseDistributor(name DistributorName, meter metric.Meter) baseDistributor {
+func newBaseDistributor(name models.DistributorName, meter metric.Meter) baseDistributor {
 	counter, _ := meter.Int64Counter(
 		metrics.GenerateControlPlaneMetric("distributor_total_success_task"),
 		metric.WithUnit("Task"),

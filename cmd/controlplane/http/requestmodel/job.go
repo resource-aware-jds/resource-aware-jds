@@ -5,10 +5,11 @@ import (
 )
 
 type CreateJobRequest struct {
-	Name           string                   `json:"name" binding:"required"`
-	ImageURL       string                   `json:"imageURL" binding:"required"`
-	TaskAttributes []map[string]interface{} `json:"taskAttributes" binding:"required"`
-	IsExperiment   bool                     `json:"isExperiment"`
+	Name              string                   `json:"name" binding:"required"`
+	ImageURL          string                   `json:"imageURL" binding:"required"`
+	TaskAttributes    []map[string]interface{} `json:"taskAttributes" binding:"required"`
+	IsExperiment      bool                     `json:"isExperiment"`
+	DistributionLogic models.DistributorName   `json:"distributionLogic" binding:"oneof=round_robin resource_aware"`
 }
 
 func (c *CreateJobRequest) ToJobModel() models.Job {

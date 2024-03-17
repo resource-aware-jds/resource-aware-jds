@@ -187,7 +187,7 @@ func (w *workerNode) DistributeWork(ctx context.Context, job models.Job, tasks [
 		})
 	}
 
-	dist, ok := w.distributorMapper.GetDistributor(distribution.DistributorName(job.DistributorLogic))
+	dist, ok := w.distributorMapper.GetDistributor(job.DistributorLogic)
 	if !ok {
 		w.logger.Errorf("No Distributing solution found in the distributor logics (%s)", job.DistributorLogic)
 		return nil, nil, ErrNoAvailableDistributor

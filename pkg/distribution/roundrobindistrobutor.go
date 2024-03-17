@@ -13,7 +13,7 @@ type RoundRobinDistributor struct {
 
 func ProvideRoundRobinDistributor(meter metric.Meter) Distributor {
 	return &RoundRobinDistributor{
-		baseDistributor: newBaseDistributor(RoundRobinDistributorName, meter),
+		baseDistributor: newBaseDistributor(models.RoundRobinDistributorName, meter),
 	}
 }
 
