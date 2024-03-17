@@ -94,6 +94,11 @@ func (c *controlPlane) taskScanLoop(ctx context.Context) {
 		logrus.Errorf("[ControlPlane Daemon] Failed to get available job (%s)", err.Error())
 		return
 	}
+	if len(jobList) == 0 {
+		logrus.Error("[ControlPlane Daemon] No job available to be distributed, skipping")
+		return
+	}
+
 	job, tasks, err := c.taskService.GetAvailableTask(ctx, jobList)
 	if err != nil {
 		logrus.Errorf("[ControlPlane Daemon] Failed to get available task (%s)", err.Error())

@@ -71,8 +71,14 @@ func (j *HttpHandler) CreateJob(c *gin.Context) {
 		return
 	}
 
-	if req.IsExperiment {
+	if !req.IsExperiment {
 		err = j.jobService.UpdateJobStatusToDistributing(ctx, job.ID)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("fail to update job status: %e", err)})
+			return
+		}
+	} else {
+		err = j.jobService.UpdateJobStatusToExperimenting(ctx, job.ID)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("fail to update job status: %e", err)})
 			return
