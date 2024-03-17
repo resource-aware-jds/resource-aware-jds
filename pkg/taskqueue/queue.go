@@ -85,7 +85,6 @@ func (q *queue) BulkRemove(tasks []*models.Task) {
 		return !datastructure.Contains(tasks, task)
 	})
 	logrus.Info("Task removed:", tasks)
-	logrus.Info("Current queue:", q.queue)
 }
 
 func (q *queue) PeakForNextTask() (*models.Task, bool) {
