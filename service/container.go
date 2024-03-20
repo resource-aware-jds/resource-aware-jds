@@ -12,6 +12,7 @@ import (
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/metrics"
 	"github.com/sirupsen/logrus"
 	"go.opentelemetry.io/otel/metric"
+	"strings"
 	"time"
 )
 
@@ -30,11 +31,11 @@ type IContainer interface {
 }
 
 type ContainerService struct {
-	dockerClient              *client.Client
-	config                    config.WorkerConfigModel
-	containerBuffer           datastructure.Buffer[string, container.IContainer]
-	containerImageWithContext datastructure.Buffer[string, func()]
-	containerCoolDownState    datastructure.Buffer[string, time.Time]
+	dockerClient           *client.Client
+	config                 config.WorkerConfigModel
+	containerBuffer        datastructure.Buffer[string, container.IContainer]
+	containerDownBuffer    datastructure.Buffer[string, func()]
+	containerCoolDownState datastructure.Buffer[string, time.Time]
 }
 
 func ProvideContainer(dockerClient *client.Client, config config.WorkerConfigModel, meter metric.Meter) IContainer {
@@ -49,8 +50,8 @@ func ProvideContainer(dockerClient *client.Client, config config.WorkerConfigMod
 				metric.WithDescription("The total container under this worker node agent supervise"),
 			),
 		),
-		containerImageWithContext: make(datastructure.Buffer[string, func()]),
-		containerCoolDownState:    make(datastructure.Buffer[string, time.Time]),
+		containerDownBuffer:    make(datastructure.Buffer[string, func()]),
+		containerCoolDownState: make(datastructure.Buffer[string, time.Time]),
 	}
 }
 
@@ -107,49 +108,39 @@ func (c *ContainerService) GetContainerBuffer() datastructure.Buffer[string, con
 	return c.containerBuffer
 }
 
-func (c *ContainerService) AddContainerTakeDownTimer(containerImage string) error {
-	if c.containerImageWithContext.IsObjectInBuffer(containerImage) {
+func (c *ContainerService) AddContainerTakeDownTimer(containerId string) error {
+	if c.containerDownBuffer.IsObjectInBuffer(containerId) {
 		return nil
 	}
+	logrus.Info("Adding container take down timer, container: ", containerId)
 	ctx, cancelFunc := context.WithDeadline(context.Background(), time.Now().Add(c.config.ContainerBufferTimeout))
-	go func(innerCtx context.Context, innerC *ContainerService, innerContainerImage string) {
-		<-ctx.Done()
-		if errors.Is(ctx.Err(), context.Canceled) {
-			return
-		}
-		bgnCtx := context.Background()
-		innerC.downContainerWithImage(bgnCtx, innerContainerImage)
-	}(ctx, c, containerImage)
 
-	c.containerImageWithContext.Store(containerImage, cancelFunc)
-
-	return nil
-}
-
-func (c *ContainerService) RemoveContainerTakeDownTimer(containerImage string) {
-	funcPointer := c.containerImageWithContext.Pop(containerImage)
-	if funcPointer == nil {
-		logrus.Warn("Unable to pop containerImageWithContext with image:", containerImage)
-		return
-	}
-	cancelFunc := *funcPointer
-	cancelFunc()
-}
-
-func (c *ContainerService) downContainerWithImage(ctx context.Context, containerImage string) {
 	containerBuffer := c.GetContainerBuffer()
-	containers := containerBuffer.GetValues()
-	datastructure.Map(containers, func(container container.IContainer) error {
-		fmt.Println(containerImage)
-		fmt.Println(container.GetImageUrl())
-		if container.GetImageUrl() != containerImage {
+	for key, value := range containerBuffer {
+		if strings.HasPrefix(strings.TrimSpace(key), strings.TrimSpace(containerId)) {
+			c.containerDownBuffer.Store(containerId, cancelFunc)
+			go func(innerCtx context.Context, innerC *ContainerService, container container.IContainer) {
+				<-ctx.Done()
+				if errors.Is(ctx.Err(), context.Canceled) {
+					return
+				}
+				bgnCtx := context.Background()
+				c.DownContainer(bgnCtx, container)
+			}(ctx, c, value)
 			return nil
 		}
-		err := c.DownContainer(ctx, container)
-		if err != nil {
-			logrus.Error(err)
-			return err
-		}
-		return nil
-	})
+	}
+	cancelFunc()
+	return fmt.Errorf("unable to find container with id: %s", containerId)
+}
+
+func (c *ContainerService) RemoveContainerTakeDownTimer(containerId string) {
+	logrus.Info("Removing container take down timer, container: ", containerId)
+	cancelFuncPointer := c.containerDownBuffer.Pop(containerId)
+	if cancelFuncPointer == nil {
+		logrus.Warn("Unable to pop containerDownBuffer with image:", containerId)
+		return
+	}
+	cancelFunc := *cancelFuncPointer
+	cancelFunc()
 }

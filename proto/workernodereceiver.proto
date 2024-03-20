@@ -13,8 +13,8 @@ service WorkerNodeContainerReceiver {
 
 message GetTaskPayload {
   string ImageUrl=1;
+  string ContainerId=2;
 }
-
 message SubmitSuccessTaskRequest {
   string ID=1;
   bytes Results=2;

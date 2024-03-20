@@ -42,7 +42,7 @@ type IWorker interface {
 
 	// Task related method
 	StoreTaskInQueue(containerImage string, taskId string, input []byte) error
-	GetTask(containerImage string) (*proto.Task, error)
+	GetTask(containerImage string, containerId string) (*proto.Task, error)
 	SubmitSuccessTask(ctx context.Context, id string, results []byte) error
 	ReportFailTask(ctx context.Context, id string, errorMessage string) error
 	GetRunningTask() []string
@@ -97,17 +97,17 @@ func (w *Worker) CheckInWorkerNodeToControlPlane(ctx context.Context) error {
 	return err
 }
 
-func (w *Worker) GetTask(containerImage string) (*proto.Task, error) {
+func (w *Worker) GetTask(containerImage string, containerId string) (*proto.Task, error) {
 	task, err := w.taskQueue.GetTask(containerImage)
 	if err != nil {
-		addError := w.containerService.AddContainerTakeDownTimer(containerImage)
+		addError := w.containerService.AddContainerTakeDownTimer(containerId)
 		if addError != nil {
 			logrus.Error(addError)
 		}
 		logrus.Warn(err)
 		return nil, err
 	}
-	w.containerService.RemoveContainerTakeDownTimer(containerImage)
+	w.containerService.RemoveContainerTakeDownTimer(containerId)
 
 	ctx, cancelFunc := context.WithDeadline(context.Background(), time.Now().Add(w.config.TaskBufferTimeout))
 

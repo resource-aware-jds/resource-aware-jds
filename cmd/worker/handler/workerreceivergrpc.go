@@ -23,7 +23,7 @@ func ProvideWorkerGRPCSocketHandler(grpcSocketServer grpc.WorkerNodeReceiverGRPC
 }
 
 func (w *WorkerNodeReceiverGRPCHandler) GetTaskFromQueue(ctx context.Context, payload *proto.GetTaskPayload) (*proto.Task, error) {
-	task, err := w.workerService.GetTask(payload.ImageUrl)
+	task, err := w.workerService.GetTask(payload.ImageUrl, payload.ContainerId)
 	return task, err
 }
 
