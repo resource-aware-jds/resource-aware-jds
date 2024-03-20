@@ -1,0 +1,38 @@
+name: Lint and Test
+
+on:
+  push:
+    branches:
+      - 'main'
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      # Fetch all repository details (Including tag for semver).
+      - uses: actions/checkout@v3
+
+      - name: Setup Go 1.21.6
+        uses: actions/setup-go@v4
+        with:
+          go-version: 1.21.6
+
+      - name: Install golangci-lint
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.57.0
+
+      - name: Run lint
+        run: golangci-lint run ./...
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      # Fetch all repository details (Including tag for semver).
+      - uses: actions/checkout@v3
+
+      - name: Setup Go 1.21.6
+        uses: actions/setup-go@v4
+        with:
+          go-version: 1.21.6
+
+      - name: Run test
+        run: go test ./...
