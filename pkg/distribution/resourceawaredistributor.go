@@ -14,6 +14,7 @@ import (
 
 var (
 	ErrResourceAwareDistributorTaskDifferenceJob = errors.New("distribution failed due to jobID is not the same")
+	ErrNotEnoughResource                         = errors.New("no available node that have enough resource to run this task")
 )
 
 type ResourceAwareDistributor struct {
@@ -66,11 +67,28 @@ func (r ResourceAwareDistributor) Distribute(ctx context.Context, nodes []NodeMa
 	})
 
 	for _, nodeWithMaximumTask := range nodeWithMaximumTasks {
-		toBeDistributedTasks := tasks[0:nodeWithMaximumTask.totalTask]
-		tasks = tasks[nodeWithMaximumTask.totalTask:]
+		endSlice := nodeWithMaximumTask.totalTask
+		if endSlice == 0 {
+			continue
+		}
+
+		if nodeWithMaximumTask.totalTask > len(tasks) {
+			endSlice = len(tasks)
+		}
+		toBeDistributedTasks := tasks[0:endSlice]
+		tasks = tasks[endSlice:]
 		for _, toBeDistributedTask := range toBeDistributedTasks {
 			r.distributeToNode(ctx, nodeWithMaximumTask.node, toBeDistributedTask, &successTask, &distributionError)
 		}
+	}
+
+	// Convert the leftover task to be the error task.
+	for _, leftOverTask := range tasks {
+		leftOverTask.DistributionFailure("", ErrNotEnoughResource)
+		distributionError = append(distributionError, models.DistributeError{
+			Task:  leftOverTask,
+			Error: ErrNotEnoughResource,
+		})
 	}
 	return
 }

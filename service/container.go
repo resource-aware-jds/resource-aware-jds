@@ -125,7 +125,11 @@ func (c *ContainerService) AddContainerTakeDownTimer(containerId string) error {
 					return
 				}
 				bgnCtx := context.Background()
-				c.DownContainer(bgnCtx, container)
+				err := c.DownContainer(bgnCtx, container)
+				if err != nil {
+					logrus.Error("Fail to shutdown container: ", err)
+					return
+				}
 			}(ctx, c, value)
 			return nil
 		}

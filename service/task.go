@@ -9,6 +9,8 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
+//go:generate mockgen -source=./task.go -destination=./mock_service/mock_task.go -package=mock_service
+
 type task struct {
 	taskRepository repository.ITask
 }
