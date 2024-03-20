@@ -137,6 +137,11 @@ func (s *ResourceAwareDistributorTestSuite) TestDistribution() {
 		s.NoError(err)
 		s.Len(failureTask, 1)
 		s.Len(successTask, 2)
+
+		s.Len(failureTask[0].Task.Logs, 1)
+		s.Equal("Fail to distribute task to node", failureTask[0].Task.Logs[0].Message)
+		s.Equal(distribution.ErrNotEnoughResource.Error(), failureTask[0].Task.Logs[0].Parameters["error"])
+		s.Equal(models.WarnLogSeverity, failureTask[0].Task.Logs[0].Severity)
 	})
 	s.Run("Should avoid the clearance threshold and distribute to the next node", func() {
 		s.PrepareDistribution(config.ResourceAwareDistributorConfigModel{
