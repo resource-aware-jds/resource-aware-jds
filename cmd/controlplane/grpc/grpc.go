@@ -3,6 +3,7 @@ package grpc
 import (
 	"context"
 	"crypto/x509"
+	"errors"
 	"github.com/resource-aware-jds/resource-aware-jds/generated/proto/github.com/resource-aware-jds/resource-aware-jds/generated/proto"
 	"github.com/resource-aware-jds/resource-aware-jds/handlerservice"
 	"github.com/resource-aware-jds/resource-aware-jds/models"
@@ -10,6 +11,7 @@ import (
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/eventbus"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/grpc"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/metrics"
+	"github.com/resource-aware-jds/resource-aware-jds/pkg/util"
 	"github.com/resource-aware-jds/resource-aware-jds/service"
 	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -148,6 +150,15 @@ func (g *GRPCHandler) ReportFailureTask(ctx context.Context, req *proto.ReportFa
 	}
 	g.taskSubmitCounter.Add(ctx, 1, metric.WithAttributes(attribute.String("status", "failure")))
 
+	err = g.taskEventBus.NotifyObserver(ctx, models.TaskEventBus{
+		TaskID:    parsedTaskID,
+		EventType: models.FailTaskEventType,
+	})
+	if err != nil {
+		logrus.Error(err)
+		return &emptypb.Empty{}, err
+	}
+
 	err = g.taskService.UpdateTaskWorkOnFailure(ctx, parsedTaskID, req.GetNodeID(), req.GetMessage())
 	return &emptypb.Empty{}, err
 }
@@ -162,61 +173,60 @@ func (g *GRPCHandler) ReportSuccessTask(ctx context.Context, req *proto.ReportSu
 	g.taskSubmitCounter.Add(ctx, 1, metric.WithAttributes(attribute.String("status", "success")))
 
 	err = g.taskEventBus.NotifyObserver(ctx, models.TaskEventBus{
-		TaskID:     parsedTaskID,
-		RawRequest: req,
-		EventType:  models.SuccessTaskEventType,
+		TaskID:    parsedTaskID,
+		EventType: models.SuccessTaskEventType,
 	})
 	if err != nil {
 		logrus.Error(err)
+		return &emptypb.Empty{}, err
 	}
-	return &emptypb.Empty{}, err
 
-	//memoryUsage := util.ExtractMemoryUsageString(req.GetTaskResourceUsage().GetAverageMemoryUsage())
-	//memoryUsage = util.ConvertToMib(memoryUsage)
-	//
-	//err = g.taskService.UpdateTaskSuccess(
-	//	ctx,
-	//	parsedTaskID,
-	//	req.GetNodeID(),
-	//	req.GetResult(),
-	//	req.GetTaskResourceUsage().GetAverageCpuUsage(),
-	//	memoryUsage.Size,
-	//)
-	//if err != nil {
-	//	return &emptypb.Empty{}, err
-	//}
-	//
-	//// Get the task from database.
-	//task, err := g.taskService.GetTaskByID(ctx, parsedTaskID)
-	//if err != nil {
-	//	return &emptypb.Empty{}, err
-	//}
-	//
-	//if task.JobID == nil {
-	//	return &emptypb.Empty{}, errors.New("empty jobID")
-	//}
-	//
-	//// Check the job status should be updated or not?
-	//job, err := g.jobService.GetJob(ctx, *task.JobID)
-	//if err != nil {
-	//	return &emptypb.Empty{}, err
-	//}
-	//
-	//// If the job status is in the experiment, then every task into ready to be distributed
-	//switch job.Status {
-	//case models.ExperimentingJobStatus:
-	//	err = g.taskService.UpdateTaskToBeReadyToBeDistributed(ctx, job.ID)
-	//case models.DistributingJobStatus:
-	//	var unfinishedTask int64
-	//	unfinishedTask, err = g.taskService.CountUnfinishedTaskByJobID(ctx, job.ID)
-	//	if err != nil {
-	//		return &emptypb.Empty{}, err
-	//	}
-	//
-	//	if unfinishedTask == 0 {
-	//		err = g.jobService.UpdateJobStatusToFinish(ctx, job.ID)
-	//	}
-	//}
-	//
-	//return &emptypb.Empty{}, err
+	memoryUsage := util.ExtractMemoryUsageString(req.GetTaskResourceUsage().GetAverageMemoryUsage())
+	memoryUsage = util.ConvertToMib(memoryUsage)
+
+	err = g.taskService.UpdateTaskSuccess(
+		ctx,
+		parsedTaskID,
+		req.GetNodeID(),
+		req.GetResult(),
+		req.GetTaskResourceUsage().GetAverageCpuUsage(),
+		memoryUsage.Size,
+	)
+	if err != nil {
+		return &emptypb.Empty{}, err
+	}
+
+	// Get the task from database.
+	task, err := g.taskService.GetTaskByID(ctx, parsedTaskID)
+	if err != nil {
+		return &emptypb.Empty{}, err
+	}
+
+	if task.JobID == nil {
+		return &emptypb.Empty{}, errors.New("empty jobID")
+	}
+
+	// Check the job status should be updated or not?
+	job, err := g.jobService.GetJob(ctx, *task.JobID)
+	if err != nil {
+		return &emptypb.Empty{}, err
+	}
+
+	// If the job status is in the experiment, then every task into ready to be distributed
+	switch job.Status {
+	case models.ExperimentingJobStatus:
+		err = g.taskService.UpdateTaskToBeReadyToBeDistributed(ctx, job.ID)
+	case models.DistributingJobStatus:
+		var unfinishedTask int64
+		unfinishedTask, err = g.taskService.CountUnfinishedTaskByJobID(ctx, job.ID)
+		if err != nil {
+			return &emptypb.Empty{}, err
+		}
+
+		if unfinishedTask == 0 {
+			err = g.jobService.UpdateJobStatusToFinish(ctx, job.ID)
+		}
+	}
+
+	return &emptypb.Empty{}, err
 }
