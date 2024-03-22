@@ -27,8 +27,9 @@ type CPTaskWatcher interface {
 	WatcherLoop(ctx context.Context)
 }
 
-func ProvideCPTaskWatcher(taskService Task) CPTaskWatcher {
+func ProvideCPTaskWatcher(taskService Task, config config.TaskWatcherConfigModel) CPTaskWatcher {
 	return &cpTaskWatcher{
+		config:      config,
 		taskService: taskService,
 		taskBuffer:  make(datastructure.Buffer[primitive.ObjectID, time.Time]),
 	}
@@ -58,7 +59,7 @@ func (c *cpTaskWatcher) WatcherLoop(ctx context.Context) {
 
 	taskIDToCallTimeouts := make([]primitive.ObjectID, 0, len(c.taskBuffer))
 	for x, deadline := range c.taskBuffer {
-		if deadline.After(time.Now()) {
+		if deadline.Before(time.Now()) {
 			// Remove task from the watcher and update the status as failed.
 			taskIDToCallTimeouts = append(taskIDToCallTimeouts, x)
 			delete(c.taskBuffer, x)
