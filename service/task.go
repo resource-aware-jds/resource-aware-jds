@@ -20,6 +20,7 @@ type Task interface {
 	UpdateTaskAfterDistribution(ctx context.Context, successTasks []models.Task, errorTasks []models.DistributeError) error
 	UpdateTaskWorkOnFailure(ctx context.Context, taskID primitive.ObjectID, nodeID string, errMessage string) error
 	UpdateTaskSuccess(ctx context.Context, taskID primitive.ObjectID, nodeID string, result []byte, averageCPUUsage float32, averageMemoryUsage float64) error
+	UpdateTaskWaitTimeout(ctx context.Context, taskID primitive.ObjectID) error
 	CreateTask(ctx context.Context, job *models.Job, taskAttributes [][]byte, isExperiment bool) ([]models.Task, error)
 	GetTaskByJob(ctx context.Context, job *models.Job) ([]models.Task, error)
 	GetTaskByID(ctx context.Context, taskID primitive.ObjectID) (*models.Task, error)
@@ -159,4 +160,14 @@ func (t *task) UpdateTaskToBeReadyToBeDistributed(ctx context.Context, jobID *pr
 
 func (t *task) CountUnfinishedTaskByJobID(ctx context.Context, jobID *primitive.ObjectID) (int64, error) {
 	return t.taskRepository.CountUnfinishedTaskByJobID(ctx, jobID)
+}
+
+func (t *task) UpdateTaskWaitTimeout(ctx context.Context, taskID primitive.ObjectID) error {
+	task, err := t.GetTaskByID(ctx, taskID)
+	if err != nil {
+		return err
+	}
+
+	task.CPWaitTimeout()
+	return t.taskRepository.WriteTaskResult(ctx, *task)
 }

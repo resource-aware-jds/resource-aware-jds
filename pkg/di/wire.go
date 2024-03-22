@@ -4,6 +4,7 @@ import (
 	"github.com/google/wire"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/distribution"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/dockerclient"
+	"github.com/resource-aware-jds/resource-aware-jds/pkg/eventbus"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/grpc"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/http"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/metrics"
@@ -27,4 +28,5 @@ var PKGWireSet = wire.NewSet(
 	grpc.ProvideRAJDSGRPCResolver,
 	metrics.ProvideMeter,
 	workerlogic.ProvideOverResourceUsageContainerTakeDown,
+	eventbus.ProvideTaskEventBus,
 )

@@ -89,6 +89,11 @@ func (t *Task) DoneExperimentTask() {
 	t.AddLog(InfoLogSeverity, "The experimenting has been completed and the rest of the task has been marked as ready to distribute", nil)
 }
 
+func (t *Task) CPWaitTimeout() {
+	t.Status = WorkOnTaskFailure
+	t.AddLog(ErrorLogSeverity, "The distributed worker node didn't response the task success in time", nil)
+}
+
 func (t *Task) AddLog(severity LogSeverity, message string, parameters map[string]string) {
 	if t.Logs == nil {
 		t.Logs = make([]TaskLog, 0)

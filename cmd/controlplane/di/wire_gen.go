@@ -14,6 +14,7 @@ import (
 	"github.com/resource-aware-jds/resource-aware-jds/handlerservice"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/cert"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/distribution"
+	"github.com/resource-aware-jds/resource-aware-jds/pkg/eventbus"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/grpc"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/http"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/metrics"
@@ -72,12 +73,15 @@ func InitializeApplication() (ControlPlaneApp, func(), error) {
 	iControlPlane := handlerservice.ProvideControlPlane(iNodeRegistry, caCertificate, controlPlaneConfigModel, workerNode)
 	iJob := repository.ProvideJob(database)
 	job := service.ProvideJobService(iJob)
-	grpcHandler := grpc2.ProvideControlPlaneGRPCHandler(rajdsGrpcServer, iControlPlane, job, task, meter)
-	daemonIControlPlane, cleanup4 := daemon.ProvideControlPlaneDaemon(workerNode, iControlPlane, task, job)
+	taskEventBus := eventbus.ProvideTaskEventBus()
+	grpcHandler := grpc2.ProvideControlPlaneGRPCHandler(rajdsGrpcServer, iControlPlane, job, task, meter, taskEventBus)
+	cpTaskWatcher := service.ProvideCPTaskWatcher(task)
+	daemonIControlPlane, cleanup4 := daemon.ProvideControlPlaneDaemon(workerNode, iControlPlane, task, job, cpTaskWatcher, controlPlaneConfigModel)
 	httpHandler := http2.ProvideHTTPHandler(job, task)
 	handler := http2.ProvideHandler(httpHandler)
 	routerResult := http2.ProvideHTTPRouter(handler, server)
-	controlPlaneApp := ProvideControlPlaneApp(rajdsGrpcServer, server, grpcHandler, daemonIControlPlane, routerResult)
+	observerInit := ProvideObserverInit(taskEventBus, cpTaskWatcher)
+	controlPlaneApp := ProvideControlPlaneApp(rajdsGrpcServer, server, grpcHandler, daemonIControlPlane, routerResult, observerInit)
 	return controlPlaneApp, func() {
 		cleanup4()
 		cleanup3()

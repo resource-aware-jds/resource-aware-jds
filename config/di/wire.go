@@ -15,6 +15,7 @@ var ControlPlaneConfigWireSet = wire.NewSet(
 	config.ProvideWorkerConfigModel,
 	config.ProvideHTTPServerConfig,
 	config.ProvideResourceAwareDistributorConfigMode,
+	config.ProvideTaskWatcherConfigModel,
 )
 
 var WorkerConfigWireSet = wire.NewSet(
