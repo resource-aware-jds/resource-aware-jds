@@ -49,6 +49,10 @@ func (c *cpTaskWatcher) OnEvent(_ context.Context, t models.TaskEventBus) error 
 }
 
 func (c *cpTaskWatcher) WatcherLoop(ctx context.Context) {
+	if len(c.taskBuffer) == 0 {
+		return
+	}
+
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 
