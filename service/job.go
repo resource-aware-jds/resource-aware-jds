@@ -14,7 +14,7 @@ type job struct {
 
 type Job interface {
 	GetJob(ctx context.Context, id primitive.ObjectID) (*models.Job, error)
-	CreateJob(ctx context.Context, name, imageURL string, isExperiment bool) (*models.Job, error)
+	CreateJob(ctx context.Context, name, imageURL string, isExperiment bool, distributionLogic models.DistributorName) (*models.Job, error)
 	ListJob(ctx context.Context) ([]models.Job, error)
 	ListJobReadyToDistribute(ctx context.Context) ([]models.Job, error)
 	UpdateJobStatusToFinish(ctx context.Context, id *primitive.ObjectID) error
@@ -28,15 +28,16 @@ func ProvideJobService(jobRepository repository.IJob) Job {
 	}
 }
 
-func (j *job) CreateJob(ctx context.Context, name, imageURL string, isExperiment bool) (*models.Job, error) {
+func (j *job) CreateJob(ctx context.Context, name, imageURL string, isExperiment bool, distributionLogic models.DistributorName) (*models.Job, error) {
 	// Create Job
 	jobResult := models.Job{
-		Name:         name,
-		Status:       models.CreatedJobStatus,
-		ImageURL:     imageURL,
-		CreatedAt:    time.Now(),
-		UpdatedAt:    time.Now(),
-		IsExperiment: isExperiment,
+		Name:             name,
+		Status:           models.CreatedJobStatus,
+		ImageURL:         imageURL,
+		CreatedAt:        time.Now(),
+		UpdatedAt:        time.Now(),
+		IsExperiment:     isExperiment,
+		DistributorLogic: distributionLogic,
 	}
 	insertedJobID, err := j.jobRepository.Insert(ctx, jobResult)
 	if err != nil {

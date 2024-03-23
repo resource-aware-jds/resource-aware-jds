@@ -83,7 +83,11 @@ func (w *workerNode) Start() {
 					logrus.Error(err)
 					continue
 				}
-				w.workerService.CalculateAverageContainerResourceUsage(report.ContainerResourceUsages)
+				err = w.workerService.CalculateAverageContainerResourceUsage(report.ContainerResourceUsages)
+				if err != nil {
+					logrus.Error(err)
+					continue
+				}
 
 				if report.CpuUsageExceed == 0 && report.MemoryUsageExceed.Size == 0 {
 					continue
