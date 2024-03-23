@@ -46,3 +46,10 @@ func SubtractInGb(first models.MemorySize, second models.MemorySize) models.Memo
 		Unit: "GiB",
 	}
 }
+
+func DivideBy(first models.MemorySize, value float64) models.MemorySize {
+	return models.MemorySize{
+		Size: first.Size / value,
+		Unit: first.Unit,
+	}
+}

@@ -38,3 +38,9 @@ type AvailableResource struct {
 	AvailableCpuPercentage float32
 	AvailableMemory        MemorySize
 }
+
+type AverageResourceUsage struct {
+	IsInitialized      bool
+	AverageCpuUsage    float64
+	AverageMemoryUsage MemorySize
+}

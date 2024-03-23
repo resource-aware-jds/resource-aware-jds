@@ -11,12 +11,14 @@ import (
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/datastructure"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/metrics"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/taskqueue"
+	"github.com/resource-aware-jds/resource-aware-jds/pkg/util"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/workerlogic"
 	"github.com/resource-aware-jds/resource-aware-jds/service"
 	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
+	"strings"
 	"time"
 )
 
@@ -45,6 +47,7 @@ type IWorker interface {
 	GetTask(containerImage string, containerId string) (*proto.Task, error)
 	SubmitSuccessTask(ctx context.Context, id string, results []byte) error
 	ReportFailTask(ctx context.Context, id string, errorMessage string) error
+	CalculateAverageContainerResourceUsage(usage []models.ContainerResourceUsage) error
 	GetRunningTask() []string
 	GetAvailableTaskSlot() int
 
@@ -125,9 +128,17 @@ func (w *Worker) GetTask(containerImage string, containerId string) (*proto.Task
 	}(ctx, w, *task)
 
 	w.taskBuffer.Store(task.ID.Hex(), models.TaskWithContext{
-		Task:       *task,
-		Ctx:        ctx,
-		CancelFunc: cancelFunc,
+		Task:        *task,
+		Ctx:         ctx,
+		CancelFunc:  cancelFunc,
+		ContainerId: containerId,
+		AverageResourceUsage: models.AverageResourceUsage{
+			IsInitialized:   false,
+			AverageCpuUsage: 0,
+			AverageMemoryUsage: models.MemorySize{
+				Size: 0,
+				Unit: "GiB",
+			}},
 	})
 	return &proto.Task{
 		ID:             task.ID.Hex(),
@@ -155,6 +166,10 @@ func (w *Worker) SubmitSuccessTask(ctx context.Context, id string, results []byt
 		Id:     id,
 		NodeID: w.workerNodeCertificate.GetNodeID(),
 		Result: results,
+		TaskResourceUsage: &proto.TaskResourceUsage{
+			AverageMemoryUsage: util.MemoryToString(task.AverageResourceUsage.AverageMemoryUsage),
+			AverageCpuUsage:    float32(task.AverageResourceUsage.AverageCpuUsage),
+		},
 	})
 	return err
 }
@@ -188,6 +203,39 @@ func (w *Worker) StoreTaskInQueue(containerImage string, taskId string, input []
 		TaskAttributes: input,
 	}
 	w.taskQueue.StoreTask(&task)
+	return nil
+}
+
+func (w *Worker) CalculateAverageContainerResourceUsage(usage []models.ContainerResourceUsage) error {
+	tasks := w.taskBuffer
+	for key, task := range tasks {
+		containerIdShort := task.ContainerId
+		for _, container := range usage {
+			if strings.TrimSpace(container.ContainerIdShort) != strings.TrimSpace(containerIdShort) {
+				continue
+			}
+			cpuUsage, err := util.ExtractCpuUsage(container)
+			if err != nil {
+				return err
+			}
+			cpuUsagePerCore := cpuUsage / float64(w.config.DockerCoreLimit)
+			memoryUsage := util.ExtractMemoryUsageFromModel(container)
+			if !task.AverageResourceUsage.IsInitialized {
+				task.AverageResourceUsage = models.AverageResourceUsage{
+					AverageCpuUsage:    cpuUsagePerCore,
+					AverageMemoryUsage: memoryUsage,
+					IsInitialized:      true,
+				}
+			} else {
+				task.AverageResourceUsage.AverageCpuUsage = (task.AverageResourceUsage.AverageCpuUsage + cpuUsagePerCore) / 2
+				task.AverageResourceUsage.AverageMemoryUsage = util.DivideBy(
+					util.SumInGb(task.AverageResourceUsage.AverageMemoryUsage, memoryUsage),
+					2,
+				)
+			}
+			w.taskBuffer[key] = task
+		}
+	}
 	return nil
 }
 

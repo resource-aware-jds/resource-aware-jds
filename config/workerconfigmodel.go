@@ -18,12 +18,12 @@ type WorkerConfigModel struct {
 	ContainerStartDelayTimeSeconds            time.Duration `envconfig:"CONTAINER_START_DELAY_TIME_SECONDS" default:"10s"`
 	HTTPServerPort                            int           `envconfig:"HTTP_SERVER_PORT" default:"30001"`
 	MaxMemoryUsage                            string        `envconfig:"MAX_MEMORY_USAGE" default:"16GiB"`
-	MemoryBufferSize                          string        `envconfig:"MEMORY_BUFFER_SIZE" default:"2GiB"`
+	MemoryBufferSize                          string        `envconfig:"MEMORY_BUFFER_SIZE" default:"1GiB"`
 	MaxCpuUsagePercentage                     int           `envconfig:"MAX_CPU_USAGE_PERCENTAGE" default:"100"`
 	CpuBufferSize                             int           `envconfig:"CPU_BUFFER_SIZE" default:"20"`
 	DockerCoreLimit                           int           `envconfig:"DOCKER_CORE_LIMIT" required:"true"`
 	TotalContainerLimit                       int           `envconfig:"TOTAL_CONTAINER_CONFIG" default:"1"`
-	TaskBufferTimeout                         time.Duration `envconfig:"TASK_BUFFER_TIMEOUT" default:"10s"`
+	TaskBufferTimeout                         time.Duration `envconfig:"TASK_BUFFER_TIMEOUT" default:"30s"`
 	ContainerBufferTimeout                    time.Duration `envconfig:"CONTAINER_BUFFER_TIMEOUT" default:"30s"`
 }
 
