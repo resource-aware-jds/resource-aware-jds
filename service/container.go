@@ -117,7 +117,7 @@ func (c *ContainerService) AddContainerTakeDownTimer(containerId string) error {
 
 	containerBuffer := c.GetContainerBuffer()
 	for key, value := range containerBuffer {
-		if strings.HasPrefix(strings.TrimSpace(key), strings.TrimSpace(containerId)) {
+		if strings.Contains(strings.TrimSpace(key), strings.TrimSpace(containerId)) {
 			c.containerDownBuffer.Store(containerId, cancelFunc)
 			go func(innerCtx context.Context, innerC *ContainerService, container container.IContainer) {
 				<-ctx.Done()
