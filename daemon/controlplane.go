@@ -71,7 +71,7 @@ func (c *controlPlane) Start() {
 	logrus.Info("[ControlPlane Daemon] Starting the CP Daemon loop")
 	c.workerNodePool.InitializePool(c.ctx, nodes)
 
-	c.checkTheDistributedTask()
+	c.CheckTheDistributedTask()
 
 	go func(ctx context.Context) {
 		for {
@@ -110,7 +110,7 @@ func (c *controlPlane) Start() {
 	}(c.ctx)
 }
 
-func (c *controlPlane) checkTheDistributedTask() {
+func (c *controlPlane) CheckTheDistributedTask() {
 	logrus.Info("[ControlPlane Daemon] Recovering the Distributed tasks")
 	runningTaskIDs := c.workerNodePool.CheckRunningTaskInEachWorkerNode(c.ctx)
 	distributedTasks, err := c.taskService.GetAllDistributedTask(c.ctx)
