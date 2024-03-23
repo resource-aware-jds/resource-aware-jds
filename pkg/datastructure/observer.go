@@ -2,6 +2,8 @@ package datastructure
 
 import "context"
 
+//go:generate mockgen -source=./observer.go -destination=./mock_datastructure/mock_observer.go -package=mock_datastructure
+
 type Observer[T any] interface {
 	OnEvent(context.Context, T) error
 }

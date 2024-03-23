@@ -2,13 +2,13 @@ package service_test
 
 import (
 	"context"
-	"github.com/golang/mock/gomock"
 	"github.com/resource-aware-jds/resource-aware-jds/config"
 	"github.com/resource-aware-jds/resource-aware-jds/models"
 	"github.com/resource-aware-jds/resource-aware-jds/service"
 	"github.com/resource-aware-jds/resource-aware-jds/service/mock_service"
 	"github.com/stretchr/testify/suite"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.uber.org/mock/gomock"
 	"testing"
 	"time"
 )

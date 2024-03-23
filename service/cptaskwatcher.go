@@ -11,6 +11,8 @@ import (
 	"time"
 )
 
+//go:generate mockgen -source=./cptaskwatcher.go -destination=./mock_service/mock_cptaskwatcher.go -package=mock_service
+
 type cpTaskWatcher struct {
 	config      config.TaskWatcherConfigModel
 	mutex       sync.Mutex

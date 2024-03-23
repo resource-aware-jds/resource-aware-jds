@@ -2,7 +2,6 @@ package distribution_test
 
 import (
 	"context"
-	"github.com/golang/mock/gomock"
 	"github.com/resource-aware-jds/resource-aware-jds/generated/mock_proto"
 	"github.com/resource-aware-jds/resource-aware-jds/models"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/distribution"
@@ -11,6 +10,7 @@ import (
 	"github.com/stretchr/testify/suite"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.opentelemetry.io/otel/metric"
+	"go.uber.org/mock/gomock"
 )
 
 type nodeMapperTestData struct {

@@ -21,6 +21,8 @@ import (
 	"time"
 )
 
+//go:generate mockgen -source=./workernodepool.go -destination=./mock_pool/mock_workernodepool.go -package=mock_pool
+
 const (
 	MaximumUnavailableCount  = 3
 	AvailabilityCheckTimeout = 5 * time.Second

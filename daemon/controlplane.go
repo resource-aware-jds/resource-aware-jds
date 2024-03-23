@@ -30,6 +30,7 @@ type controlPlane struct {
 type IControlPlane interface {
 	Start()
 	GracefullyShutdown()
+	CheckTheDistributedTask()
 }
 
 func ProvideControlPlaneDaemon(

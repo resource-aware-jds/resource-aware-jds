@@ -8,6 +8,8 @@ import (
 	"time"
 )
 
+//go:generate mockgen -source=./job.go -destination=./mock_service/mock_job.go -package=mock_service
+
 type job struct {
 	jobRepository repository.IJob
 }

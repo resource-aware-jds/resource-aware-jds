@@ -6,7 +6,6 @@ require (
 	github.com/docker/docker v24.0.7+incompatible
 	github.com/gin-contrib/cors v1.5.0
 	github.com/gin-gonic/gin v1.9.1
-	github.com/golang/mock v1.6.0
 	github.com/google/uuid v1.5.0
 	github.com/google/wire v0.5.0
 	github.com/joho/godotenv v1.5.1
@@ -21,6 +20,7 @@ require (
 	go.opentelemetry.io/otel/exporters/prometheus v0.45.0
 	go.opentelemetry.io/otel/metric v1.22.0
 	go.opentelemetry.io/otel/sdk/metric v1.22.0
+	go.uber.org/mock v0.4.0
 	google.golang.org/grpc v1.54.0
 	google.golang.org/protobuf v1.32.0
 )

@@ -1,7 +1,6 @@
 package distribution_test
 
 import (
-	"github.com/golang/mock/gomock"
 	"github.com/resource-aware-jds/resource-aware-jds/generated/mock_proto"
 	"github.com/resource-aware-jds/resource-aware-jds/generated/proto/github.com/resource-aware-jds/resource-aware-jds/generated/proto"
 	"github.com/resource-aware-jds/resource-aware-jds/models"
@@ -9,6 +8,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/suite"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.uber.org/mock/gomock"
 	"testing"
 )
 
@@ -91,7 +91,7 @@ func (s *RoundRobinDistributorTestSuite) TestDistribution() {
 			},
 		}
 
-		mockCall := make([]*gomock.Call, 0, 5)
+		mockCall := make([]any, 0, 5)
 		for i := 0; i < 5; i++ {
 			mockCall = append(mockCall, mockNodeMapperTest[i%4].MockWorkerNodeGRPC.EXPECT().SendTask(s.ctx, &proto.RecievedTask{
 				ID:             taskToDistribute[i].ID.Hex(),

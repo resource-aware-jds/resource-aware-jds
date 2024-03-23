@@ -15,6 +15,8 @@ import (
 	"time"
 )
 
+//go:generate mockgen -source=./controlplane.go -destination=./mock_handlerservice/mock_controlplane.go -package=mock_handlerservice
+
 var (
 	ErrNodeAlreadyRegistered = errors.New("there is the other node registered with the inputted key")
 )
