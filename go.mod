@@ -6,6 +6,7 @@ require (
 	github.com/docker/docker v24.0.7+incompatible
 	github.com/gin-contrib/cors v1.5.0
 	github.com/gin-gonic/gin v1.9.1
+	github.com/golang/mock v1.6.0
 	github.com/google/uuid v1.5.0
 	github.com/google/wire v0.5.0
 	github.com/joho/godotenv v1.5.1

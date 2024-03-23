@@ -2,6 +2,7 @@ package daemon
 
 import (
 	"context"
+	"github.com/resource-aware-jds/resource-aware-jds/config"
 	"github.com/resource-aware-jds/resource-aware-jds/handlerservice"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/pool"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/timeutil"
@@ -19,8 +20,10 @@ type controlPlane struct {
 	cancelFunc          func()
 	workerNodePool      pool.WorkerNode
 	controlPlaneService handlerservice.IControlPlane
+	cpTaskWatcher       service.CPTaskWatcher
 	taskService         service.Task
 	jobService          service.Job
+	config              config.ControlPlaneConfigModel
 }
 
 type IControlPlane interface {
@@ -28,7 +31,14 @@ type IControlPlane interface {
 	GracefullyShutdown()
 }
 
-func ProvideControlPlaneDaemon(workerNodePool pool.WorkerNode, controlPlaneService handlerservice.IControlPlane, taskService service.Task, jobService service.Job) (IControlPlane, func()) {
+func ProvideControlPlaneDaemon(
+	workerNodePool pool.WorkerNode,
+	controlPlaneService handlerservice.IControlPlane,
+	taskService service.Task,
+	jobService service.Job,
+	cpTaskWatcher service.CPTaskWatcher,
+	config config.ControlPlaneConfigModel,
+) (IControlPlane, func()) {
 	ctx := context.Background()
 	ctxWithCancel, cancelFunc := context.WithCancel(ctx)
 
@@ -39,6 +49,8 @@ func ProvideControlPlaneDaemon(workerNodePool pool.WorkerNode, controlPlaneServi
 		controlPlaneService: controlPlaneService,
 		taskService:         taskService,
 		jobService:          jobService,
+		cpTaskWatcher:       cpTaskWatcher,
+		config:              config,
 	}
 
 	cleanup := func() {
@@ -78,6 +90,18 @@ func (c *controlPlane) Start() {
 			default:
 				c.workerNodePool.WorkerNodeAvailabilityCheck(ctx)
 				timeutil.SleepWithContext(ctx, AvailabilityCheckSleepDuration)
+			}
+		}
+	}(c.ctx)
+
+	go func(ctx context.Context) {
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			default:
+				c.cpTaskWatcher.WatcherLoop(ctx)
+				timeutil.SleepWithContext(ctx, c.config.TaskWatcherConfig.SleepTime)
 			}
 		}
 	}(c.ctx)

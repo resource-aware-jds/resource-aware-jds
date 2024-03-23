@@ -31,6 +31,7 @@ func InitializeApplication() (ControlPlaneApp, func(), error) {
 			certDI.ControlPlaneCertWireSet,
 			ProvideControlPlaneApp,
 			httpDI.HTTPWireSet,
+			ProvideObserverInit,
 		),
 	)
 }

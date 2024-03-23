@@ -11,4 +11,5 @@ var ServiceWireSet = wire.NewSet(
 	service.ProvideTaskService,
 	service.ProvideContainer,
 	service.ProvideDynamicScaling,
+	service.ProvideCPTaskWatcher,
 )

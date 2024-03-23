@@ -17,6 +17,12 @@ type ControlPlaneConfigModel struct {
 	CertificatePrivateKeyPath string       `envconfig:"CERTIFICATE_PRIVATE_KEY_PATH"`
 
 	ResourceAwareDistributorConfig ResourceAwareDistributorConfigModel `envconfig:"RESOURCE_AWARE_DISTRIBUTOR"`
+	TaskWatcherConfig              TaskWatcherConfigModel              `envconfig:"TASK_WATCHER_CONFIG"`
+}
+
+type TaskWatcherConfigModel struct {
+	SleepTime time.Duration `envconfig:"SLEEP_TIME" default:"1s"`
+	Timeout   time.Duration `envconfig:"TIMEOUT" default:"30s"`
 }
 
 type ResourceAwareDistributorConfigModel struct {
@@ -51,4 +57,8 @@ func ProvideHTTPServerConfig(config ControlPlaneConfigModel) http.ServerConfig {
 
 func ProvideResourceAwareDistributorConfigMode(config ControlPlaneConfigModel) ResourceAwareDistributorConfigModel {
 	return config.ResourceAwareDistributorConfig
+}
+
+func ProvideTaskWatcherConfigModel(config ControlPlaneConfigModel) TaskWatcherConfigModel {
+	return config.TaskWatcherConfig
 }

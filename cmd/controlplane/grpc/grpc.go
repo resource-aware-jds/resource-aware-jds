@@ -8,6 +8,7 @@ import (
 	"github.com/resource-aware-jds/resource-aware-jds/handlerservice"
 	"github.com/resource-aware-jds/resource-aware-jds/models"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/cert"
+	"github.com/resource-aware-jds/resource-aware-jds/pkg/eventbus"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/grpc"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/metrics"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/util"
@@ -27,13 +28,22 @@ type GRPCHandler struct {
 	jobService          service.Job
 	taskService         service.Task
 	taskSubmitCounter   metric.Int64Counter
+	taskEventBus        eventbus.TaskEventBus
 }
 
-func ProvideControlPlaneGRPCHandler(grpcServer grpc.RAJDSGrpcServer, controlPlaneService handlerservice.IControlPlane, jobService service.Job, taskService service.Task, meter metric.Meter) GRPCHandler {
+func ProvideControlPlaneGRPCHandler(
+	grpcServer grpc.RAJDSGrpcServer,
+	controlPlaneService handlerservice.IControlPlane,
+	jobService service.Job,
+	taskService service.Task,
+	meter metric.Meter,
+	taskEventBus eventbus.TaskEventBus,
+) GRPCHandler {
 	handler := GRPCHandler{
 		controlPlaneService: controlPlaneService,
 		jobService:          jobService,
 		taskService:         taskService,
+		taskEventBus:        taskEventBus,
 	}
 	taskSubmitCounter, err := meter.Int64Counter(
 		metrics.GenerateControlPlaneMetric("submit_task"),
@@ -140,6 +150,15 @@ func (g *GRPCHandler) ReportFailureTask(ctx context.Context, req *proto.ReportFa
 	}
 	g.taskSubmitCounter.Add(ctx, 1, metric.WithAttributes(attribute.String("status", "failure")))
 
+	err = g.taskEventBus.NotifyObserver(ctx, models.TaskEventBus{
+		TaskID:    parsedTaskID,
+		EventType: models.FailTaskEventType,
+	})
+	if err != nil {
+		logrus.Error(err)
+		return &emptypb.Empty{}, err
+	}
+
 	err = g.taskService.UpdateTaskWorkOnFailure(ctx, parsedTaskID, req.GetNodeID(), req.GetMessage())
 	return &emptypb.Empty{}, err
 }
@@ -152,6 +171,15 @@ func (g *GRPCHandler) ReportSuccessTask(ctx context.Context, req *proto.ReportSu
 		return nil, err
 	}
 	g.taskSubmitCounter.Add(ctx, 1, metric.WithAttributes(attribute.String("status", "success")))
+
+	err = g.taskEventBus.NotifyObserver(ctx, models.TaskEventBus{
+		TaskID:    parsedTaskID,
+		EventType: models.SuccessTaskEventType,
+	})
+	if err != nil {
+		logrus.Error(err)
+		return &emptypb.Empty{}, err
+	}
 
 	memoryUsage := util.ExtractMemoryUsageString(req.GetTaskResourceUsage().GetAverageMemoryUsage())
 	memoryUsage = util.ConvertToMib(memoryUsage)
