@@ -12,6 +12,7 @@ import (
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/metrics"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/util"
 	"github.com/sirupsen/logrus"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.opentelemetry.io/otel/metric"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"net"
@@ -57,6 +58,7 @@ type WorkerNode interface {
 	DistributeWork(ctx context.Context, jobID models.Job, tasks []models.Task) ([]models.Task, []models.DistributeError, error)
 	IsAvailableWorkerNode() bool
 	RemoveNodeFromPool(ctx context.Context, nodeID string)
+	CheckRunningTaskInEachWorkerNode(ctx context.Context) map[primitive.ObjectID]bool
 }
 
 func ProvideWorkerNode(caCertificate cert.CACertificate, distributorMapper distribution.DistributorMapper, grpcResolver grpc.RAJDSGRPCResolver, meter metric.Meter) WorkerNode {
@@ -218,4 +220,28 @@ func (w *workerNode) RemoveNodeFromPool(_ context.Context, nodeID string) {
 	w.logger.Infof("Remove Node %s from the pool", nodeID)
 
 	delete(w.pool, nodeID)
+}
+
+func (w *workerNode) CheckRunningTaskInEachWorkerNode(ctx context.Context) map[primitive.ObjectID]bool {
+	responseObjectIDs := make(map[primitive.ObjectID]bool, 0)
+	for _, nodeMapper := range w.pool {
+		logger := w.logger.WithFields(logrus.Fields{
+			"nodeID": nodeMapper.nodeEntry.NodeID,
+		})
+		response, err := nodeMapper.grpcConnection.GetAllTasks(ctx, &emptypb.Empty{})
+		if err != nil {
+			logger.Warnf("Fail ot get all running task on node : %e", err)
+			continue
+		}
+
+		for _, taskID := range response.GetTaskIDs() {
+			parsedTaskID, err := primitive.ObjectIDFromHex(taskID)
+			if err != nil {
+				logger.Warnf("Node Response invalid ObjectID: %e", err)
+				continue
+			}
+			responseObjectIDs[parsedTaskID] = true
+		}
+	}
+	return responseObjectIDs
 }

@@ -66,6 +66,21 @@ func (mr *MockTaskMockRecorder) CreateTask(ctx, job, taskAttributes, isExperimen
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateTask", reflect.TypeOf((*MockTask)(nil).CreateTask), ctx, job, taskAttributes, isExperiment)
 }
 
+// GetAllDistributedTask mocks base method.
+func (m *MockTask) GetAllDistributedTask(ctx context.Context) ([]models.Task, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetAllDistributedTask", ctx)
+	ret0, _ := ret[0].([]models.Task)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetAllDistributedTask indicates an expected call of GetAllDistributedTask.
+func (mr *MockTaskMockRecorder) GetAllDistributedTask(ctx interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAllDistributedTask", reflect.TypeOf((*MockTask)(nil).GetAllDistributedTask), ctx)
+}
+
 // GetAvailableTask mocks base method.
 func (m *MockTask) GetAvailableTask(ctx context.Context, jobIDs []models.Job) (*models.Job, []models.Task, error) {
 	m.ctrl.T.Helper()

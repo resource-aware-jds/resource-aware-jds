@@ -28,6 +28,7 @@ type Task interface {
 	UpdateTaskToBeReadyToBeDistributed(ctx context.Context, jobID *primitive.ObjectID) error
 	CountUnfinishedTaskByJobID(ctx context.Context, jobID *primitive.ObjectID) (int64, error)
 	UpdateAllTaskToWorkOnFailure(ctx context.Context, job *models.Job, jobErrorMessage string) error
+	GetAllDistributedTask(ctx context.Context) ([]models.Task, error)
 }
 
 func ProvideTaskService(taskRepository repository.ITask) Task {
@@ -186,4 +187,8 @@ func (t *task) UpdateAllTaskToWorkOnFailure(ctx context.Context, job *models.Job
 	}
 
 	return t.taskRepository.BulkWriteStatusAndLogByID(ctx, tasks)
+}
+
+func (t *task) GetAllDistributedTask(ctx context.Context) ([]models.Task, error) {
+	return t.taskRepository.FindTaskByStatus(ctx, models.DistributedTaskStatus)
 }

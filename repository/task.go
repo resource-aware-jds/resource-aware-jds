@@ -28,6 +28,7 @@ type ITask interface {
 	WriteTaskResult(ctx context.Context, task models.Task) error
 	FindFinishedTask(ctx context.Context, jobID *primitive.ObjectID) ([]models.Task, error)
 	UpdateTaskStatusByJobID(ctx context.Context, jobID *primitive.ObjectID, status models.Task) error
+	FindTaskByStatus(ctx context.Context, taskStatus models.TaskStatus) ([]models.Task, error)
 }
 
 func ProvideTask(database *mongo.Database) ITask {
@@ -177,4 +178,18 @@ func (t *task) CountUnfinishedTaskByJobID(ctx context.Context, jobID *primitive.
 			"$ne": models.SuccessTaskStatus,
 		},
 	})
+}
+
+func (t *task) FindTaskByStatus(ctx context.Context, taskStatus models.TaskStatus) ([]models.Task, error) {
+	result, err := t.collection.Find(ctx, bson.M{
+		"task_status": taskStatus,
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	var response []models.Task
+	err = result.All(ctx, &response)
+	return response, err
 }

@@ -71,6 +71,8 @@ func (c *controlPlane) Start() {
 	logrus.Info("[ControlPlane Daemon] Starting the CP Daemon loop")
 	c.workerNodePool.InitializePool(c.ctx, nodes)
 
+	c.checkTheDistributedTask()
+
 	go func(ctx context.Context) {
 		for {
 			select {
@@ -106,6 +108,34 @@ func (c *controlPlane) Start() {
 			}
 		}
 	}(c.ctx)
+}
+
+func (c *controlPlane) checkTheDistributedTask() {
+	logrus.Info("[ControlPlane Daemon] Recovering the Distributed tasks")
+	runningTaskIDs := c.workerNodePool.CheckRunningTaskInEachWorkerNode(c.ctx)
+	distributedTasks, err := c.taskService.GetAllDistributedTask(c.ctx)
+	if err != nil {
+		logrus.Error("Failed to Get DistributedTasks", err)
+		return
+	}
+
+	recoveredTask := 0
+	workOnFailureTask := 0
+	for _, distributedTask := range distributedTasks {
+		if ok := runningTaskIDs[*distributedTask.ID]; ok {
+			recoveredTask++
+			c.cpTaskWatcher.AddTaskToWatch(*distributedTask.ID)
+			continue
+		}
+
+		// Update task to make it possible to be distributed again
+		err = c.taskService.UpdateTaskWorkOnFailure(c.ctx, *distributedTask.ID, "", "Control Plane startup process detect no worker in the pool running this task")
+		if err != nil {
+			logrus.Error("Failed to UpdateTaskTo WorkOnFailure", err)
+		}
+		workOnFailureTask++
+	}
+	logrus.Infof("[ControlPlane Daemon] Total Recovered task: %d / Total WorkOnFailure task: %d", recoveredTask, workOnFailureTask)
 }
 
 func (c *controlPlane) taskScanLoop(ctx context.Context) {
