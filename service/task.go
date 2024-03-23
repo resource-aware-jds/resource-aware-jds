@@ -27,6 +27,7 @@ type Task interface {
 	GetAverageResourceUsage(ctx context.Context, jobID *primitive.ObjectID) (*models.TaskResourceUsage, error)
 	UpdateTaskToBeReadyToBeDistributed(ctx context.Context, jobID *primitive.ObjectID) error
 	CountUnfinishedTaskByJobID(ctx context.Context, jobID *primitive.ObjectID) (int64, error)
+	UpdateAllTaskToWorkOnFailure(ctx context.Context, job *models.Job, jobErrorMessage string) error
 }
 
 func ProvideTaskService(taskRepository repository.ITask) Task {
@@ -102,7 +103,7 @@ func (t *task) UpdateTaskWorkOnFailure(ctx context.Context, taskID primitive.Obj
 		logrus.Errorf("get task error %v", err)
 		return err
 	}
-
+	taskResult.RetryCount++
 	taskResult.WorkOnTaskFailure(nodeID, errMessage)
 	return t.taskRepository.BulkWriteStatusAndLogByID(ctx, []models.Task{*taskResult})
 }
@@ -170,4 +171,18 @@ func (t *task) UpdateTaskWaitTimeout(ctx context.Context, taskID primitive.Objec
 
 	task.CPWaitTimeout()
 	return t.taskRepository.WriteTaskResult(ctx, *task)
+}
+
+func (t *task) UpdateAllTaskToWorkOnFailure(ctx context.Context, job *models.Job, jobErrorMessage string) error {
+	tasks, err := t.GetTaskByJob(ctx, job)
+	if err != nil {
+		return err
+	}
+
+	for i, task := range tasks {
+		task.WorkOnTaskFailure("", jobErrorMessage)
+		tasks[i] = task
+	}
+
+	return t.taskRepository.BulkWriteStatusAndLogByID(ctx, tasks)
 }

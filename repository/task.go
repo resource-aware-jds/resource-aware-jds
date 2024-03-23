@@ -65,7 +65,10 @@ func (t *task) FindManyByJobID(ctx context.Context, jobID *primitive.ObjectID) (
 func (t *task) GetTaskToDistributeForJob(ctx context.Context, jobID *primitive.ObjectID) ([]models.Task, error) {
 	result, err := t.collection.Find(ctx, bson.M{
 		"task_status": bson.M{
-			"$in": []models.TaskStatus{models.ReadyToDistribute},
+			"$in": []models.TaskStatus{models.ReadyToDistribute, models.WorkOnTaskFailure},
+		},
+		"retry_count": bson.M{
+			"$lt": 3,
 		},
 		"job_id": jobID,
 	})
@@ -91,6 +94,7 @@ func (t *task) BulkWriteStatusAndLogByID(ctx context.Context, tasks []models.Tas
 				"logs":                       task.Logs,
 				"latest_distributed_node_id": task.LatestDistributedNodeID,
 				"updated_at":                 time.Now(),
+				"retry_count":                task.RetryCount,
 			},
 		})
 

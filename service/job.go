@@ -20,6 +20,7 @@ type Job interface {
 	UpdateJobStatusToFinish(ctx context.Context, id *primitive.ObjectID) error
 	UpdateJobStatusToDistributing(ctx context.Context, id *primitive.ObjectID) error
 	UpdateJobStatusToExperimenting(ctx context.Context, id *primitive.ObjectID) error
+	UpdateJobToFailed(ctx context.Context, id *primitive.ObjectID, message string, inputErr error) error
 }
 
 func ProvideJobService(jobRepository repository.IJob) Job {
@@ -61,13 +62,41 @@ func (j *job) ListJobReadyToDistribute(ctx context.Context) ([]models.Job, error
 }
 
 func (j *job) UpdateJobStatusToFinish(ctx context.Context, id *primitive.ObjectID) error {
-	return j.jobRepository.UpdateJobStatus(ctx, id, models.SuccessJobStatus)
+	jobToUpdate, err := j.GetJob(ctx, *id)
+	if err != nil {
+		return err
+	}
+
+	jobToUpdate.SuccessJobStatus()
+	return j.jobRepository.UpdateJobStatusByID(ctx, *jobToUpdate)
 }
 
 func (j *job) UpdateJobStatusToDistributing(ctx context.Context, id *primitive.ObjectID) error {
-	return j.jobRepository.UpdateJobStatus(ctx, id, models.DistributingJobStatus)
+	jobToUpdate, err := j.GetJob(ctx, *id)
+	if err != nil {
+		return err
+	}
+
+	jobToUpdate.DistributingJob()
+	return j.jobRepository.UpdateJobStatusByID(ctx, *jobToUpdate)
 }
 
 func (j *job) UpdateJobStatusToExperimenting(ctx context.Context, id *primitive.ObjectID) error {
-	return j.jobRepository.UpdateJobStatus(ctx, id, models.ExperimentingJobStatus)
+	jobToUpdate, err := j.GetJob(ctx, *id)
+	if err != nil {
+		return err
+	}
+
+	jobToUpdate.ExperimentingJob()
+	return j.jobRepository.UpdateJobStatusByID(ctx, *jobToUpdate)
+}
+
+func (j *job) UpdateJobToFailed(ctx context.Context, id *primitive.ObjectID, message string, inputErr error) error {
+	jobToUpdate, err := j.GetJob(ctx, *id)
+	if err != nil {
+		return err
+	}
+
+	jobToUpdate.FailedJobStatus(message, inputErr)
+	return j.jobRepository.UpdateJobStatusByID(ctx, *jobToUpdate)
 }

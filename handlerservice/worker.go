@@ -169,7 +169,6 @@ func (w *Worker) SubmitSuccessTask(ctx context.Context, id string, results []byt
 		return errors.New("task not found in task buffer, maybe it already timeout and get sent back to cp")
 	}
 	logrus.Info("Task succeed with id: " + id)
-	w.containerSubmitTask.Add(ctx, 1, metric.WithAttributes(attribute.String("status", "success")))
 	_, err := w.controlPlaneGRPCClient.ReportSuccessTask(ctx, &proto.ReportSuccessTaskRequest{
 		Id:     id,
 		NodeID: w.workerNodeCertificate.GetNodeID(),
@@ -179,6 +178,7 @@ func (w *Worker) SubmitSuccessTask(ctx context.Context, id string, results []byt
 			AverageCpuUsage:    float32(task.AverageResourceUsage.AverageCpuUsage),
 		},
 	})
+	w.containerSubmitTask.Add(ctx, 1, metric.WithAttributes(attribute.String("status", "success")))
 	return err
 }
 
@@ -186,7 +186,7 @@ func (w *Worker) ReportFailTask(ctx context.Context, id string, errorMessage str
 	task := w.taskBuffer.Pop(id)
 	if task == nil {
 		logrus.Error("Task is not running")
-		return errors.New("task not found in task buffer, maybe it already timeout and get sent back to cp")
+		//return errors.New("task not found in task buffer, maybe it already timeout and get sent back to cp")
 	}
 
 	logrus.Error("Task failed with id: " + id)

@@ -127,6 +127,20 @@ func (mr *MockTaskMockRecorder) GetTaskByJob(ctx, job interface{}) *gomock.Call 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTaskByJob", reflect.TypeOf((*MockTask)(nil).GetTaskByJob), ctx, job)
 }
 
+// UpdateAllTaskToWorkOnFailure mocks base method.
+func (m *MockTask) UpdateAllTaskToWorkOnFailure(ctx context.Context, job *models.Job, jobErrorMessage string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateAllTaskToWorkOnFailure", ctx, job, jobErrorMessage)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateAllTaskToWorkOnFailure indicates an expected call of UpdateAllTaskToWorkOnFailure.
+func (mr *MockTaskMockRecorder) UpdateAllTaskToWorkOnFailure(ctx, job, jobErrorMessage interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateAllTaskToWorkOnFailure", reflect.TypeOf((*MockTask)(nil).UpdateAllTaskToWorkOnFailure), ctx, job, jobErrorMessage)
+}
+
 // UpdateTaskAfterDistribution mocks base method.
 func (m *MockTask) UpdateTaskAfterDistribution(ctx context.Context, successTasks []models.Task, errorTasks []models.DistributeError) error {
 	m.ctrl.T.Helper()

@@ -22,7 +22,7 @@ type Task struct {
 	JobID                   *primitive.ObjectID `bson:"job_id" json:"jobID"`
 	TaskAttributes          []byte              `bson:"task_attributes" json:"taskAttributes"`
 	LatestDistributedNodeID string              `bson:"latest_distributed_node_id,omitempty" json:"latestDistributedNodeID,omitempty"`
-	Logs                    []TaskLog           `bson:"logs,omitempty" json:"logs"`
+	Logs                    []Log               `bson:"logs,omitempty" json:"logs"`
 	CreatedAt               time.Time           `bson:"created_at" json:"createdAt"`
 	UpdatedAt               time.Time           `bson:"updated_at" json:"updatedAt"`
 	Result                  *[]byte             `bson:"result,omitempty" json:"-"`
@@ -96,30 +96,15 @@ func (t *Task) CPWaitTimeout() {
 
 func (t *Task) AddLog(severity LogSeverity, message string, parameters map[string]string) {
 	if t.Logs == nil {
-		t.Logs = make([]TaskLog, 0)
+		t.Logs = make([]Log, 0)
 	}
 
-	t.Logs = append(t.Logs, TaskLog{
+	t.Logs = append(t.Logs, Log{
 		Severity:   severity,
 		Parameters: parameters,
 		Message:    message,
 		Timestamp:  time.Now(),
 	})
-}
-
-type LogSeverity string
-
-const (
-	InfoLogSeverity  LogSeverity = "info"
-	WarnLogSeverity  LogSeverity = "warn"
-	ErrorLogSeverity LogSeverity = "error"
-)
-
-type TaskLog struct {
-	Severity   LogSeverity       `bson:"severity" json:"severity"`
-	Parameters map[string]string `bson:"parameters" json:"parameters"`
-	Message    string            `bson:"message" json:"message"`
-	Timestamp  time.Time         `bson:"timestamp" json:"timestamp"`
 }
 
 type TaskResponse struct {

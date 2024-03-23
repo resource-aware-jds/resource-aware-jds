@@ -18,6 +18,6 @@ type TaskJobDetailResponse struct {
 
 type TaskJobFullDetailResponse struct {
 	TaskJobDetailResponse
-	Logs           []models.TaskLog       `json:"logs"`
+	Logs           []models.Log           `json:"logs"`
 	TaskAttributes map[string]interface{} `json:"taskAttributes"`
 }

@@ -2,6 +2,7 @@ package daemon
 
 import (
 	"context"
+	"errors"
 	"github.com/resource-aware-jds/resource-aware-jds/config"
 	"github.com/resource-aware-jds/resource-aware-jds/handlerservice"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/pool"
@@ -139,7 +140,23 @@ func (c *controlPlane) taskScanLoop(ctx context.Context) {
 	successTask, failureTask, err := c.workerNodePool.DistributeWork(ctx, *job, tasks)
 	if err != nil {
 		logrus.Warnf("[ControlPlane Daemon] Failed to distribute work to any worker nodes in the pool (%s)", err.Error())
+		if errors.Is(err, pool.ErrNoAvailableDistributor) {
+			err := c.jobService.UpdateJobToFailed(ctx, job.ID, "No distribution solution", err)
+			if err != nil {
+				logrus.Warnf("[ControlPlane Daemon] Fail to update job status (%s)", err.Error())
+			}
+
+			// Update all the task to be failed
+			err = c.taskService.UpdateAllTaskToWorkOnFailure(ctx, job, "No distribution solution")
+			if err != nil {
+				logrus.Warnf("[ControlPlane Daemon] Fail to update tasks status (%s)", err.Error())
+			}
+		}
 		return
+	}
+
+	for _, eachSuccessTask := range successTask {
+		c.cpTaskWatcher.AddTaskToWatch(*eachSuccessTask.ID)
 	}
 
 	err = c.taskService.UpdateTaskAfterDistribution(ctx, successTask, failureTask)

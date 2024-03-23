@@ -54,15 +54,14 @@ func (c *cpTaskWatcher) WatcherLoop(ctx context.Context) {
 		return
 	}
 
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
-
 	taskIDToCallTimeouts := make([]primitive.ObjectID, 0, len(c.taskBuffer))
 	for x, deadline := range c.taskBuffer {
 		if deadline.Before(time.Now()) {
 			// Remove task from the watcher and update the status as failed.
 			taskIDToCallTimeouts = append(taskIDToCallTimeouts, x)
+			c.mutex.Lock()
 			delete(c.taskBuffer, x)
+			c.mutex.Unlock()
 		}
 	}
 

@@ -31,26 +31,21 @@ func (s *baseEventBus[T]) NotifyObserver(ctx context.Context, data T) error {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 	var wg sync.WaitGroup
-	errChan := make(chan error)
+
+	var errListMutex sync.Mutex
+	var errResponse error
 	for observer := range s.observerList {
 		wg.Add(1)
 		go func(obs datastructure.Observer[T]) {
 			err := obs.OnEvent(ctx, data)
-			errChan <- err
+			errListMutex.Lock()
+			errResponse = errors.Join(errResponse, err)
+			errListMutex.Unlock()
 			wg.Done()
 		}(observer)
 	}
 	wg.Wait()
-
-	var err error
-	for {
-		singleErr := <-errChan
-		if singleErr == nil {
-			break
-		}
-		err = errors.Join(err, singleErr)
-	}
-	return err
+	return errResponse
 }
 
 func ProvideTaskEventBus() TaskEventBus {

@@ -6,6 +6,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"time"
 )
 
 const (
@@ -22,7 +23,7 @@ type IJob interface {
 	FindAll(ctx context.Context) ([]models.Job, error)
 	FindOneByDocumentID(ctx context.Context, id primitive.ObjectID) (*models.Job, error)
 	FindJobToDistribute(ctx context.Context) ([]models.Job, error)
-	UpdateJobStatus(ctx context.Context, id *primitive.ObjectID, status models.JobStatus) error
+	UpdateJobStatusByID(ctx context.Context, job models.Job) error
 }
 
 func ProvideJob(database *mongo.Database) IJob {
@@ -88,15 +89,17 @@ func (j *job) FindJobToDistribute(ctx context.Context) ([]models.Job, error) {
 	return res, err
 }
 
-func (j *job) UpdateJobStatus(ctx context.Context, id *primitive.ObjectID, status models.JobStatus) error {
+func (j *job) UpdateJobStatusByID(ctx context.Context, job models.Job) error {
 	_, err := j.collection.UpdateOne(
 		ctx,
 		bson.M{
-			"_id": id,
+			"_id": job.ID,
 		},
 		bson.M{
 			"$set": bson.M{
-				"status": status,
+				"status":     job.Status,
+				"logs":       job.Logs,
+				"updated_at": time.Now(),
 			},
 		},
 	)
