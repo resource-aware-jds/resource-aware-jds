@@ -99,7 +99,7 @@ func (r ResourceAwareDistributor) checkTaskWithSameJobID(tasks []models.Task) er
 	for _, task := range tasks {
 		if jobID == nil {
 			jobID = task.JobID
-		} else if jobID != task.JobID {
+		} else if jobID.Hex() != task.JobID.Hex() {
 			return ErrResourceAwareDistributorTaskDifferenceJob
 		}
 	}

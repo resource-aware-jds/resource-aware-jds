@@ -186,8 +186,16 @@ func (w *workerNode) DistributeWork(ctx context.Context, job models.Job, tasks [
 			Logger:            node.logger,
 		})
 	}
+	var dist distribution.Distributor
+	var ok bool
 
-	dist, ok := w.distributorMapper.GetDistributor(job.DistributorLogic)
+	if job.Status == models.ExperimentingJobStatus && len(tasks) == 1 {
+		w.logger.Info("Job in experimenting, Temporary switch to use RoundRobin distributor for experimenting task")
+		dist, ok = w.distributorMapper.GetDistributor(models.RoundRobinDistributorName)
+	} else {
+		dist, ok = w.distributorMapper.GetDistributor(job.DistributorLogic)
+	}
+
 	if !ok {
 		w.logger.Errorf("No Distributing solution found in the distributor logics (%s)", job.DistributorLogic)
 		return nil, nil, ErrNoAvailableDistributor

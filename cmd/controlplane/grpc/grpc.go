@@ -222,6 +222,10 @@ func (g *GRPCHandler) ReportSuccessTask(ctx context.Context, req *proto.ReportSu
 	switch job.Status {
 	case models.ExperimentingJobStatus:
 		err = g.taskService.UpdateTaskToBeReadyToBeDistributed(ctx, job.ID)
+		if err != nil {
+			return &emptypb.Empty{}, err
+		}
+		err = g.jobService.UpdateJobStatusToDistributing(ctx, job.ID)
 	case models.DistributingJobStatus:
 		var unfinishedTask int64
 		unfinishedTask, err = g.taskService.CountUnfinishedTaskByJobID(ctx, job.ID)

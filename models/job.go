@@ -46,7 +46,7 @@ func (j *Job) FailedJobStatus(message string, err error) {
 }
 
 func (j *Job) SuccessJobStatus() {
-	j.Status = DistributingJobStatus
+	j.Status = SuccessJobStatus
 	j.AddLog(InfoLogSeverity, "Job Transition to SuccessJob", nil)
 }
 

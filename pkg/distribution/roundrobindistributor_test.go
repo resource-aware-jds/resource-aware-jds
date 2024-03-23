@@ -1,6 +1,7 @@
 package distribution_test
 
 import (
+	"github.com/golang/mock/gomock"
 	"github.com/resource-aware-jds/resource-aware-jds/generated/mock_proto"
 	"github.com/resource-aware-jds/resource-aware-jds/generated/proto/github.com/resource-aware-jds/resource-aware-jds/generated/proto"
 	"github.com/resource-aware-jds/resource-aware-jds/models"
@@ -90,14 +91,16 @@ func (s *RoundRobinDistributorTestSuite) TestDistribution() {
 			},
 		}
 
+		mockCall := make([]*gomock.Call, 0, 5)
 		for i := 0; i < 5; i++ {
-			mockNodeMapperTest[i%4].MockWorkerNodeGRPC.EXPECT().SendTask(s.ctx, &proto.RecievedTask{
+			mockCall = append(mockCall, mockNodeMapperTest[i%4].MockWorkerNodeGRPC.EXPECT().SendTask(s.ctx, &proto.RecievedTask{
 				ID:             taskToDistribute[i].ID.Hex(),
 				TaskAttributes: nil,
 				DockerImage:    taskToDistribute[i].ImageUrl,
-			})
-
+			}))
 		}
+
+		gomock.InOrder(mockCall...)
 
 		successTask, failureTask, err := s.underTest.Distribute(s.ctx, nodeMapper, taskToDistribute)
 		s.NoError(err)

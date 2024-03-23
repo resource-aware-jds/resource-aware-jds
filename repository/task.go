@@ -173,7 +173,7 @@ func (t *task) UpdateTaskStatusByJobID(ctx context.Context, jobID *primitive.Obj
 func (t *task) CountUnfinishedTaskByJobID(ctx context.Context, jobID *primitive.ObjectID) (int64, error) {
 	return t.collection.CountDocuments(ctx, bson.M{
 		"job_id": jobID,
-		"status": bson.M{
+		"task_status": bson.M{
 			"$ne": models.SuccessTaskStatus,
 		},
 	})

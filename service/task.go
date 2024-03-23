@@ -150,9 +150,10 @@ func (t *task) UpdateTaskToBeReadyToBeDistributed(ctx context.Context, jobID *pr
 		return err
 	}
 
-	for _, task := range tasks {
+	for i, task := range tasks {
 		if task.Status == models.CreatedTaskStatus {
 			task.DoneExperimentTask()
+			tasks[i] = task
 		}
 	}
 
