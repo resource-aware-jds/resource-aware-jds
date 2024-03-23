@@ -47,7 +47,7 @@ func (j *HttpHandler) CreateJob(c *gin.Context) {
 		return
 	}
 
-	job, err := j.jobService.CreateJob(ctx, req.Name, req.ImageURL, req.IsExperiment)
+	job, err := j.jobService.CreateJob(ctx, req.Name, req.ImageURL, req.IsExperiment, req.DistributionLogic)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("create job error: %e", err)})
 		return

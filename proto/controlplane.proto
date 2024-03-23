@@ -58,6 +58,7 @@ message CreateJobRequest {
   string ImageURL = 2;
   repeated bytes TaskAttributes = 3;
   bool IsExperiment = 4;
+  DistributionLogic DistributionLogic = 5;
 }
 
 message CreateJobResponse {
@@ -65,4 +66,10 @@ message CreateJobResponse {
   repeated ControlPlaneTask Tasks = 2;
   string Status = 3;
   string ImageURL = 4;
+}
+
+enum DistributionLogic {
+  Unspecified = 0;
+  RoundRobin = 1;
+  ResourceAware = 2;
 }

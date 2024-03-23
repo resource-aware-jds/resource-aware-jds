@@ -97,7 +97,13 @@ func (g *GRPCHandler) WorkerRegistration(ctx context.Context, req *proto.Compute
 }
 
 func (g *GRPCHandler) CreateJob(ctx context.Context, req *proto.CreateJobRequest) (*proto.CreateJobResponse, error) {
-	job, err := g.jobService.CreateJob(ctx, req.GetName(), req.GetImageURL(), req.GetIsExperiment())
+	job, err := g.jobService.CreateJob(
+		ctx,
+		req.GetName(),
+		req.GetImageURL(),
+		req.GetIsExperiment(),
+		ToDistributorName(req.GetDistributionLogic()),
+	)
 	if err != nil {
 		return nil, err
 	}
