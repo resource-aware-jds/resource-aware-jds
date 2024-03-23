@@ -83,7 +83,7 @@ func (t *Buffer[T, U]) IsObjectInBuffer(id T) bool {
 }
 
 func (t *Buffer[T, U]) GetKeys() []T {
-	keys := make([]T, len(*t))
+	keys := make([]T, 0, len(*t))
 	for k := range *t {
 		keys = append(keys, k)
 	}

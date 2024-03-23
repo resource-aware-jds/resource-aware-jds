@@ -50,6 +50,7 @@ type IWorker interface {
 	CalculateAverageContainerResourceUsage(usage []models.ContainerResourceUsage) error
 	GetRunningTask() []string
 	GetAvailableTaskSlot() int
+	GetQueuedTask() []string
 
 	// TaskDistributionDaemonLoop is a method allowing the daemon to call to accomplish its routine.
 	TaskDistributionDaemonLoop(ctx context.Context)
@@ -148,6 +149,13 @@ func (w *Worker) GetTask(containerImage string, containerId string) (*proto.Task
 
 func (w *Worker) GetRunningTask() []string {
 	return w.taskBuffer.GetKeys()
+}
+
+func (w *Worker) GetQueuedTask() []string {
+	allQueuedTask := w.taskQueue.ReadQueue()
+	return datastructure.Map(allQueuedTask, func(task *models.Task) string {
+		return task.ID.Hex()
+	})
 }
 
 func (w *Worker) GetAvailableTaskSlot() int {

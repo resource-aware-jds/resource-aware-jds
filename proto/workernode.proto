@@ -8,6 +8,11 @@ option go_package = "github.com/resource-aware-jds/resource-aware-jds/generated/
 service WorkerNode {
   rpc SendTask(RecievedTask) returns (google.protobuf.Empty) {}
   rpc HealthCheck(google.protobuf.Empty) returns (Resource) {}
+  rpc GetAllTasks(google.protobuf.Empty) returns (TaskResponse) {}
+}
+
+message TaskResponse {
+  repeated string TaskIDs = 1;
 }
 
 message RecievedTask {

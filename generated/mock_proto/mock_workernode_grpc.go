@@ -37,6 +37,26 @@ func (m *MockWorkerNodeClient) EXPECT() *MockWorkerNodeClientMockRecorder {
 	return m.recorder
 }
 
+// GetAllTasks mocks base method.
+func (m *MockWorkerNodeClient) GetAllTasks(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*proto.TaskResponse, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "GetAllTasks", varargs...)
+	ret0, _ := ret[0].(*proto.TaskResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetAllTasks indicates an expected call of GetAllTasks.
+func (mr *MockWorkerNodeClientMockRecorder) GetAllTasks(ctx, in interface{}, opts ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAllTasks", reflect.TypeOf((*MockWorkerNodeClient)(nil).GetAllTasks), varargs...)
+}
+
 // HealthCheck mocks base method.
 func (m *MockWorkerNodeClient) HealthCheck(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*proto.Resource, error) {
 	m.ctrl.T.Helper()
@@ -98,6 +118,21 @@ func NewMockWorkerNodeServer(ctrl *gomock.Controller) *MockWorkerNodeServer {
 // EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockWorkerNodeServer) EXPECT() *MockWorkerNodeServerMockRecorder {
 	return m.recorder
+}
+
+// GetAllTasks mocks base method.
+func (m *MockWorkerNodeServer) GetAllTasks(arg0 context.Context, arg1 *emptypb.Empty) (*proto.TaskResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetAllTasks", arg0, arg1)
+	ret0, _ := ret[0].(*proto.TaskResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetAllTasks indicates an expected call of GetAllTasks.
+func (mr *MockWorkerNodeServerMockRecorder) GetAllTasks(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAllTasks", reflect.TypeOf((*MockWorkerNodeServer)(nil).GetAllTasks), arg0, arg1)
 }
 
 // HealthCheck mocks base method.

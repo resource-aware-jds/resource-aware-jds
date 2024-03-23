@@ -71,3 +71,10 @@ func (j *GRPCHandler) SendTask(ctx context.Context, task *proto.RecievedTask) (*
 	err := j.workerService.StoreTaskInQueue(task.DockerImage, task.ID, task.TaskAttributes)
 	return &emptypb.Empty{}, err
 }
+
+func (j *GRPCHandler) GetAllTasks(context.Context, *emptypb.Empty) (*proto.TaskResponse, error) {
+	runningTask := j.workerService.GetRunningTask()
+	queuedTask := j.workerService.GetQueuedTask()
+
+	return &proto.TaskResponse{TaskIDs: append(runningTask, queuedTask...)}, nil
+}

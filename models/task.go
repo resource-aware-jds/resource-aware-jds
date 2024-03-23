@@ -121,3 +121,7 @@ type TaskLog struct {
 	Message    string            `bson:"message" json:"message"`
 	Timestamp  time.Time         `bson:"timestamp" json:"timestamp"`
 }
+
+type TaskResponse struct {
+	ID string
+}
