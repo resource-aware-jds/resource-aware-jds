@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/resource-aware-jds/resource-aware-jds/cmd/controlplane/http/requestmodel"
+	"github.com/resource-aware-jds/resource-aware-jds/models"
 	"github.com/resource-aware-jds/resource-aware-jds/service"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -31,6 +32,10 @@ func (j *HttpHandler) ListJob(c *gin.Context) {
 			"error": err.Error(),
 		})
 		return
+	}
+
+	if results == nil {
+		results = make([]models.Job, 0)
 	}
 
 	c.JSON(http.StatusOK, gin.H{
