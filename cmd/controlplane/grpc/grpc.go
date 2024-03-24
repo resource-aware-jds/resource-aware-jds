@@ -154,6 +154,17 @@ func (g *GRPCHandler) ReportFailureTask(ctx context.Context, req *proto.ReportFa
 		logrus.Errorf("parsing task id error %v", err)
 		return nil, err
 	}
+
+	taskData, err := g.taskService.GetTaskByID(ctx, parsedTaskID)
+	if err != nil {
+		logrus.Error("Fail to get tak")
+		return nil, err
+	}
+
+	if taskData.Status == models.SuccessTaskStatus {
+		return nil, errors.New("task status is already success")
+	}
+
 	g.taskSubmitCounter.Add(ctx, 1, metric.WithAttributes(attribute.String("status", "failure")))
 
 	err = g.taskEventBus.NotifyObserver(ctx, models.TaskEventBus{
