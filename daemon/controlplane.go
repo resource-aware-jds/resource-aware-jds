@@ -25,6 +25,7 @@ type controlPlane struct {
 	taskService         service.Task
 	jobService          service.Job
 	config              config.ControlPlaneConfigModel
+	logger              *logrus.Entry
 }
 
 type IControlPlane interface {
@@ -44,6 +45,8 @@ func ProvideControlPlaneDaemon(
 	ctx := context.Background()
 	ctxWithCancel, cancelFunc := context.WithCancel(ctx)
 
+	logger := logrus.WithFields(logrus.Fields{})
+
 	cp := controlPlane{
 		ctx:                 ctxWithCancel,
 		cancelFunc:          cancelFunc,
@@ -53,6 +56,7 @@ func ProvideControlPlaneDaemon(
 		jobService:          jobService,
 		cpTaskWatcher:       cpTaskWatcher,
 		config:              config,
+		logger:              logger,
 	}
 
 	cleanup := func() {
