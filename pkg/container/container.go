@@ -3,12 +3,16 @@ package container
 import (
 	"context"
 	"errors"
+	"fmt"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/client"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/util"
 	"github.com/sirupsen/logrus"
+	"io"
 	"math/rand"
+	"os"
+	"path/filepath"
 	"strconv"
 	"time"
 )
@@ -33,6 +37,7 @@ type IContainer interface {
 	GetContainerID() (string, bool)
 	GetContainerName() string
 	GetImageUrl() string
+	ExportLog(ctx context.Context) error
 }
 
 func ProvideContainer(dockerClient *client.Client, imageURL string, imagePullOptions types.ImagePullOptions) IContainer {
@@ -154,3 +159,42 @@ func (c *containerSvc) GetContainerName() string {
 }
 
 func (c *containerSvc) GetImageUrl() string { return c.imageURL }
+
+func (c *containerSvc) ExportLog(ctx context.Context) error {
+	containerId, ok := c.GetContainerID()
+	if !ok {
+		return fmt.Errorf("[Export log failed] Unable to get container id")
+	}
+
+	// Set options for log output
+	options := types.ContainerLogsOptions{ShowStdout: true, ShowStderr: true, Follow: false, Details: true}
+
+	// Get the container logs
+	out, err := c.dockerClient.ContainerLogs(ctx, containerId, options)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(out)
+	defer out.Close()
+
+	path := filepath.Join("logs", containerId+"-container-logs.txt")
+
+	// Create or open the file where the logs will be stored
+	err = os.MkdirAll("/"+path, os.ModeDir)
+	if err != nil {
+		panic(err)
+	}
+	logFile, err := os.Create(path)
+	if err != nil {
+		panic(err)
+	}
+	defer logFile.Close()
+
+	// Copy logs from out to logFile
+	_, err = io.Copy(logFile, out)
+	if err != nil {
+		panic(err)
+	}
+
+	return nil
+}

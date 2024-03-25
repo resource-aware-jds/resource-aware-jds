@@ -2,7 +2,6 @@ package daemon
 
 import (
 	"context"
-	"fmt"
 	"github.com/docker/docker/client"
 	"github.com/resource-aware-jds/resource-aware-jds/handlerservice"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/timeutil"
@@ -55,10 +54,10 @@ func ProvideWorkerNodeDaemon(
 }
 
 func (w *workerNode) Start() {
-	err := w.workerService.CheckInWorkerNodeToControlPlane(w.ctx)
-	if err != nil {
-		panic(fmt.Sprintf("Failed to check in worker node to control plane (%s)", err.Error()))
-	}
+	//err := w.workerService.CheckInWorkerNodeToControlPlane(w.ctx)
+	//if err != nil {
+	//	panic(fmt.Sprintf("Failed to check in worker node to control plane (%s)", err.Error()))
+	//}
 
 	go func(ctx context.Context) {
 		for {

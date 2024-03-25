@@ -86,6 +86,10 @@ func (c *ContainerService) DownContainer(ctx context.Context, container containe
 	if err != nil {
 		return err
 	}
+	err = container.ExportLog(ctx)
+	if err != nil {
+		return err
+	}
 	c.containerBuffer.Pop(containerId)
 	return nil
 }
