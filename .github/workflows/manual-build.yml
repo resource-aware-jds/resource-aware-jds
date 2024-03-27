@@ -23,6 +23,12 @@ jobs:
       - name: Archive build output artifact
         uses: actions/upload-artifact@v3
         with:
-          name: ./rajds-*
-          path: ./rajds-*
+          name: rajds-cp-${{ matrix.os }}-${{ matrix.arch }}
+          path: rajds-cp-${{ matrix.os }}-${{ matrix.arch }}
+          retention-days: 30
+      - name: Archive build output artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: rajds-worker-${{ matrix.os }}-${{ matrix.arch }}
+          path: rajds-worker-${{ matrix.os }}-${{ matrix.arch }}
           retention-days: 30
