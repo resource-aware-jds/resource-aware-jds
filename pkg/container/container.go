@@ -3,12 +3,18 @@ package container
 import (
 	"context"
 	"errors"
+	"fmt"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/client"
+	"github.com/resource-aware-jds/resource-aware-jds/config"
+	"github.com/resource-aware-jds/resource-aware-jds/pkg/file"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/util"
 	"github.com/sirupsen/logrus"
+	"io"
 	"math/rand"
+	"os"
+	"path/filepath"
 	"strconv"
 	"time"
 )
@@ -24,6 +30,7 @@ type containerSvc struct {
 	imagePullOptions types.ImagePullOptions
 	containerID      *string
 	startupTime      time.Time
+	config           config.WorkerConfigModel
 }
 
 type IContainer interface {
@@ -33,9 +40,10 @@ type IContainer interface {
 	GetContainerID() (string, bool)
 	GetContainerName() string
 	GetImageUrl() string
+	ExportLog(ctx context.Context) error
 }
 
-func ProvideContainer(dockerClient *client.Client, imageURL string, imagePullOptions types.ImagePullOptions) IContainer {
+func ProvideContainer(dockerClient *client.Client, imageURL string, imagePullOptions types.ImagePullOptions, config config.WorkerConfigModel) IContainer {
 	randomId := rand.Intn(50000-10000) + 10000
 	containerName := "rajds-" + strconv.Itoa(randomId)
 
@@ -44,6 +52,7 @@ func ProvideContainer(dockerClient *client.Client, imageURL string, imagePullOpt
 		imageURL:         imageURL,
 		containerName:    containerName,
 		imagePullOptions: imagePullOptions,
+		config:           config,
 	}
 }
 
@@ -154,3 +163,37 @@ func (c *containerSvc) GetContainerName() string {
 }
 
 func (c *containerSvc) GetImageUrl() string { return c.imageURL }
+
+func (c *containerSvc) ExportLog(ctx context.Context) error {
+	containerId, ok := c.GetContainerID()
+	if !ok {
+		return fmt.Errorf("[Export log failed] Unable to get container id")
+	}
+
+	// Set options for log output
+	options := types.ContainerLogsOptions{ShowStdout: true, ShowStderr: true, Follow: false, Details: true}
+
+	// Get the container logs
+	out, err := c.dockerClient.ContainerLogs(ctx, containerId, options)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+
+	path := filepath.Join(c.config.ContainerLogDir, containerId+"-container-logs.txt")
+
+	//Create folder and write log to file
+	err = file.CreateFolderForFile(path)
+	if err != nil {
+		return err
+	}
+	body, err := io.ReadAll(out)
+	if err != nil {
+		return err
+	}
+	err = os.WriteFile(path, body, os.ModePerm)
+	if err != nil {
+		return err
+	}
+	return nil
+}

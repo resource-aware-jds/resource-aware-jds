@@ -60,7 +60,7 @@ func (c *ContainerService) StartContainer(ctx context.Context, imageUrl string) 
 	delete(c.containerCoolDownState, imageUrl)
 
 	logrus.Info("Starting container with image:", imageUrl)
-	containerInstance := container.ProvideContainer(c.dockerClient, imageUrl, types.ImagePullOptions{})
+	containerInstance := container.ProvideContainer(c.dockerClient, imageUrl, types.ImagePullOptions{}, c.config)
 	err := containerInstance.Start(ctx)
 	if err != nil {
 		return nil, err
@@ -83,6 +83,10 @@ func (c *ContainerService) DownContainer(ctx context.Context, container containe
 		return fmt.Errorf("unable to get container id")
 	}
 	err := container.Stop(ctx)
+	if err != nil {
+		return err
+	}
+	err = container.ExportLog(ctx)
 	if err != nil {
 		return err
 	}
