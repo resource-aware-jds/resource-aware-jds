@@ -48,11 +48,13 @@ jobs:
         uses: actions/setup-go@v3
         with:
           go-version: 1.21.6
-      - name: Build
-        run: env GOOS=${{ matrix.os }} GOARCH=${{ matrix.arch }} go build -o rajds-${{ matrix.os }}-${{ matrix.arch }}
+      - name: Build-CP
+        run: env GOOS=${{ matrix.os }} GOARCH=${{ matrix.arch }} go build ./cmd/controlplane/main.go -o rajds-cp-${{ matrix.os }}-${{ matrix.arch }}
+      - name: Build-CP
+        run: env GOOS=${{ matrix.os }} GOARCH=${{ matrix.arch }} go build ./cmd/worker/main.go -o rajds-worker-${{ matrix.os }}-${{ matrix.arch }}
       - name: Archive build output artifact
         uses: actions/upload-artifact@v3
         with:
-          name: rajds-${{ matrix.os }}-${{ matrix.arch }}
-          path: rajds-${{ matrix.os }}-${{ matrix.arch }}
+          name: rajds-*
+          path: rajds-*
           retention-days: 30
