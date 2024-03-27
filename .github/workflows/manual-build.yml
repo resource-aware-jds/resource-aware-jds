@@ -17,9 +17,9 @@ jobs:
         with:
           go-version: 1.21.6
       - name: Build-CP
-        run: env GOOS=${{ matrix.os }} GOARCH=${{ matrix.arch }} go build ./cmd/controlplane/main.go -o rajds-cp-${{ matrix.os }}-${{ matrix.arch }}
-      - name: Build-CP
-        run: env GOOS=${{ matrix.os }} GOARCH=${{ matrix.arch }} go build ./cmd/worker/main.go -o rajds-worker-${{ matrix.os }}-${{ matrix.arch }}
+        run: env GOOS=${{ matrix.os }} GOARCH=${{ matrix.arch }} go build -o rajds-cp-${{ matrix.os }}-${{ matrix.arch }} ./cmd/controlplane/main.go
+      - name: Build-Worker
+        run: env GOOS=${{ matrix.os }} GOARCH=${{ matrix.arch }} go build -o rajds-worker-${{ matrix.os }}-${{ matrix.arch }} ./cmd/worker/main.go
       - name: Archive build output artifact
         uses: actions/upload-artifact@v3
         with:
