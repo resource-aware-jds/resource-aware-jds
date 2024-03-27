@@ -25,6 +25,7 @@ type WorkerConfigModel struct {
 	TotalContainerLimit                       int           `envconfig:"TOTAL_CONTAINER_CONFIG" default:"1"`
 	TaskBufferTimeout                         time.Duration `envconfig:"TASK_BUFFER_TIMEOUT" default:"30s"`
 	ContainerBufferTimeout                    time.Duration `envconfig:"CONTAINER_BUFFER_TIMEOUT" default:"30s"`
+	ContainerLogDir                           string        `envconfig:"CONTAINER_LOG_DIR" default:"/tmp/rajds-log"`
 }
 
 func ProvideWorkerNodeReceiverConfig(config WorkerConfigModel) grpc.WorkerNodeReceiverConfig {

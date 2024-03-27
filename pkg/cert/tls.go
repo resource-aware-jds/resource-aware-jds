@@ -10,6 +10,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"github.com/resource-aware-jds/resource-aware-jds/pkg/file"
 	"os"
 	"time"
 )
@@ -197,7 +198,7 @@ func (t *tlsCertificate) SaveCertificateToFile(certificateFilePath, privateKeyFi
 	certificateBytes := t.GetCertificateChains(true)
 
 	// Save the certificates into file
-	err := createFolderForFile(certificateFilePath)
+	err := file.CreateFolderForFile(certificateFilePath)
 	if err != nil {
 		return err
 	}
@@ -227,7 +228,7 @@ func (t *tlsCertificate) SaveCertificateToFile(certificateFilePath, privateKeyFi
 		return err
 	}
 
-	err = createFolderForFile(privateKeyFilePath)
+	err = file.CreateFolderForFile(privateKeyFilePath)
 	if err != nil {
 		return err
 	}

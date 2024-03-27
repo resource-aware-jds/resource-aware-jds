@@ -7,6 +7,8 @@ import (
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/client"
+	"github.com/resource-aware-jds/resource-aware-jds/config"
+	"github.com/resource-aware-jds/resource-aware-jds/pkg/file"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/util"
 	"github.com/sirupsen/logrus"
 	"io"
@@ -28,6 +30,7 @@ type containerSvc struct {
 	imagePullOptions types.ImagePullOptions
 	containerID      *string
 	startupTime      time.Time
+	config           config.WorkerConfigModel
 }
 
 type IContainer interface {
@@ -40,7 +43,7 @@ type IContainer interface {
 	ExportLog(ctx context.Context) error
 }
 
-func ProvideContainer(dockerClient *client.Client, imageURL string, imagePullOptions types.ImagePullOptions) IContainer {
+func ProvideContainer(dockerClient *client.Client, imageURL string, imagePullOptions types.ImagePullOptions, config config.WorkerConfigModel) IContainer {
 	randomId := rand.Intn(50000-10000) + 10000
 	containerName := "rajds-" + strconv.Itoa(randomId)
 
@@ -49,6 +52,7 @@ func ProvideContainer(dockerClient *client.Client, imageURL string, imagePullOpt
 		imageURL:         imageURL,
 		containerName:    containerName,
 		imagePullOptions: imagePullOptions,
+		config:           config,
 	}
 }
 
@@ -172,29 +176,24 @@ func (c *containerSvc) ExportLog(ctx context.Context) error {
 	// Get the container logs
 	out, err := c.dockerClient.ContainerLogs(ctx, containerId, options)
 	if err != nil {
-		panic(err)
+		return err
 	}
-	fmt.Println(out)
 	defer out.Close()
 
-	path := filepath.Join("logs", containerId+"-container-logs.txt")
+	path := filepath.Join(c.config.ContainerLogDir, containerId+"-container-logs.txt")
 
-	// Create or open the file where the logs will be stored
-	err = os.MkdirAll("/"+path, os.ModeDir)
+	//Create folder and write log to file
+	err = file.CreateFolderForFile(path)
 	if err != nil {
-		panic(err)
+		return err
 	}
-	logFile, err := os.Create(path)
+	body, err := io.ReadAll(out)
 	if err != nil {
-		panic(err)
+		return err
 	}
-	defer logFile.Close()
-
-	// Copy logs from out to logFile
-	_, err = io.Copy(logFile, out)
+	err = os.WriteFile(path, body, os.ModePerm)
 	if err != nil {
-		panic(err)
+		return err
 	}
-
 	return nil
 }
