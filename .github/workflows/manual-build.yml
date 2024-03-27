@@ -23,6 +23,6 @@ jobs:
       - name: Archive build output artifact
         uses: actions/upload-artifact@v3
         with:
-          name: rajds-*
-          path: rajds-*
+          name: ./rajds-*
+          path: ./rajds-*
           retention-days: 30
