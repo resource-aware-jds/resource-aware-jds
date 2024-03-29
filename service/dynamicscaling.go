@@ -140,6 +140,7 @@ func (d *DynamicScalingService) checkMemoryUpperBound(memoryUsage models.MemoryS
 	if currentMemoryUsageGb > memoryLimitGb {
 		memoryDelta := currentMemoryUsageGb - memoryLimitGb
 		if memoryDelta > 0 {
+			logrus.Infof("CurrentMemoryUsage: %f / Memory Limit: %f", currentMemoryUsageGb, memoryLimitGb)
 			report.MemoryUsageExceed = util.SumInGb(
 				report.MemoryUsageExceed,
 				models.MemorySize{Size: report.MemoryUsageExceed.Size + memoryDelta, Unit: "GiB"},
