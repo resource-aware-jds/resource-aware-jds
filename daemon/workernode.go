@@ -91,7 +91,7 @@ func (w *workerNode) Start() {
 				if report.CpuUsageExceed == 0 && report.MemoryUsageExceed.Size == 0 {
 					continue
 				}
-				logrus.Warn("CPU Usage or Memory Usage exceeded the limit, taking down the container")
+				logrus.Warnf("CPU Usage or Memory Usage exceeded the limit, taking down the container / CPU Exceed size: %f / MemoryUsageExceed: %f %s", report.CpuUsageExceed, report.MemoryUsageExceed.Size, report.MemoryUsageExceed.Unit)
 				containerToBeTakeDowns := w.containerTakeDownLogic.Calculate(workerlogic.ContainerTakeDownState{
 					ContainerBuffer: w.containerService.GetContainerBuffer(),
 					Report:          report,
