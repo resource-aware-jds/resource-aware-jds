@@ -94,6 +94,7 @@ func (w *Worker) CheckInWorkerNodeToControlPlane(ctx context.Context) error {
 		return err
 	}
 
+	logrus.Info("Checking in the Worker Node")
 	_, err = w.controlPlaneGRPCClient.WorkerCheckIn(ctx, &proto.WorkerCheckInRequest{
 		Certificate: certificate,
 		Port:        int32(w.config.GRPCServerPort),
