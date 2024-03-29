@@ -109,6 +109,7 @@ func (d *DynamicScalingService) checkMemoryBuffer(systemMemoryUsage *models.Memo
 	memoryBufferGb := util.ConvertToGb(util.ExtractMemoryUsageString(memoryBuffer)).Size
 	freeMemoryGb := float64(freeMemory) / (1024 * 1024 * 1024)
 	if freeMemoryGb < memoryBufferGb {
+		logrus.Infof("freeMemoryGb: %f / memoryBufferGb: %f", freeMemoryGb, memoryBufferGb)
 		report.MemoryUsageExceed = util.SumInGb(
 			report.MemoryUsageExceed,
 			models.MemorySize{
