@@ -90,9 +90,16 @@ func ProvideWorkerNode(caCertificate cert.CACertificate, distributorMapper distr
 }
 
 func (w *workerNode) InitializePool(ctx context.Context, nodeEntries []models.NodeEntry) {
+	var wg sync.WaitGroup
 	for _, node := range nodeEntries {
-		w.AddWorkerNode(ctx, node) // nolint:errcheck
+		wg.Add(1)
+		go func(nodeToAdd models.NodeEntry) {
+			w.AddWorkerNode(ctx, nodeToAdd) // nolint:errcheck
+			wg.Done()
+		}(node)
 	}
+
+	wg.Wait()
 
 	logrus.Infof("[WorkerNode Pool] Added %d available worker node to the pool", len(w.pool))
 }
@@ -128,11 +135,13 @@ func (w *workerNode) AddWorkerNode(ctx context.Context, node models.NodeEntry) e
 		return err
 	}
 
+	w.poolMu.Lock()
 	w.pool[node.NodeID] = workerNodePoolMapper{
 		nodeEntry:      node,
 		grpcConnection: clientProto,
 		logger:         logger,
 	}
+	w.poolMu.Unlock()
 
 	logger.Infof("A Worker has been added to the pool")
 	return nil
