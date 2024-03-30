@@ -66,7 +66,7 @@ func ProvideWorker(
 	containerService service.IContainer,
 	meter metric.Meter,
 ) (IWorker, error) {
-	containerSubmitTask, err := meter.Int64Counter("container_submit_task")
+	containerSubmitTask, err := meter.Int64Counter(metrics.GenerateWorkerNodeMetric("container_submit_task"))
 
 	return &Worker{
 		controlPlaneGRPCClient: controlPlaneGRPCClient,
