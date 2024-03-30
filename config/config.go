@@ -5,6 +5,7 @@ import (
 	"github.com/kelseyhightower/envconfig"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/grpc"
 	"github.com/sirupsen/logrus"
+	"io"
 	"os"
 	"path"
 	"runtime"
@@ -15,6 +16,7 @@ type Config struct {
 	CommonConfigModel
 	ControlPlaneConfig ControlPlaneConfigModel `envconfig:"CONTROL_PLANE"`
 	WorkerConfig       WorkerConfigModel       `envconfig:"WORKER_NODE"`
+	WriteLogToFile     bool                    `envconfig:"WRITE_LOG_TO_FILE"`
 }
 
 func ProvideConfig() (*Config, error) {
@@ -52,6 +54,16 @@ func ProvideConfig() (*Config, error) {
 		}
 	}
 
+	logWriter := &doubleLogWrite{}
+	if config.WriteLogToFile {
+		file, err := os.OpenFile("out.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+		if err != nil {
+			return nil, err
+		}
+
+		logWriter.file = file
+	}
+	logrus.SetOutput(logWriter)
 	logrus.SetFormatter(formatter)
 
 	return &config, nil
@@ -75,4 +87,18 @@ func ProvideControlPlaneConfigModel(config *Config) ControlPlaneConfigModel {
 
 func ProvideWorkerConfigModel(config *Config) WorkerConfigModel {
 	return config.WorkerConfig
+}
+
+type doubleLogWrite struct {
+	file io.Writer
+}
+
+func (d *doubleLogWrite) Write(p []byte) (n int, err error) {
+	write, err := os.Stdout.Write(p)
+	if err != nil || d.file == nil {
+		return write, err
+	}
+
+	// Write to the file
+	return d.file.Write(p)
 }
