@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/resource-aware-jds/resource-aware-jds/generated/mock_proto"
 	"github.com/resource-aware-jds/resource-aware-jds/models"
+	"github.com/resource-aware-jds/resource-aware-jds/pkg/cert/mock_cert"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/distribution"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/metrics"
 	"github.com/sirupsen/logrus"
@@ -35,6 +36,7 @@ func newObjectID() *primitive.ObjectID {
 type BaseDistributionTest struct {
 	suite.Suite
 
+	mockTLS   *mock_cert.MockTLSCertificate
 	ctrl      *gomock.Controller
 	meter     metric.Meter
 	ctx       context.Context
@@ -43,7 +45,11 @@ type BaseDistributionTest struct {
 
 func (s *BaseDistributionTest) SetupSubTest() {
 	s.ctrl = gomock.NewController(s.T())
-	meter, err := metrics.ProvideMeter()
+	s.mockTLS = mock_cert.NewMockTLSCertificate(s.ctrl)
+
+	s.mockTLS.EXPECT().GetNodeID().Return("Stub")
+
+	meter, err := metrics.ProvideMeter(s.mockTLS)
 	s.NoError(err)
 	s.meter = meter
 	s.ctx = context.Background()

@@ -32,6 +32,8 @@ type tlsCertificate struct {
 	publicKey         KeyData
 }
 
+//go:generate mockgen -source=./tls.go -destination=./mock_cert/mock_tls.go -package=mock_cert
+
 type TLSCertificate interface {
 	IsCA() bool
 
