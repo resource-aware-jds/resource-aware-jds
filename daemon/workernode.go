@@ -5,10 +5,14 @@ import (
 	"fmt"
 	"github.com/docker/docker/client"
 	"github.com/resource-aware-jds/resource-aware-jds/handlerservice"
+	"github.com/resource-aware-jds/resource-aware-jds/models"
+	"github.com/resource-aware-jds/resource-aware-jds/pkg/metrics"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/timeutil"
+	"github.com/resource-aware-jds/resource-aware-jds/pkg/util"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/workerlogic"
 	"github.com/resource-aware-jds/resource-aware-jds/service"
 	"github.com/sirupsen/logrus"
+	"go.opentelemetry.io/otel/metric"
 	"time"
 )
 
@@ -26,6 +30,7 @@ type workerNode struct {
 	dynamicScaling         service.IDynamicScaling
 	containerTakeDownLogic workerlogic.ContainerTakeDown
 	containerService       service.IContainer
+	exceedValue            *models.CheckResourceReport
 }
 
 type WorkerNode interface {
@@ -39,10 +44,12 @@ func ProvideWorkerNodeDaemon(
 	dynamicScaling service.IDynamicScaling,
 	containerTakeDownLogic workerlogic.ContainerTakeDown,
 	containerService service.IContainer,
+	meter metric.Meter,
 ) WorkerNode {
 	ctx := context.Background()
 	ctxWithCancel, cancelFunc := context.WithCancel(ctx)
-	return &workerNode{
+
+	res := &workerNode{
 		dockerClient:           dockerClient,
 		ctx:                    ctxWithCancel,
 		cancelFunc:             cancelFunc,
@@ -52,6 +59,33 @@ func ProvideWorkerNodeDaemon(
 		containerTakeDownLogic: containerTakeDownLogic,
 		containerService:       containerService,
 	}
+
+	meter.Float64ObservableCounter( //nolint:errcheck
+		metrics.GenerateWorkerNodeMetric("cpu_exceed"),
+		metric.WithFloat64Callback(func(ctx context.Context, observer metric.Float64Observer) error {
+			if res.exceedValue == nil {
+				observer.Observe(0)
+				return nil
+			}
+			observer.Observe((*res.exceedValue).CpuUsageExceed)
+			return nil
+		}),
+	)
+
+	meter.Float64ObservableCounter( //nolint:errcheck
+		metrics.GenerateWorkerNodeMetric("memory_exceed"),
+		metric.WithFloat64Callback(func(ctx context.Context, observer metric.Float64Observer) error {
+			if res.exceedValue == nil {
+				observer.Observe(0)
+				return nil
+			}
+
+			result := util.ConvertToMib((*res.exceedValue).MemoryUsageExceed)
+			observer.Observe(result.Size)
+			return nil
+		}),
+	)
+	return res
 }
 
 func (w *workerNode) Start() {
@@ -88,6 +122,8 @@ func (w *workerNode) Start() {
 					logrus.Error(err)
 					continue
 				}
+
+				w.exceedValue = report
 
 				if report.CpuUsageExceed == 0 && report.MemoryUsageExceed.Size == 0 {
 					continue
