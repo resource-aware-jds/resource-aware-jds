@@ -24,6 +24,7 @@ type Queue interface {
 	BulkRemove(tasks []*models.Task)
 	Pop() (*models.Task, bool)
 	PeakForNextTask() (*models.Task, bool)
+	GetSize() int
 }
 
 func ProvideTaskQueue(meter metric.Meter) Queue {
@@ -93,4 +94,8 @@ func (q *queue) PeakForNextTask() (*models.Task, bool) {
 	}
 
 	return q.queue.ReadQueue()[0], true
+}
+
+func (q *queue) GetSize() int {
+	return q.queue.Size()
 }

@@ -108,3 +108,5 @@ func (q *Queue[Data]) RemoveWithCondition(removeCondition func(data Data) bool) 
 func (q *Queue[Data]) Empty() bool {
 	return len(q.data) == 0
 }
+
+func (q *Queue[Data]) Size() int { return len(q.data) }
