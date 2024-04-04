@@ -23,5 +23,9 @@ func ProvideHTTPRouter(handler Handler, server httpServer.Server) RouterResult {
 		task.GET("/:taskID/detail", handler.httpHandler.GetSpecificTaskDetail)
 	}
 
+	node := server.Engine().Group("/node")
+	{
+		node.GET("/", handler.nodePoolHandler.GetNodes)
+	}
 	return true
 }

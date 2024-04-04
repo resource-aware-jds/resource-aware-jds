@@ -5,9 +5,9 @@ import (
 )
 
 type NodeEntry struct {
-	ID            *primitive.ObjectID `bson:"_id,omitempty"`
-	NodeID        string              `bson:"node_id"`
-	PublicKeyHash string              `bson:"public_key_hash"`
-	IP            string              `bson:"ip"`
-	Port          int32               `bson:"port"`
+	ID            *primitive.ObjectID `bson:"_id,omitempty" json:"id"`
+	NodeID        string              `bson:"node_id" json:"nodeID"`
+	PublicKeyHash string              `bson:"public_key_hash" json:"publicKeyHash"`
+	IP            string              `bson:"ip" json:"ip"`
+	Port          int32               `bson:"port" json:"port"`
 }

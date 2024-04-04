@@ -9,4 +9,5 @@ var HTTPWireSet = wire.NewSet(
 	http.ProvideHTTPRouter,
 	http.ProvideHTTPHandler,
 	http.ProvideHandler,
+	http.ProvideNodeHandler,
 )

@@ -85,6 +85,20 @@ func (mr *MockWorkerNodeMockRecorder) DistributeWork(ctx, jobID, tasks any) *gom
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DistributeWork", reflect.TypeOf((*MockWorkerNode)(nil).DistributeWork), ctx, jobID, tasks)
 }
 
+// GetAllWorkerNode mocks base method.
+func (m *MockWorkerNode) GetAllWorkerNode() []models.NodeEntry {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetAllWorkerNode")
+	ret0, _ := ret[0].([]models.NodeEntry)
+	return ret0
+}
+
+// GetAllWorkerNode indicates an expected call of GetAllWorkerNode.
+func (mr *MockWorkerNodeMockRecorder) GetAllWorkerNode() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAllWorkerNode", reflect.TypeOf((*MockWorkerNode)(nil).GetAllWorkerNode))
+}
+
 // InitializePool mocks base method.
 func (m *MockWorkerNode) InitializePool(ctx context.Context, nodeEntries []models.NodeEntry) {
 	m.ctrl.T.Helper()
@@ -109,6 +123,20 @@ func (m *MockWorkerNode) IsAvailableWorkerNode() bool {
 func (mr *MockWorkerNodeMockRecorder) IsAvailableWorkerNode() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsAvailableWorkerNode", reflect.TypeOf((*MockWorkerNode)(nil).IsAvailableWorkerNode))
+}
+
+// PoolSize mocks base method.
+func (m *MockWorkerNode) PoolSize() int {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PoolSize")
+	ret0, _ := ret[0].(int)
+	return ret0
+}
+
+// PoolSize indicates an expected call of PoolSize.
+func (mr *MockWorkerNodeMockRecorder) PoolSize() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PoolSize", reflect.TypeOf((*MockWorkerNode)(nil).PoolSize))
 }
 
 // RemoveNodeFromPool mocks base method.

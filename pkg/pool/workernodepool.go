@@ -61,6 +61,8 @@ type WorkerNode interface {
 	IsAvailableWorkerNode() bool
 	RemoveNodeFromPool(ctx context.Context, nodeID string)
 	CheckRunningTaskInEachWorkerNode(ctx context.Context) map[primitive.ObjectID]bool
+	PoolSize() int
+	GetAllWorkerNode() []models.NodeEntry
 }
 
 func ProvideWorkerNode(caCertificate cert.CACertificate, distributorMapper distribution.DistributorMapper, grpcResolver grpc.RAJDSGRPCResolver, meter metric.Meter) WorkerNode {
@@ -255,4 +257,20 @@ func (w *workerNode) CheckRunningTaskInEachWorkerNode(ctx context.Context) map[p
 		}
 	}
 	return responseObjectIDs
+}
+
+func (w *workerNode) PoolSize() int {
+	return len(w.pool)
+}
+
+func (w *workerNode) GetAllWorkerNode() []models.NodeEntry {
+	w.poolMu.Lock()
+	defer w.poolMu.Unlock()
+
+	result := make([]models.NodeEntry, 0, len(w.pool))
+	for _, data := range w.pool {
+		result = append(result, data.nodeEntry)
+	}
+
+	return result
 }

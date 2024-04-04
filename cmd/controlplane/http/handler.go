@@ -1,11 +1,13 @@
 package http
 
 type Handler struct {
-	httpHandler HttpHandler
+	httpHandler     HttpHandler
+	nodePoolHandler NodeHandler
 }
 
-func ProvideHandler(jobHandler HttpHandler) Handler {
+func ProvideHandler(jobHandler HttpHandler, nodePoolHandler NodeHandler) Handler {
 	return Handler{
-		httpHandler: jobHandler,
+		httpHandler:     jobHandler,
+		nodePoolHandler: nodePoolHandler,
 	}
 }
