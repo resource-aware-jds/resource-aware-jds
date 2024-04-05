@@ -8,6 +8,7 @@ import (
 	"github.com/resource-aware-jds/resource-aware-jds/service/mock_service"
 	"github.com/stretchr/testify/suite"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.uber.org/mock/gomock"
 	"testing"
 )
 
@@ -72,7 +73,7 @@ func (s *ResourceAwareDistributorTestSuite) TestDistribution() {
 		}, nil)
 
 		for i := 0; i < 3; i++ {
-			mockNodeMapperTest[0].MockWorkerNodeGRPC.EXPECT().SendTask(s.ctx, &proto.RecievedTask{
+			mockNodeMapperTest[0].MockWorkerNodeGRPC.EXPECT().SendTask(gomock.Any(), &proto.RecievedTask{
 				ID:             taskToDistribute[i].ID.Hex(),
 				TaskAttributes: nil,
 				DockerImage:    taskToDistribute[i].ImageUrl,
@@ -126,7 +127,7 @@ func (s *ResourceAwareDistributorTestSuite) TestDistribution() {
 		}, nil)
 
 		for i := 0; i < 2; i++ {
-			mockNodeMapperTest[0].MockWorkerNodeGRPC.EXPECT().SendTask(s.ctx, &proto.RecievedTask{
+			mockNodeMapperTest[0].MockWorkerNodeGRPC.EXPECT().SendTask(gomock.Any(), &proto.RecievedTask{
 				ID:             taskToDistribute[i].ID.Hex(),
 				TaskAttributes: nil,
 				DockerImage:    taskToDistribute[i].ImageUrl,
@@ -192,13 +193,13 @@ func (s *ResourceAwareDistributorTestSuite) TestDistribution() {
 		}, nil)
 
 		for i := 0; i < 2; i++ {
-			mockNodeMapperTest[0].MockWorkerNodeGRPC.EXPECT().SendTask(s.ctx, &proto.RecievedTask{
+			mockNodeMapperTest[0].MockWorkerNodeGRPC.EXPECT().SendTask(gomock.Any(), &proto.RecievedTask{
 				ID:             taskToDistribute[i].ID.Hex(),
 				TaskAttributes: nil,
 				DockerImage:    taskToDistribute[i].ImageUrl,
 			})
 		}
-		mockNodeMapperTest[1].MockWorkerNodeGRPC.EXPECT().SendTask(s.ctx, &proto.RecievedTask{
+		mockNodeMapperTest[1].MockWorkerNodeGRPC.EXPECT().SendTask(gomock.Any(), &proto.RecievedTask{
 			ID:             taskToDistribute[2].ID.Hex(),
 			TaskAttributes: nil,
 			DockerImage:    taskToDistribute[2].ImageUrl,
@@ -266,13 +267,13 @@ func (s *ResourceAwareDistributorTestSuite) TestDistribution() {
 		}, nil)
 
 		for i := 0; i < 2; i++ {
-			mockNodeMapperTest[0].MockWorkerNodeGRPC.EXPECT().SendTask(s.ctx, &proto.RecievedTask{
+			mockNodeMapperTest[0].MockWorkerNodeGRPC.EXPECT().SendTask(gomock.Any(), &proto.RecievedTask{
 				ID:             taskToDistribute[i].ID.Hex(),
 				TaskAttributes: nil,
 				DockerImage:    taskToDistribute[i].ImageUrl,
 			})
 		}
-		mockNodeMapperTest[2].MockWorkerNodeGRPC.EXPECT().SendTask(s.ctx, &proto.RecievedTask{
+		mockNodeMapperTest[2].MockWorkerNodeGRPC.EXPECT().SendTask(gomock.Any(), &proto.RecievedTask{
 			ID:             taskToDistribute[2].ID.Hex(),
 			TaskAttributes: nil,
 			DockerImage:    taskToDistribute[2].ImageUrl,

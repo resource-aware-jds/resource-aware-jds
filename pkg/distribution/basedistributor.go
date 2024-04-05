@@ -8,6 +8,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
+	"time"
 )
 
 type baseDistributor struct {
@@ -46,11 +47,13 @@ func newBaseDistributor(name models.DistributorName, meter metric.Meter) baseDis
 func (b *baseDistributor) distributeToNode(ctx context.Context, node NodeMapper, task models.Task, successTask *[]models.Task, errorTask *[]models.DistributeError) {
 	logger := b.logger.WithFields(node.Logger.Data).WithField("taskID", task.ID.Hex())
 	logger.Info("Sending task to the worker node")
-	_, err := node.GRPCConnection.SendTask(ctx, &proto.RecievedTask{
+	ctxWithTimeout, cancelFunc := context.WithTimeout(ctx, 5*time.Second)
+	_, err := node.GRPCConnection.SendTask(ctxWithTimeout, &proto.RecievedTask{
 		ID:             task.ID.Hex(),
 		TaskAttributes: task.TaskAttributes,
 		DockerImage:    task.ImageUrl,
 	})
+	cancelFunc()
 
 	metricAttributes := metric.WithAttributes(
 		attribute.String("nodeID", node.NodeEntry.NodeID),

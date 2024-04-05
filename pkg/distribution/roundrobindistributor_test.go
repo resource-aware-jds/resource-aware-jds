@@ -93,7 +93,7 @@ func (s *RoundRobinDistributorTestSuite) TestDistribution() {
 
 		mockCall := make([]any, 0, 5)
 		for i := 0; i < 5; i++ {
-			mockCall = append(mockCall, mockNodeMapperTest[i%4].MockWorkerNodeGRPC.EXPECT().SendTask(s.ctx, &proto.RecievedTask{
+			mockCall = append(mockCall, mockNodeMapperTest[i%4].MockWorkerNodeGRPC.EXPECT().SendTask(gomock.Any(), &proto.RecievedTask{
 				ID:             taskToDistribute[i].ID.Hex(),
 				TaskAttributes: nil,
 				DockerImage:    taskToDistribute[i].ImageUrl,

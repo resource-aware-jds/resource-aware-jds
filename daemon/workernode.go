@@ -18,7 +18,7 @@ import (
 
 const (
 	StartContainerDuration  = 15 * time.Second
-	ResourceMonitorDuration = 5 * time.Second
+	ResourceMonitorDuration = 1 * time.Second
 )
 
 type workerNode struct {
