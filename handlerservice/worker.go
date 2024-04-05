@@ -33,7 +33,7 @@ type Worker struct {
 	containerService       service.IContainer
 
 	taskQueue  taskqueue.Queue
-	taskBuffer datastructure.Buffer[string, models.TaskWithContext]
+	taskBuffer datastructure.Buffer[string, *models.TaskWithContext]
 
 	containerSubmitTask metric.Int64Counter
 }
@@ -74,7 +74,7 @@ func ProvideWorker(
 		config:                 config,
 		taskQueue:              taskQueue,
 		workerNodeCertificate:  workerNodeCertificate,
-		taskBuffer: datastructure.ProvideBuffer[string, models.TaskWithContext](
+		taskBuffer: datastructure.ProvideBuffer[string, *models.TaskWithContext](
 			datastructure.WithBufferMetrics(
 				meter,
 				metrics.GenerateWorkerNodeMetric("task_buffer"),
@@ -116,23 +116,9 @@ func (w *Worker) GetTask(containerImage string, containerId string) (*proto.Task
 
 	ctx, cancelFunc := context.WithDeadline(context.Background(), time.Now().Add(w.config.TaskBufferTimeout))
 
-	// Start a new goroutine to check if context is timeout before calling cancel.
-	// If yes, call report task failure.
-	go func(innerCtx context.Context, innerW *Worker, innerTask models.Task) {
-		<-ctx.Done()
-		if errors.Is(ctx.Err(), context.Canceled) {
-			return
-		}
-		err := innerW.ReportFailTask(context.Background(), innerTask.ID.Hex(), "Timeout")
-		if err != nil {
-			logrus.Error("report task failure fail: ", err)
-		}
-	}(ctx, w, *task)
-
-	w.taskBuffer.Store(task.ID.Hex(), models.TaskWithContext{
+	dataToStore := models.TaskWithContext{
 		Task:        *task,
 		Ctx:         ctx,
-		CancelFunc:  cancelFunc,
 		ContainerId: containerId,
 		AverageResourceUsage: models.AverageResourceUsage{
 			IsInitialized:   false,
@@ -141,7 +127,31 @@ func (w *Worker) GetTask(containerImage string, containerId string) (*proto.Task
 				Size: 0,
 				Unit: "GiB",
 			}},
-	})
+	}
+
+	// Start a new goroutine to check if context is timeout before calling cancel.
+	// If yes, call report task failure.
+	go func(innerCtx context.Context, innerW *Worker, innerTask *models.TaskWithContext) {
+		<-ctx.Done()
+		if errors.Is(ctx.Err(), context.Canceled) {
+			return
+		}
+		if innerTask.GetTaskReportStatus() {
+			logrus.Info("Task already reported, skipping")
+			return
+		}
+		err := innerW.ReportFailTask(context.Background(), innerTask.Task.ID.Hex(), "Timeout")
+		if err != nil {
+			logrus.Error("report task failure fail: ", err)
+		}
+	}(ctx, w, &dataToStore)
+
+	dataToStore.CancelFunc = func() {
+		cancelFunc()
+		dataToStore.SetTaskReportedBackToCP()
+	}
+
+	w.taskBuffer.Store(task.ID.Hex(), &dataToStore)
 	return &proto.Task{
 		ID:             task.ID.Hex(),
 		TaskAttributes: task.TaskAttributes,
@@ -169,14 +179,20 @@ func (w *Worker) SubmitSuccessTask(ctx context.Context, id string, results []byt
 		logrus.Error("Task is not running")
 		return errors.New("task not found in task buffer, maybe it already timeout and get sent back to cp")
 	}
+
+	taskDereferenced := *task
+	if taskDereferenced.CancelFunc != nil {
+		taskDereferenced.CancelFunc()
+		logrus.Info("Canceled the watcher loop")
+	}
 	logrus.Info("Task succeed with id: " + id)
 	_, err := w.controlPlaneGRPCClient.ReportSuccessTask(ctx, &proto.ReportSuccessTaskRequest{
 		Id:     id,
 		NodeID: w.workerNodeCertificate.GetNodeID(),
 		Result: results,
 		TaskResourceUsage: &proto.TaskResourceUsage{
-			AverageMemoryUsage: util.MemoryToString(task.AverageResourceUsage.AverageMemoryUsage),
-			AverageCpuUsage:    float32(task.AverageResourceUsage.AverageCpuUsage),
+			AverageMemoryUsage: util.MemoryToString(taskDereferenced.AverageResourceUsage.AverageMemoryUsage),
+			AverageCpuUsage:    float32(taskDereferenced.AverageResourceUsage.AverageCpuUsage),
 		},
 	})
 	w.containerSubmitTask.Add(ctx, 1, metric.WithAttributes(attribute.String("status", "success")))
@@ -187,9 +203,13 @@ func (w *Worker) ReportFailTask(ctx context.Context, id string, errorMessage str
 	task := w.taskBuffer.Pop(id)
 	if task == nil {
 		logrus.Error("Task is not running")
-		//return errors.New("task not found in task buffer, maybe it already timeout and get sent back to cp")
+		return errors.New("task not found in task buffer, maybe it already timeout and get sent back to cp")
 	}
-
+	taskDereferenced := *task
+	if taskDereferenced.CancelFunc != nil {
+		taskDereferenced.CancelFunc()
+		logrus.Info("Canceled the watcher loop")
+	}
 	logrus.Error("Task failed with id: " + id)
 	w.containerSubmitTask.Add(ctx, 1, metric.WithAttributes(attribute.String("status", "failure")))
 	_, err := w.controlPlaneGRPCClient.ReportFailureTask(ctx, &proto.ReportFailureTaskRequest{
