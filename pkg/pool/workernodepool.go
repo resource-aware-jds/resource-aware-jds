@@ -13,6 +13,7 @@ import (
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/util"
 	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"net"
@@ -51,6 +52,7 @@ type workerNode struct {
 	grpcResolver      grpc.RAJDSGRPCResolver
 	metricCounter     metric.Int64ObservableCounter
 	logger            *logrus.Entry
+	meter             metric.Meter
 }
 
 type WorkerNode interface {
@@ -81,6 +83,7 @@ func ProvideWorkerNode(caCertificate cert.CACertificate, distributorMapper distr
 		"role":      "Control Plane",
 		"component": "node_pool",
 	})
+
 	return &workerNode{
 		caCertificate:     caCertificate,
 		pool:              pool,
@@ -88,6 +91,7 @@ func ProvideWorkerNode(caCertificate cert.CACertificate, distributorMapper distr
 		grpcResolver:      grpcResolver,
 		metricCounter:     counter,
 		logger:            logger,
+		meter:             meter,
 	}
 }
 
@@ -144,6 +148,30 @@ func (w *workerNode) AddWorkerNode(ctx context.Context, node models.NodeEntry) e
 		logger:         logger,
 	}
 	w.poolMu.Unlock()
+
+	w.meter.Float64ObservableUpDownCounter( //nolint:errcheck
+		metrics.GenerateControlPlaneMetric("worker_available_cpu"),
+		metric.WithFloat64Callback(func(ctx context.Context, observer metric.Float64Observer) error {
+			observer.Observe(
+				float64(w.pool[node.NodeID].availableResource.AvailableCpuPercentage),
+				metric.WithAttributes(attribute.String("nodeID", node.NodeID)),
+				metric.WithAttributes(attribute.String("ip", node.IP)),
+			)
+			return nil
+		}),
+	)
+
+	w.meter.Float64ObservableUpDownCounter( //nolint:errcheck
+		metrics.GenerateControlPlaneMetric("worker_available_memory"),
+		metric.WithFloat64Callback(func(ctx context.Context, observer metric.Float64Observer) error {
+			observer.Observe(
+				util.ConvertToMib(w.pool[node.NodeID].availableResource.AvailableMemory).Size,
+				metric.WithAttributes(attribute.String("nodeID", node.NodeID)),
+				metric.WithAttributes(attribute.String("ip", node.IP)),
+			)
+			return nil
+		}),
+	)
 
 	logger.Infof("A Worker has been added to the pool")
 	return nil
