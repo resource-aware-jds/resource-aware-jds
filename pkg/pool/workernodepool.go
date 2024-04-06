@@ -13,6 +13,7 @@ import (
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/util"
 	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"net"
@@ -81,6 +82,38 @@ func ProvideWorkerNode(caCertificate cert.CACertificate, distributorMapper distr
 		"role":      "Control Plane",
 		"component": "node_pool",
 	})
+
+	meter.Float64ObservableUpDownCounter( // nolint:errcheck
+		metrics.GenerateControlPlaneMetric("node_available_cpu"),
+		metric.WithFloat64Callback(func(ctx context.Context, observer metric.Float64Observer) error {
+			for _, node := range pool {
+				observer.Observe(
+					float64(node.availableResource.AvailableCpuPercentage),
+					metric.WithAttributes(
+						attribute.String("nodeID", node.nodeEntry.NodeID),
+						attribute.String("ip", node.nodeEntry.IP),
+					),
+				)
+			}
+			return nil
+		}),
+	)
+	meter.Float64ObservableUpDownCounter( // nolint:errcheck
+		metrics.GenerateControlPlaneMetric("node_available_cpu"),
+		metric.WithUnit("mb"),
+		metric.WithFloat64Callback(func(ctx context.Context, observer metric.Float64Observer) error {
+			for _, node := range pool {
+				observer.Observe(
+					util.ConvertToMib(node.availableResource.AvailableMemory).Size,
+					metric.WithAttributes(
+						attribute.String("nodeID", node.nodeEntry.NodeID),
+						attribute.String("ip", node.nodeEntry.IP),
+					),
+				)
+			}
+			return nil
+		}),
+	)
 
 	return &workerNode{
 		caCertificate:     caCertificate,
