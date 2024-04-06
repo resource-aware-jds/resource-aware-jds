@@ -7,6 +7,7 @@ import (
 	"github.com/resource-aware-jds/resource-aware-jds/models"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/util"
 	"github.com/resource-aware-jds/resource-aware-jds/service"
+	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.opentelemetry.io/otel/metric"
 	"sort"
@@ -50,6 +51,7 @@ func (r ResourceAwareDistributor) Distribute(ctx context.Context, nodes []NodeMa
 		return nil, nil, err
 	}
 
+	logrus.Info("Task: ", tasks[0].JobID, ", cpu: ", averageResourceUsage.CPU, ", memory: ", averageResourceUsage.Memory)
 	// Calculate maximum resource for each node that can take
 	nodeWithMaximumTasks := make([]maximumTaskForNode, 0, len(nodes))
 	taskToDistribute := len(tasks)
@@ -59,6 +61,7 @@ func (r ResourceAwareDistributor) Distribute(ctx context.Context, nodes []NodeMa
 			node:      node,
 			totalTask: maximumTask,
 		})
+		logrus.Info("node: ", node.NodeEntry.NodeID, ", available cpu: ", node.AvailableResource.AvailableCpuPercentage, "available memory: ", util.MemoryToString(node.AvailableResource.AvailableMemory), "Total task: ", maximumTask)
 	}
 
 	// Sort by the totalTask desc
