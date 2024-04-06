@@ -269,7 +269,6 @@ func (w *Worker) CalculateAverageContainerResourceUsage(usage []models.Container
 }
 
 func (w *Worker) TaskDistributionDaemonLoop(ctx context.Context) {
-	logrus.Info("Current Queue Size: ", w.taskQueue.GetSize())
 	task, ok := w.taskQueue.PeakForNextTask()
 	if !ok {
 		return
