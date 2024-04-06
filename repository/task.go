@@ -92,22 +92,22 @@ func (t *task) GetTaskToDistributeForJob(ctx context.Context, jobID *primitive.O
 
 func (t *task) BulkWriteStatusAndLogByID(ctx context.Context, tasks []models.Task) error {
 	var operations []mongo.WriteModel
-	for _, task := range tasks {
+	for _, innerTask := range tasks {
 		operation := mongo.NewUpdateOneModel()
 		operation.SetFilter(bson.M{
-			"_id": task.ID,
+			"_id": innerTask.ID,
 		})
 		operation.SetUpdate(bson.M{
 			"$set": bson.M{
-				"task_status":                task.Status,
-				"logs":                       task.Logs,
-				"latest_distributed_node_id": task.LatestDistributedNodeID,
+				"task_status":                innerTask.Status,
+				"logs":                       innerTask.Logs,
+				"latest_distributed_node_id": innerTask.LatestDistributedNodeID,
 				"updated_at":                 time.Now(),
-				"retry_count":                task.RetryCount,
+				"retry_count":                innerTask.RetryCount,
 			},
 		})
 
-		if task.LatestDistributedNodeID == "54019f4b-e69d-419a-8cf9-c2d1653b2dcd" {
+		if innerTask.LatestDistributedNodeID == "54019f4b-e69d-419a-8cf9-c2d1653b2dcd" {
 			logrus.Info("Detect Evil Node!!")
 			logrus.Info("Stack Trace: ", string(debug.Stack()))
 		}
