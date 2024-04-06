@@ -29,6 +29,7 @@ type ITask interface {
 	FindFinishedTask(ctx context.Context, jobID *primitive.ObjectID) ([]models.Task, error)
 	UpdateTaskStatusByJobID(ctx context.Context, jobID *primitive.ObjectID, status models.Task) error
 	FindTaskByStatus(ctx context.Context, taskStatus models.TaskStatus) ([]models.Task, error)
+	WriteTaskSuccessResults(ctx context.Context, task models.Task) error
 }
 
 func ProvideTask(database *mongo.Database) ITask {
@@ -131,6 +132,28 @@ func (t *task) WriteTaskResult(ctx context.Context, task models.Task) error {
 			"logs":        task.Logs,
 			"task_status": task.Status,
 			"updated_at":  time.Now(),
+		},
+	})
+
+	_, err := t.collection.BulkWrite(ctx, []mongo.WriteModel{operation})
+	return err
+}
+
+func (t *task) WriteTaskSuccessResults(ctx context.Context, task models.Task) error {
+	operation := mongo.NewUpdateOneModel()
+	operation.SetFilter(bson.M{
+		"_id": task.ID,
+	})
+	operation.SetUpdate(bson.M{
+		"$set": bson.M{
+			"result":      task.Result,
+			"logs":        task.Logs,
+			"task_status": task.Status,
+			"updated_at":  time.Now(),
+			"resource_usage": bson.M{
+				"cpu":    task.ResourceUsage.CPU,
+				"memory": task.ResourceUsage.Memory,
+			},
 		},
 	})
 

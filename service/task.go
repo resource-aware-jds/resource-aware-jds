@@ -121,7 +121,7 @@ func (t *task) UpdateTaskSuccess(ctx context.Context, taskID primitive.ObjectID,
 		Memory: averageMemoryUsage,
 		CPU:    averageCPUUsage,
 	}
-	return t.taskRepository.WriteTaskResult(ctx, *taskResult)
+	return t.taskRepository.WriteTaskSuccessResults(ctx, *taskResult)
 }
 
 func (t *task) GetAverageResourceUsage(ctx context.Context, jobID *primitive.ObjectID) (*models.TaskResourceUsage, error) {
