@@ -13,6 +13,7 @@ import (
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/util"
 	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"net"
@@ -51,6 +52,8 @@ type workerNode struct {
 	grpcResolver      grpc.RAJDSGRPCResolver
 	metricCounter     metric.Int64ObservableCounter
 	logger            *logrus.Entry
+	cpuMetric         metric.Int64Histogram
+	memoryMetric      metric.Int64Histogram
 }
 
 type WorkerNode interface {
@@ -81,6 +84,13 @@ func ProvideWorkerNode(caCertificate cert.CACertificate, distributorMapper distr
 		"role":      "Control Plane",
 		"component": "node_pool",
 	})
+
+	cpuMetric, _ := meter.Int64Histogram(
+		metrics.GenerateControlPlaneMetric("node_available_cpu"),
+	)
+	memoryMetric, _ := meter.Int64Histogram(
+		metrics.GenerateControlPlaneMetric("node_available_memory"),
+	)
 	return &workerNode{
 		caCertificate:     caCertificate,
 		pool:              pool,
@@ -88,6 +98,8 @@ func ProvideWorkerNode(caCertificate cert.CACertificate, distributorMapper distr
 		grpcResolver:      grpcResolver,
 		metricCounter:     counter,
 		logger:            logger,
+		cpuMetric:         cpuMetric,
+		memoryMetric:      memoryMetric,
 	}
 }
 
@@ -180,6 +192,14 @@ func (w *workerNode) WorkerNodeAvailabilityCheck(ctx context.Context) {
 			AvailableCpuPercentage: resource.GetAvailableCpuPercentage(),
 			AvailableMemory:        util.ExtractMemoryUsageString(resource.GetAvailableMemory()),
 		}
+		w.memoryMetric.Record(ctx, int64(util.ExtractMemoryUsageString(resource.GetAvailableMemory()).Size),
+			metric.WithAttributes(attribute.String("nodeID", focusedNode.nodeEntry.NodeID)),
+			metric.WithAttributes(attribute.String("instance", focusedNode.nodeEntry.IP)),
+		)
+		w.cpuMetric.Record(ctx, resource.GetCpuCores(),
+			metric.WithAttributes(attribute.String("nodeID", focusedNode.nodeEntry.NodeID)),
+			metric.WithAttributes(attribute.String("instance", focusedNode.nodeEntry.IP)),
+		)
 		w.pool[key] = focusedNode
 	}
 }
