@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/resource-aware-jds/resource-aware-jds/models"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/datastructure"
+	"github.com/sirupsen/logrus"
 	"go.opentelemetry.io/otel/metric"
 )
 
@@ -23,8 +24,13 @@ func (r RoundRobinDistributor) Distribute(ctx context.Context, nodes []NodeMappe
 		return nil, nil, err
 	}
 
+	for _, node := range nodes {
+		logrus.Info("[Debug] NodeList: ", node.NodeEntry.NodeID)
+	}
+
 	for _, task := range tasks {
 		focusedNode := nodeRoundRobin.Next()
+		logrus.Info("[Debug] Focused Node: ", focusedNode.NodeEntry.NodeID)
 		r.distributeToNode(ctx, focusedNode, task, &successTask, &distributionError)
 	}
 	return successTask, distributionError, nil
