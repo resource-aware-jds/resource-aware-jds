@@ -83,7 +83,7 @@ func ProvideWorkerNode(caCertificate cert.CACertificate, distributorMapper distr
 		"component": "node_pool",
 	})
 
-	meter.Float64ObservableUpDownCounter( // nolint:errcheck
+	meter.Float64ObservableCounter( // nolint:errcheck
 		metrics.GenerateControlPlaneMetric("node_available_cpu"),
 		metric.WithFloat64Callback(func(ctx context.Context, observer metric.Float64Observer) error {
 			for _, node := range pool {
@@ -98,7 +98,7 @@ func ProvideWorkerNode(caCertificate cert.CACertificate, distributorMapper distr
 			return nil
 		}),
 	)
-	meter.Float64ObservableUpDownCounter( // nolint:errcheck
+	meter.Float64ObservableCounter( // nolint:errcheck
 		metrics.GenerateControlPlaneMetric("node_available_cpu"),
 		metric.WithUnit("mb"),
 		metric.WithFloat64Callback(func(ctx context.Context, observer metric.Float64Observer) error {
