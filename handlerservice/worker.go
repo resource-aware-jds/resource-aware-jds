@@ -185,7 +185,7 @@ func (w *Worker) SubmitSuccessTask(ctx context.Context, id string, results []byt
 		taskDereferenced.CancelFunc()
 		logrus.Info("Canceled the watcher loop")
 	}
-	logrus.Info("Task succeed with id: " + id)
+	logrus.Info("Task succeed with id: ", id, ", memory usage: ", util.MemoryToString(taskDereferenced.AverageResourceUsage.AverageMemoryUsage), ", cpu usage: ", float32(taskDereferenced.AverageResourceUsage.AverageCpuUsage))
 	_, err := w.controlPlaneGRPCClient.ReportSuccessTask(ctx, &proto.ReportSuccessTaskRequest{
 		Id:     id,
 		NodeID: w.workerNodeCertificate.GetNodeID(),
