@@ -39,10 +39,10 @@ func ProvideTaskService(taskRepository repository.ITask) Task {
 
 func (t *task) GetAvailableTask(ctx context.Context, jobs []models.Job) (*models.Job, []models.Task, error) {
 	// Distribute Based on Job
-	for _, job := range jobs {
-		tasks, err := t.taskRepository.GetTaskToDistributeForJob(ctx, job.ID)
+	for _, innerJob := range jobs {
+		tasks, err := t.taskRepository.GetTaskToDistributeForJob(ctx, innerJob.ID)
 		if len(tasks) != 0 || err != nil {
-			return &job, tasks, err
+			return &innerJob, tasks, err
 		}
 	}
 	return nil, nil, nil
