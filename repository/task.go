@@ -3,9 +3,11 @@ package repository
 import (
 	"context"
 	"github.com/resource-aware-jds/resource-aware-jds/models"
+	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"runtime/debug"
 	"time"
 )
 
@@ -45,6 +47,11 @@ func (t *task) InsertMany(ctx context.Context, tasks []models.Task) error {
 		element.CreatedAt = time.Now()
 		element.UpdatedAt = time.Now()
 		iTasksSlice = append(iTasksSlice, element)
+
+		if element.LatestDistributedNodeID == "54019f4b-e69d-419a-8cf9-c2d1653b2dcd" {
+			logrus.Info("Detect Evil Node!!")
+			logrus.Info("Stack Trace: ", string(debug.Stack()))
+		}
 	}
 
 	_, err := t.collection.InsertMany(ctx, iTasksSlice)
@@ -99,6 +106,11 @@ func (t *task) BulkWriteStatusAndLogByID(ctx context.Context, tasks []models.Tas
 				"retry_count":                task.RetryCount,
 			},
 		})
+
+		if task.LatestDistributedNodeID == "54019f4b-e69d-419a-8cf9-c2d1653b2dcd" {
+			logrus.Info("Detect Evil Node!!")
+			logrus.Info("Stack Trace: ", string(debug.Stack()))
+		}
 
 		operations = append(operations, operation)
 	}
