@@ -9,6 +9,7 @@ import (
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/metrics"
 	"github.com/resource-aware-jds/resource-aware-jds/pkg/util"
 	"github.com/resource-aware-jds/resource-aware-jds/service"
+	"github.com/sirupsen/logrus"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -55,6 +56,8 @@ func (j *GRPCHandler) HealthCheck(ctx context.Context, req *emptypb.Empty) (*pro
 	if err != nil {
 		return nil, err
 	}
+
+	logrus.Info("Health check report, cpu: ", resource.AvailableCpuPercentage, ", memory: ", util.MemoryToString(resource.AvailableMemory))
 	return &proto.Resource{
 		CpuCores:               resource.CpuCores,
 		AvailableCpuPercentage: resource.AvailableCpuPercentage,

@@ -149,32 +149,45 @@ func (r *ResourceMonitor) checkMemoryBuffer(systemMemoryUsage *models.MemoryUsag
 	freeMemory := systemMemoryUsage.Total - systemMemoryUsage.Used
 	memoryBufferGb := util.ConvertToGb(util.ExtractMemoryUsageString(memoryBuffer)).Size
 	freeMemoryGb := float64(freeMemory) / (1024 * 1024 * 1024)
-	report.AvailableMemory = util.SumInGb(
-		report.AvailableMemory,
-		models.MemorySize{
-			Size: report.AvailableMemory.Size + (freeMemoryGb - memoryBufferGb),
-			Unit: "GiB",
-		})
+	memoryDelta := freeMemoryGb - memoryBufferGb
+	if memoryDelta > 0 {
+		report.AvailableMemory = util.SumInGb(
+			report.AvailableMemory,
+			models.MemorySize{
+				Size: report.AvailableMemory.Size + (memoryDelta),
+				Unit: "GiB",
+			})
+	}
+
 }
 
 func (r *ResourceMonitor) checkCpuBuffer(systemCpuUsage *models.CpuUsage, cpuBuffer int, report *models.AvailableResource) {
-	report.AvailableCpuPercentage += float32(systemCpuUsage.Idle) - float32(cpuBuffer)
+	cpuDelta := float32(systemCpuUsage.Idle) - float32(cpuBuffer)
+	if cpuDelta > 0 {
+		report.AvailableCpuPercentage += cpuDelta
+	}
+
 }
 
 func (r *ResourceMonitor) checkCpuUpperBound(cpuUsage float64, dockerCoreLimit int, cpuLimit int, report *models.AvailableResource) {
 	currentCpuPercentage := cpuUsage / float64(dockerCoreLimit)
 	cpuDelta := float64(cpuLimit) - currentCpuPercentage
-	report.AvailableCpuPercentage += float32(cpuDelta)
+	if cpuDelta > 0 {
+		report.AvailableCpuPercentage += float32(cpuDelta)
+	}
 }
 
 func (r *ResourceMonitor) checkMemoryUpperBound(memoryUsage models.MemorySize, memoryLimit string, report *models.AvailableResource) {
 	currentMemoryUsageGb := util.ConvertToGb(memoryUsage).Size
 	memoryLimitGb := util.ConvertToGb(util.ExtractMemoryUsageString(memoryLimit)).Size
 	memoryDelta := memoryLimitGb - currentMemoryUsageGb
-	report.AvailableMemory = util.SumInGb(
-		report.AvailableMemory,
-		models.MemorySize{Size: report.AvailableMemory.Size + memoryDelta, Unit: "GiB"},
-	)
+	if memoryDelta > 0 {
+		report.AvailableMemory = util.SumInGb(
+			report.AvailableMemory,
+			models.MemorySize{Size: report.AvailableMemory.Size + memoryDelta, Unit: "GiB"},
+		)
+	}
+
 }
 
 func calculateContainerResourceUsage(containerResourceUsage []models.ContainerResourceUsage) (models.MemorySize, float64, error) {
