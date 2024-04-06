@@ -52,6 +52,7 @@ type workerNode struct {
 	grpcResolver      grpc.RAJDSGRPCResolver
 	metricCounter     metric.Int64ObservableCounter
 	logger            *logrus.Entry
+	meter             metric.Meter
 }
 
 type WorkerNode interface {
@@ -83,38 +84,6 @@ func ProvideWorkerNode(caCertificate cert.CACertificate, distributorMapper distr
 		"component": "node_pool",
 	})
 
-	meter.Float64ObservableCounter( // nolint:errcheck
-		metrics.GenerateControlPlaneMetric("node_available_cpu"),
-		metric.WithFloat64Callback(func(ctx context.Context, observer metric.Float64Observer) error {
-			for _, node := range pool {
-				observer.Observe(
-					float64(node.availableResource.AvailableCpuPercentage),
-					metric.WithAttributes(
-						attribute.String("nodeID", node.nodeEntry.NodeID),
-						attribute.String("ip", node.nodeEntry.IP),
-					),
-				)
-			}
-			return nil
-		}),
-	)
-	meter.Float64ObservableCounter( // nolint:errcheck
-		metrics.GenerateControlPlaneMetric("node_available_cpu"),
-		metric.WithUnit("mb"),
-		metric.WithFloat64Callback(func(ctx context.Context, observer metric.Float64Observer) error {
-			for _, node := range pool {
-				observer.Observe(
-					util.ConvertToMib(node.availableResource.AvailableMemory).Size,
-					metric.WithAttributes(
-						attribute.String("nodeID", node.nodeEntry.NodeID),
-						attribute.String("ip", node.nodeEntry.IP),
-					),
-				)
-			}
-			return nil
-		}),
-	)
-
 	return &workerNode{
 		caCertificate:     caCertificate,
 		pool:              pool,
@@ -122,6 +91,7 @@ func ProvideWorkerNode(caCertificate cert.CACertificate, distributorMapper distr
 		grpcResolver:      grpcResolver,
 		metricCounter:     counter,
 		logger:            logger,
+		meter:             meter,
 	}
 }
 
@@ -178,6 +148,30 @@ func (w *workerNode) AddWorkerNode(ctx context.Context, node models.NodeEntry) e
 		logger:         logger,
 	}
 	w.poolMu.Unlock()
+
+	w.meter.Float64ObservableUpDownCounter( //nolint:errcheck
+		metrics.GenerateControlPlaneMetric("worker_available_cpu"),
+		metric.WithFloat64Callback(func(ctx context.Context, observer metric.Float64Observer) error {
+			observer.Observe(
+				float64(w.pool[node.NodeID].availableResource.AvailableCpuPercentage),
+				metric.WithAttributes(attribute.String("nodeID", node.NodeID)),
+				metric.WithAttributes(attribute.String("ip", node.IP)),
+			)
+			return nil
+		}),
+	)
+
+	w.meter.Float64ObservableUpDownCounter( //nolint:errcheck
+		metrics.GenerateControlPlaneMetric("worker_available_memory"),
+		metric.WithFloat64Callback(func(ctx context.Context, observer metric.Float64Observer) error {
+			observer.Observe(
+				util.ConvertToMib(w.pool[node.NodeID].availableResource.AvailableMemory).Size,
+				metric.WithAttributes(attribute.String("nodeID", node.NodeID)),
+				metric.WithAttributes(attribute.String("ip", node.IP)),
+			)
+			return nil
+		}),
+	)
 
 	logger.Infof("A Worker has been added to the pool")
 	return nil
