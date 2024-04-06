@@ -79,7 +79,7 @@ func InitializeApplication() (ControlPlaneApp, func(), error) {
 	cpTaskWatcher := service.ProvideCPTaskWatcher(task, taskWatcherConfigModel)
 	daemonIControlPlane, cleanup4 := daemon.ProvideControlPlaneDaemon(workerNode, iControlPlane, task, job, cpTaskWatcher, controlPlaneConfigModel)
 	httpHandler := http2.ProvideHTTPHandler(job, task)
-	nodeHandler := http2.ProvideNodeHandler(workerNode)
+	nodeHandler := http2.ProvideNodeHandler(workerNode, cpTaskWatcher)
 	handler := http2.ProvideHandler(httpHandler, nodeHandler)
 	routerResult := http2.ProvideHTTPRouter(handler, server)
 	observerInit := ProvideObserverInit(taskEventBus, cpTaskWatcher)

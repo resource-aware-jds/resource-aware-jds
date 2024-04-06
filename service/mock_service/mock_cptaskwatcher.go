@@ -53,6 +53,20 @@ func (mr *MockCPTaskWatcherMockRecorder) AddTaskToWatch(taskID any) *gomock.Call
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddTaskToWatch", reflect.TypeOf((*MockCPTaskWatcher)(nil).AddTaskToWatch), taskID)
 }
 
+// GetTaskUnderWatch mocks base method.
+func (m *MockCPTaskWatcher) GetTaskUnderWatch() []string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetTaskUnderWatch")
+	ret0, _ := ret[0].([]string)
+	return ret0
+}
+
+// GetTaskUnderWatch indicates an expected call of GetTaskUnderWatch.
+func (mr *MockCPTaskWatcherMockRecorder) GetTaskUnderWatch() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTaskUnderWatch", reflect.TypeOf((*MockCPTaskWatcher)(nil).GetTaskUnderWatch))
+}
+
 // OnEvent mocks base method.
 func (m *MockCPTaskWatcher) OnEvent(arg0 context.Context, arg1 models.TaskEventBus) error {
 	m.ctrl.T.Helper()

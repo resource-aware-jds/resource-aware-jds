@@ -26,6 +26,7 @@ func ProvideHTTPRouter(handler Handler, server httpServer.Server) RouterResult {
 	node := server.Engine().Group("/node")
 	{
 		node.GET("/", handler.nodePoolHandler.GetNodes)
+		node.GET("/task-watch", handler.nodePoolHandler.GetTaskWatcher)
 	}
 	return true
 }

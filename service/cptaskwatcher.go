@@ -27,6 +27,7 @@ type CPTaskWatcher interface {
 
 	AddTaskToWatch(taskID primitive.ObjectID)
 	WatcherLoop(ctx context.Context)
+	GetTaskUnderWatch() []string
 }
 
 func ProvideCPTaskWatcher(taskService Task, config config.TaskWatcherConfigModel) CPTaskWatcher {
@@ -80,4 +81,13 @@ func (c *cpTaskWatcher) WatcherLoop(ctx context.Context) {
 			}
 		}
 	}()
+}
+
+func (c *cpTaskWatcher) GetTaskUnderWatch() []string {
+	result := make([]string, 0, len(c.taskBuffer))
+	for taskID := range c.taskBuffer {
+		result = append(result, taskID.Hex())
+	}
+
+	return result
 }
