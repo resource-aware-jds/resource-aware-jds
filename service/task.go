@@ -171,6 +171,11 @@ func (t *task) UpdateTaskWaitTimeout(ctx context.Context, taskID primitive.Objec
 		return err
 	}
 
+	if task.Status == models.SuccessTaskStatus {
+		logrus.Warn("The task status is already successed")
+		return nil
+	}
+
 	task.CPWaitTimeout()
 	return t.taskRepository.WriteTaskResult(ctx, *task)
 }
